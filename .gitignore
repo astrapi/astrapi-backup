@@ -94,3 +94,5 @@ dmypy.json
 # Backup files
 *~
 
+config/rsync.yaml
+config/proxmox.yaml

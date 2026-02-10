@@ -20,7 +20,8 @@ def run_cmd_local(cmd, env=None):
     final_cmd = ["bash", "-c", cmd]
 
     if config.debug:
-        log("DEBUG", final_cmd)
+        log_cmd = " ".join(final_cmd)
+        log("DEBUG", log_cmd)
         return True
 
     result = subprocess.run(final_cmd, check=True, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -30,7 +31,8 @@ def run_cmd_remote(cmd, connection, env=None):
     final_cmd = ["ssh", "-o", "BatchMode=yes", connection, cmd]
 
     if config.debug:
-        log("DEBUG", final_cmd)
+        log_cmd = " ".join(final_cmd)
+        log("DEBUG", log_cmd)
         return True
 
     result = subprocess.run( final_cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)

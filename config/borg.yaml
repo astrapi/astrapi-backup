@@ -1,5 +1,5 @@
 test:
-  enabled: false
+  enabled: true
   description: "Firewall borg backup"
   source_host: local
   source_path: /tmp/backup
@@ -108,3 +108,16 @@ movies:
   source_path: /storage/video/movies
   target_host: backup02.simpsons.lan
   target_path: /storage/borg/movies
+
+kamera:  
+  enabled: true
+  description: "Kamera borg backup"
+  source_host: syncthing.simpsons.lan
+  source_path: /storage/kamera
+  target_host: backup01.simpsons.lan
+  target_path: /storage/borg/kamera
+  exclude:
+    - "*/.stfolder*"
+    - "*/.trashed*"
+    - "*/.ttx*"
+    - "*/thumbnails*"

@@ -67,6 +67,12 @@ def _backup(entry):
         "--exclude", "'*/lost+found'"
     ]
 
+    if entry.get("exclude"):
+       excludes = entry.get("exclude", [])
+
+       for pattern in excludes:
+        base_cmd.extend(["--exclude", f"'{pattern}'"])
+
     if connection == "local":
         cmd = [
             *base_cmd,
@@ -85,7 +91,7 @@ def _backup(entry):
         result = run_cmd(cmd, connection, env=env)
         log("INFO", f"Borg-Backup erfolgreich.")
     except subprocess.CalledProcessError as e:
-        log("WARNING", "Borg-Backup fehlgeschlagen:")
+        log("WARNING", f"Borg-Backup fehlgeschlagen: {entry.get('target_host')}:{entry.get('target_path')}")
         if e.stderr:
             log("ERROR", e.stderr.strip())
         else:
@@ -128,7 +134,7 @@ def _prune(entry):
         result = run_cmd(cmd, connection, env=env)
         log("INFO", f"Borg-Prune erfolgreich.")
     except subprocess.CalledProcessError as e:
-        log("WARNING", "Borg-Prune fehlgeschlagen:")
+        log("WARNING", f"Borg-Prune fehlgeschlagen: {entry.get('target_host')}:{entry.get('target_path')}")
         if e.stderr:
             log("ERROR", e.stderr.strip())
         else:

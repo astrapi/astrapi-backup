@@ -64,6 +64,28 @@ cloud:
     target_host: backup03.simpsons.lan
     target_path: /storage/borg/cloud/
 
+kamera:
+  - enabled: true
+    description: "Kamera → Backup02 Hauptspeicher"
+    source_host: local
+    source_path: /storage/borg/kamera/
+    target_host: backup02.simpsons.lan
+    target_path: /storage/borg/kamera/
+
+  - enabled: true
+    description: "Kamera → Backup02 externes Storage"
+    source_host: backup02.simpsons.lan
+    source_path: /storage/borg/kamera/
+    target_host: local
+    target_path: /storage_extern/borg/kamera/
+
+  - enabled: true
+    description: "Kamera → Backup03 Hauptspeicher"
+    source_host: local
+    source_path: /storage/borg/kamera/
+    target_host: backup03.simpsons.lan
+    target_path: /storage/borg/kamera/
+
 family:
   - enabled: true
     description: "Family → lokales externes Storage"

@@ -26,11 +26,11 @@ jobs:
       name: sync-storage-host
       host: backup02
 
-    - enabled: true
+    - enabled: false
       name: sync-extern-ct
       host: backup02
 
-    - enabled: true
+    - enabled: false
       name: sync-extern-host
       host: backup02
 
@@ -71,6 +71,11 @@ lxc:
   1006:
     name: adguard
     node: proxmox03
+    enabled: true
+
+  1007:
+    name: syncthing
+    node: proxmox02
     enabled: true
 
   1008:
