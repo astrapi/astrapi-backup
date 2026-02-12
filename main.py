@@ -1,148 +1,183 @@
-#!/usr/bin/env python3
-import subprocess
-import time
+# main.py
+from pathlib import Path
 import yaml
-import concurrent.futures
-from datetime import datetime
+import logging
 
-from modules import proxmox
-from modules import borg
-from modules import rsync
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
+from starlette.middleware.wsgi import WSGIMiddleware
+import uvicorn
 
-from helpers.logger import log, get_ntfy_logs
-from helpers.notify import notify_ntfy
+from flask import Flask, render_template, send_from_directory, abort
 
-import argparse
-from config import config 
+# -------------------------
+# Projektpfade
+# -------------------------
+ROOT = Path(__file__).resolve().parent
+TEMPLATES_DIR = ROOT / "templates"
+STATIC_DIR = ROOT / "static"
+CONFIG_DIR = ROOT / "config"
 
-BACKUP02_HOST = "backup02.simpsons.lan"
-BACKUP02_USER = "backupadm"
+# -------------------------
+# Hilfsfunktionen
+# -------------------------
+def load_yaml(path: Path):
+    if not path.exists():
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+    except Exception:
+        logging.exception("Fehler beim Laden von YAML: %s", path)
+        return {}
 
-with open("config/borg.yaml", "r") as f: 
-    BORG_CONFIG = yaml.safe_load(f)
+# -------------------------
+# Flask UI App (exportiert app)
+# -------------------------
+flask_app = Flask(
+    __name__,
+    template_folder=str(TEMPLATES_DIR),
+    static_folder=str(STATIC_DIR),
+    static_url_path="/static"
+)
 
-def parse_args(): 
-    parser = argparse.ArgumentParser(description="Backup / Sync Tool") 
-    #parser.add_argument("--dry", action="store_true") 
-    #parser.add_argument("--verbose", "-v", action="store_true") 
-    parser.add_argument("--debug", action="store_true") 
-    parser.add_argument("--borg", action="store_true", help="Führe borg Backups aus")
-    parser.add_argument("--rsync", action="store_true", help="Führe rsync Synchronisationen aus")
-    parser.add_argument("--proxmox", action="store_true", help="Führe Proxmox Backups aus")
-    return parser.parse_args()
+@flask_app.context_processor
+def inject_common():
+    # Globale Template-Variablen (kann erweitert werden)
+    return {"app_name": "backupctl"}
 
-def power_on_backup02():
-    subprocess.run(["wakeonlan", "68:05:ca:3e:99:7b"], check=True)
-    log("→ backup02 gestartet (Wake-on-LAN gesendet)")
+# Root UI (Standard: Borg tab)
+@flask_app.route("/")
+def index():
+    return render_template("index.html",
+                           user="ottoadm",
+                           active_tab="borg",
+                           initial_content_url="/api/tabs/borg")
 
-def wait_for_backup02():
-    log("→ Warte bis backup02 erreichbar ist …")
-    while True:
-        result = subprocess.run(
-            ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5",
-             f"{BACKUP02_USER}@{BACKUP02_HOST}", "echo ok"],
-            capture_output=True, text=True
-        )
-        if result.returncode == 0 and "ok" in result.stdout:
-            log("✔ backup02 ist online")
-            break
-        time.sleep(10)
+# Top-level UI routes so direct URLs work (Variante A)
+@flask_app.route("/borg")
+def page_borg():
+    return render_template("index.html",
+                           user="ottoadm",
+                           active_tab="borg",
+                           initial_content_url="/api/tabs/borg")
 
-def run_script(script):
-    log(f"→ Starte {script}")
-    result = subprocess.run(["python3", script], capture_output=True, text=True)
-    if result.returncode == 0:
-        log(f"✔ {script} erfolgreich beendet")
-    else:
-        log(f"✘ Fehler in {script}")
-        print(result.stderr)
+@flask_app.route("/proxmox", defaults={"subpath": ""})
+@flask_app.route("/proxmox/<path:subpath>")
+def page_proxmox_sub(subpath: str):
+    """
+    Liefert die UI-Shell für /proxmox und alle Unterpfade.
+    Bestimmt initial_content_url anhand des Unterpfads.
+    """
+    # Normalisiere Pfad
+    key = subpath.strip("/").lower()
 
-def power_off_backup02():
-    subprocess.run(
-        ["ssh", f"{BACKUP02_USER}@{BACKUP02_HOST}", "sudo shutdown -h now"],
-        check=True
-    )
-    log("→ backup02 heruntergefahren")
+    # Mapping Unterpfad -> api/tabs URL
+    mapping = {
+        "": "/api/tabs/proxmox/jobs",        # /proxmox -> jobs standard
+        "jobs": "/api/tabs/proxmox/jobs",
+        "lxc": "/api/tabs/proxmox/lxc",
+        "hosts": "/api/tabs/proxmox/hosts",
+    }
 
-def format_duration(duration):
-    total_seconds = int(duration.total_seconds())
-
-    hours = total_seconds // 3600
-    minutes = (total_seconds % 3600) // 60
-    seconds = total_seconds % 60
-
-    parts = []
-
-    # Stunden
-    if hours > 0:
-        if hours == 1:
-            parts.append("1 Stunde")
-        else:
-            parts.append(f"{hours} Stunden")
-
-    # Minuten
-    if minutes > 0:
-        if minutes == 1:
-            parts.append("1 Minute")
-        else:
-            parts.append(f"{minutes} Minuten")
-
-    # Sekunden
-    if seconds > 0:
-        if seconds == 1:
-            parts.append("1 Sekunde")
-        else:
-            parts.append(f"{seconds} Sekunden")
-
-    # Falls alles 0 ist
-    if not parts:
-        return "0 Sekunden"
-
-    return " und ".join(parts)
+    initial = mapping.get(key, "/api/tabs/proxmox/jobs")  # default fallback
+    return render_template("index.html",
+                           user="ottoadm",
+                           active_tab="proxmox",
+                           initial_content_url=initial)
 
 
+@flask_app.route("/rsync")
+def page_rsync():
+    return render_template("index.html",
+                           user="ottoadm",
+                           active_tab="rsync",
+                           initial_content_url="/api/tabs/rsync")
 
-def main():
+# # HTMX partial: Borg list (backwards compatibility, optional)
+# @flask_app.route("/borg/list")
+# def borg_list():
+#     cfg = load_yaml(CONFIG_DIR / "borg.yaml")
+#     # _borg_list.html sollte ein wrapper-element mit data-active="borg" enthalten
+#     return render_template("_borg_list.html", jobs=cfg)
 
-    args = parse_args() 
-    config.debug = args.debug
-    config.borg = args.borg
-    config.rsync = args.rsync
-    config.proxmox = args.proxmox
+# # HTMX partial: Proxmox list (Platzhalter)
+# @flask_app.route("/proxmox/list")
+# def proxmox_list():
+#     return render_template("_empty_section.html",
+#                            title="Proxmox",
+#                            message="Proxmox placeholder",
+#                            data_active="proxmox")
 
-    start_time = datetime.now()
-    log("START", f"{start_time.strftime('%d.%m.%Y %H:%M:%S')}")
-    if not config.debug:
-        notify_ntfy(get_ntfy_logs("START"), priority="low")
+# # HTMX partial: Rsync list (Platzhalter)
+# @flask_app.route("/rsync/list")
+# def rsync_list():
+#     return render_template("_empty_section.html",
+#                            title="Rsync",
+#                            message="Rsync placeholder",
+#                            data_active="rsync")
 
-    if not config.debug:
-        power_on_backup02()
-        wait_for_backup02()
+# Optional: favicon (falls nicht in /static automatisch)
+@flask_app.route("/favicon.ico")
+def favicon():
+    fav_dir = STATIC_DIR / "favicon"
+    if (fav_dir / "favicon-32x32.png").exists():
+        return send_from_directory(str(fav_dir), "favicon-32x32.png")
+    abort(404)
 
-    no_args = not args.borg and not args.rsync and not args.proxmox
+# -------------------------
+# FastAPI App (API + Static mount + WSGI mount)
+# -------------------------
+# Setze docs- und openapi-URLs unter /api
+app = FastAPI(
+    title="backupctl API + UI",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json"
+)
 
-    if args.borg or no_args: 
-        borg.run() 
-        
-    if args.rsync or no_args: 
-        rsync.run()
+# 1) StaticFiles mount muss VOR dem WSGI-Mount stehen
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-    if args.proxmox or no_args: 
-        proxmox.run()
+# 2) API-Router einbinden (muss VOR dem WSGI-Mount passieren)
+try:
+    # from api.routers import borg as borg_router
+    # from api.routers import proxmox as proxmox_router
+    # from api.routers import rsync as rsync_router
+    from api.routers import tabs as tabs_router
+    from api.routers.config import config_router
 
-    if not config.debug:
-        power_off_backup02()
+    # app.include_router(borg_router.router, prefix="/api", tags=["borg"])
+    # app.include_router(proxmox_router.router, prefix="/api", tags=["proxmox"])
+    # app.include_router(rsync_router.router, prefix="/api", tags=["rsync"])
+    app.include_router(tabs_router.router)  # bindet /api/tabs/*
 
-    end_time = datetime.now()
-    log("END", f"{end_time.strftime('%d.%m.%Y %H:%M:%S')} \nDauer: {format_duration(end_time - start_time)}")
+    resources = [ "borg", "proxmox_jobs", "proxmox_lxc", "proxmox_hosts", "rsync", ]
+    for name in resources: 
+        router = config_router(name, tag=name) 
+        app.include_router(router, prefix=f"/api/config/{name}")
 
-    if not config.debug:
-        notify_ntfy(get_ntfy_logs("WARNING"), priority="high")
+except Exception:
+    logging.exception("API-Router konnten nicht eingebunden werden. Prüfe api/routers/*")
 
-    time.sleep(1)
+# 3) /api root: Redirect auf /api/docs (oder gib Info zurück)
+@app.get("/api")
+def api_root():
+    # Redirect zur Swagger UI
+    return RedirectResponse(url="/api/docs")
 
-    if not config.debug:
-        notify_ntfy(get_ntfy_logs("END"), priority="low")
+# 4) Kleiner health endpoint unter /api
+@app.get("/api/health")
+def health():
+    return {"status": "ok"}
 
+# 5) Mount Flask UI unter Root (als letztes)
+app.mount("/", WSGIMiddleware(flask_app))
+
+# -------------------------
+# CLI / Debug Start
+# -------------------------
 if __name__ == "__main__":
-    main()
+    # Für Entwicklung: uvicorn startet die kombinierte App
+    uvicorn.run("main:app", host="0.0.0.0", port=8888, reload=True)

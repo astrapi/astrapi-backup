@@ -1,0 +1,66 @@
+<!-- Navigation buttons only (extracted from navigation.html) -->
+<nav class="mt-4">
+    <div class="px-2 sm:px-4 space-y-1 sm:space-y-2">
+        <button hx-get="/api/tabs/borg"
+                hx-target="#main-content"
+                hx-swap="innerHTML"
+                hx-push-url="/borg"
+                id="nav-borg"
+                class="nav-item {% if active_tab == 'borg' %}active{% endif %} w-full text-left px-2 sm:px-3 py-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-700 dark:hover:text-blue-400 flex items-center space-x-2 sm:space-x-3">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2V7z">
+                </path>
+            </svg>
+            <span>Borg</span>
+        </button>
+        <button hx-get="/api/tabs/proxmox/jobs"
+                hx-target="#main-content"
+                hx-swap="innerHTML"
+                hx-push-url="/proxmox/jobs"
+                id="nav-proxmox-jobs"
+                class="nav-item {% if active_tab == 'proxmox_jobs' %}active{% endif %} w-full text-left px-2 sm:px-3 py-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-700 dark:hover:text-blue-400 flex items-center space-x-2 sm:space-x-3">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2V7z">
+                </path>
+            </svg>
+            <span>Proxmox Jobs</span>
+        </button>
+        <button hx-get="/api/tabs/proxmox/lxc"
+                hx-target="#main-content"
+                hx-swap="innerHTML"
+                hx-push-url="/proxmox/lxc"
+                id="nav-proxmox-lxc"
+                class="nav-item {% if active_tab == 'proxmox_lxc' %}active{% endif %} w-full text-left px-2 sm:px-3 py-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-700 dark:hover:text-blue-400 flex items-center space-x-2 sm:space-x-3">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2V7z">
+                </path>
+            </svg>
+            <span>Proxmox LXC</span>
+        </button>
+        <button hx-get="/api/tabs/proxmox/hosts"
+                hx-target="#main-content"
+                hx-swap="innerHTML"
+                hx-push-url="/proxmox/hosts"
+                id="nav-proxmox-hosts"
+                class="nav-item {% if active_tab == 'proxmox_hosts' %}active{% endif %} w-full text-left px-2 sm:px-3 py-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-700 dark:hover:text-blue-400 flex items-center space-x-2 sm:space-x-3">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2V7z">
+                </path>
+            </svg>
+            <span>Proxmox Hosts</span>
+        </button>
+        <button hx-get="/api/tabs/rsync"
+                hx-target="#main-content"
+                hx-swap="innerHTML"
+                hx-push-url="/rsync"
+                id="nav-rsync"
+                class="nav-item {% if active_tab == 'rsync' %}active{% endif %} w-full text-left px-2 sm:px-3 py-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-700 dark:hover:text-blue-400 flex items-center space-x-2 sm:space-x-3">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2V7z">
+                </path>
+            </svg>
+            <span>Rsync</span>
+        </button>
+    </div>
+    <div class="pb-2 sm:pb-4"></div>
+</nav>

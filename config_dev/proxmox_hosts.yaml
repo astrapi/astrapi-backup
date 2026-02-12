@@ -1,0 +1,26 @@
+proxmox01:
+  enabled: true
+  source:
+    - "cluster.pxar:/var/lib/pve-cluster"
+proxmox02:
+  enabled: true
+  source:
+    - "cluster.pxar:/var/lib/pve-cluster"
+proxmox03:
+  enabled: true
+  source:
+    - "cluster.pxar:/var/lib/pve-cluster"
+local:
+  enabled: true
+  source:
+    - "backupadm.pxar:/var/lib/backupadm"
+backup02:
+  enabled: true         
+backup03:
+  enabled: true
+vpn:
+  enabled: true
+nfs01:
+  enabled: true
+nfs02:
+  enabled: true
