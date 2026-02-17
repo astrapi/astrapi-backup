@@ -15,9 +15,9 @@
   <link rel="manifest" href="{{ url_for('static', filename='favicon/site.webmanifest') }}">-->
 
   <!-- HTMX + extensions -->
-  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+<!--   <script src="https://unpkg.com/htmx.org@1.9.10"></script>
   <script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
-  <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
+  <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script> -->
 
   <!-- Tailwind (configures dark mode via class) -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -29,70 +29,64 @@
 
   <!-- Borgitory component CSS (modern-components) -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/modern-components.css') }}">
+
+  <script src="{{ url_for('static', filename='js/tailwind-theme.js') }}"></script>
+
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: window.tailwindTheme
+    }
+  }
+</script>
+
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 min-h-screen">
 
-  <nav class="bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between h-16">
-        <div class="flex items-center">
-          <!-- Hamburger Menu Button (Mobile Only) -->
-          <button id="mobile-menu-button"
-                  hx-on:click=" document.getElementById('sidebar').classList.toggle('mobile-open'); document.getElementById('sidebar-overlay').classList.toggle('hidden'); document.getElementById('sidebar-overlay').classList.toggle('show'); document.getElementById('hamburger-icon').classList.toggle('hidden'); document.getElementById('close-icon').classList.toggle('hidden'); document.body.classList.toggle('mobile-sidebar-open'); this.setAttribute('aria-expanded', this.getAttribute('aria-expanded') === 'true' ? 'false' : 'true'); "
-                  class="lg:hidden mr-3 p-2 rounded-md text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
-                  aria-expanded="false" aria-controls="mobile-sidebar">
-            <span class="sr-only">Open sidebar</span>
-            <!-- Hamburger Icon -->
-            <svg id="hamburger-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-            </svg>
-            <!-- Close Icon (hidden by default) -->
-            <svg id="close-icon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
+<body class="min-h-screen">
 
-          <div class="flex items-center">
-            <!-- <img src="{{ url_for('static', filename='favicon/favicon-32x32.png') }}" alt="Borgitory Logo" class="w-8 h-8 mr-3" width="32" height="32"> -->
-            <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Backup Control</h1>
-          </div>
-        </div>
+<nav class="bg-white dark:bg-darkPanel shadow-sm">
+  <div class="px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between h-16">
 
-        <div class="flex items-center space-x-4">
-          {% if current_user %}
-            <span class="text-sm text-gray-700 dark:text-gray-300"> Welcome, <span class="font-medium">{{ current_user.username }}</span> </span>
-            <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition-colors"> Logout </button>
-          {% endif %}
-        </div>
 
-            <!-- Dark Mode Toggle -->
-            <button onclick="toggleDarkMode()"
-                    id="dark-mode-toggle"
-                    class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    title="Toggle dark mode">
-                <!-- Sun icon (shown in dark mode) -->
-                <svg id="sun-icon"
-                     class="w-5 h-5 text-yellow-500 hidden dark:block"
-                     fill="none"
-                     stroke="currentColor"
-                     viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z">
-                    </path>
-                </svg>
-                <!-- Moon icon (shown in light mode) -->
-                <svg id="moon-icon"
-                     class="w-5 h-5 text-gray-600 dark:text-gray-400 block dark:hidden"
-                     fill="none"
-                     stroke="currentColor"
-                     viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z">
-                    </path>
-                </svg>
-            </button>
+      <div class="flex items-center">
+
+        <!-- Hamburger Menu Button (Mobile Only) -->
+        <button id="mobile-menu-button"
+                hx-on:click=" document.getElementById('sidebar').classList.toggle('mobile-open'); document.getElementById('sidebar-overlay').classList.toggle('hidden'); document.getElementById('sidebar-overlay').classList.toggle('show'); document.getElementById('hamburger-icon').classList.toggle('hidden'); document.getElementById('close-icon').classList.toggle('hidden'); document.body.classList.toggle('mobile-sidebar-open'); this.setAttribute('aria-expanded', this.getAttribute('aria-expanded') === 'true' ? 'false' : 'true'); "
+                class="lg:hidden mr-3 p-2 rounded-md text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+                aria-expanded="false" aria-controls="mobile-sidebar">
+          <span class="sr-only">Open sidebar</span>
+
+          <!-- Hamburger Icon -->
+          <svg id="hamburger-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+
+          <!-- Close Icon -->
+          <svg id="close-icon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+
+        <!-- Dein SVG Logo + Link -->
+        <a href="/" class="flex items-center gap-3">
+          <svg class="w-8 h-8 text-gray-900 dark:text-gray-100"
+               viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 10.4167C3 7.21907 3 5.62028 3.37752 5.08241C3.75503 4.54454 5.25832 4.02996 8.26491 3.00079L8.83772 2.80472C10.405 2.26824 11.1886 2 12 2C12.8114 2 13.595 2.26824 15.1623 2.80472L15.7351 3.00079C18.7417 4.02996 20.245 4.54454 20.6225 5.08241C21 5.62028 21 7.21907 21 10.4167C21 10.8996 21 11.4234 21 11.9914C21 17.6294 16.761 20.3655 14.1014 21.5273C13.38 21.8424 13.0193 22 12 22C10.9807 22 10.62 21.8424 9.89856 21.5273C7.23896 20.3655 3 17.6294 3 11.9914C3 11.4234 3 10.8996 3 10.4167Z" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+
+          <span class="text-xl font-semibold text-gray-900 dark:text-gray-100"> Backup Control </span>
+        </a>
 
       </div>
+
     </div>
-  </nav>
+  </div>
+</nav>
+
+
 
   <main>
     {% block content %} {% endblock content %}
@@ -100,7 +94,7 @@
 
   <!-- <div id="notification-area" class="fixed top-4 right-4 z-50"></div> -->
 
-  <!-- Timezone Detection Script -->
+  <!-- Timezone Detection Script
   <script>
     function getBrowserTimezoneOffset() { return new Date().getTimezoneOffset(); }
     function setCookie(name, value, days = 30) {
@@ -113,7 +107,7 @@
       setCookie('browser_timezone_offset', timezoneOffset.toString());
     }
     document.addEventListener('DOMContentLoaded', setupTimezoneCookie);
-  </script>
+  </script> -->
 
   <!-- Component JavaScript Files (Borgitory) -->
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
@@ -123,20 +117,20 @@
   <script>
 
     // Logout function
-    async function logout() {
-      try {
-        const response = await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
-        if (response.ok) {
-          showHTMXNotification('Logged out successfully', 'success');
-          setTimeout(() => { window.location.href = '/login'; }, 1000);
-        } else {
-          showHTMXNotification('Logout failed', 'error');
-        }
-      } catch (error) {
-        console.error('Logout error:', error);
-        showHTMXNotification('Logout failed', 'error');
-      }
-    }
+    //async function logout() {
+    //  try {
+    //    const response = await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
+    //    if (response.ok) {
+    //      showHTMXNotification('Logged out successfully', 'success');
+    //      setTimeout(() => { window.location.href = '/login'; }, 1000);
+    //    } else {
+    //      showHTMXNotification('Logout failed', 'error');
+    //    }
+    //  } catch (error) {
+    //    console.error('Logout error:', error);
+    //    showHTMXNotification('Logout failed', 'error');
+    //  }
+    //}
 
     // Global HTMX event listeners
     document.body.addEventListener('htmx:responseError', function(evt) {
@@ -184,5 +178,10 @@
   </script>
 
 
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+<script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
+<script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
