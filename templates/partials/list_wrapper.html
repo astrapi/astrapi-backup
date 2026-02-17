@@ -1,0 +1,57 @@
+{# templates/partials/list_wrapper.html #}
+{% import 'partials/components/ui_macros.html' as ui %}
+
+{% if cfg %}
+  <div class="space-y-4">
+    {% for name, item in cfg.items() %}
+      {% set item_name = name %}
+      {% set item_data = item %}
+
+      <article class="bg-gray-50 dark:bg-gray-700 rounded-lg shadow p-4 sm:p-6" data-name="{{ item_name }}">
+
+        <div class="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6">
+
+          <!-- LINKE SPALTE -->
+          <div class="min-w-0 space-y-3">
+
+            <!-- Titel + Enabled Badge -->
+            <div class="flex items-start justify-between">
+              <div class="min-w-0">
+                <div class="flex items-baseline gap-3">
+                  <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
+                    {{ (item_data.description or '') ~ ' (' ~ item_name ~ ')' }}
+                  </h3>
+
+                  <span class="ml-2 px-2 py-1 text-xs rounded-full
+                    {{ 'bg-green-100 text-green-800' if item_data.enabled else 'bg-red-100 text-red-800' }}">
+                    {{ 'Enabled' if item_data.enabled else 'Disabled' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- MODUL-SPEZIFISCHER CONTENT -->
+            {% include content_template %}
+
+          </div>
+
+          <!-- RECHTE SPALTE: Buttons -->
+          <div class="flex flex-col space-y-2 w-24">
+
+            {{ ui.edit_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id) }}
+            {{ ui.toggle_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id, enabled=item_data.enabled) }}
+            {{ ui.delete_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id) }}
+
+          </div>
+
+        </div>
+
+      </article>
+
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="text-sm text-gray-500 dark:text-gray-400">
+    Keine Einträge gefunden.
+  </div>
+{% endif %}

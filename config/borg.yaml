@@ -1,5 +1,5 @@
 test:
-  enabled: true
+  enabled: false
   description: Firewall borg backup
   source_host: local
   source_path: /tmp/backup

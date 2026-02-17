@@ -1,0 +1,50 @@
+{# templates/navigation/index.html #}
+{# Kombiniert: sidebar Wrapper + nav macros und Loop #}
+
+{# templates/navigation/index.html (oder partial) #}
+{% macro svg_icon(name) -%}
+  {% if name == 'archive' %}
+    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+      <path d="M3 7v10a2 2 0 002 2h14..." stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+    </svg>
+  {% elif name == 'server' %}
+    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+      <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+    </svg>
+  {% else %}
+    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2V7z"/>
+    </svg>
+  {% endif %}
+{%- endmacro %}
+
+
+{% macro nav_button(item, active_tab) -%}
+<button
+    hx-get="{{ item.url }}"
+    hx-target="#main-content"
+    hx-swap="innerHTML"
+    hx-push-url="/{{ item.key }}"
+    id="nav-{{ item.key | replace('_','-') }}"
+    class="nav-item {% if active_tab == item.key %}active{% endif %} w-full text-left px-2 sm:px-3 py-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-700 dark:hover:text-blue-400 flex items-center space-x-2 sm:space-x-3"
+    type="button"
+    aria-current="{% if active_tab == item.key %}page{% else %}false{% endif %}">
+    {{ svg_icon(item.icon if item.icon is defined else '') }}
+    <span>{{ item.label }}</span>
+</button>
+{%- endmacro %}
+
+{# --- Sidebar Wrapper + Navigation Loop --- #}
+<div id="sidebar"
+     class="w-64 bg-white dark:bg-gray-800 shadow-lg flex-shrink-0 lg:block fixed lg:static inset-y-0 left-0 z-40 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out lg:rounded-lg">
+
+    <nav class="mt-4">
+      <div class="px-2 sm:px-4 space-y-1 sm:space-y-2">
+        {% for item in nav_items %}
+          {{ nav_button(item, active_tab) }}
+        {% endfor %}
+      </div>
+      <div class="pb-2 sm:pb-4"></div>
+    </nav>
+
+</div>

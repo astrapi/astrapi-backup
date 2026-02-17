@@ -1,5 +1,5 @@
 verify-storage-ct:
-  enabled: true
+  enabled: false
   description: "Überprüfe Storage 'ct'"
   host: local
   type: verify

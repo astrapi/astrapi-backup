@@ -1,0 +1,27 @@
+# templates/navigation/nav.yaml
+# Reihenfolge bestimmt die Anzeige im Menü
+- key: borg
+  label: Borg
+  url: /api/html/borg
+  icon: borg
+
+- key: proxmox_jobs
+  label: Proxmox Jobs
+  url: /api/html/proxmox_jobs
+  icon: server
+
+- key: proxmox_lxc
+  label: Proxmox LXC
+  url: /api/html/proxmox_lxc
+  icon: container
+
+- key: proxmox_hosts
+  label: Proxmox Hosts
+  url: /api/html/proxmox_hosts
+  icon: hosts
+
+- key: rsync
+  label: Rsync
+  url: /api/html/rsync
+  icon: sync
+  default: true

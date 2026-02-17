@@ -2,7 +2,7 @@ import yaml
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-CONFIG_DIR = Path(__file__).resolve().parents[1] / "config_dev"
+CONFIG_DIR = Path(__file__).resolve().parents[1] / "config"
 
 def _path(name: str) -> Path:
     return CONFIG_DIR / f"{name}.yaml"

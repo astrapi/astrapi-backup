@@ -1,5 +1,6 @@
 # main.py
 from pathlib import Path
+import os
 import yaml
 import logging
 
@@ -18,6 +19,7 @@ ROOT = Path(__file__).resolve().parent
 TEMPLATES_DIR = ROOT / "templates"
 STATIC_DIR = ROOT / "static"
 CONFIG_DIR = ROOT / "config"
+NAV_YAML_PATH = os.path.join(os.path.dirname(__file__), "templates", "navigation", "items.yaml")
 
 # -------------------------
 # Hilfsfunktionen
@@ -48,75 +50,133 @@ def inject_common():
     return {"app_name": "backupctl"}
 
 # Root UI (Standard: Borg tab)
+# @flask_app.route("/")
+# def index():
+#     return render_template("index.html",user="ottoadm",active_tab="borg",initial_content_url="/api/html/borg")
+
+# # Top-level UI routes so direct URLs work (Variante A)
+# @flask_app.route("/borg")
+# def page_borg():
+#     return render_template("index.html",user="ottoadm",active_tab="borg",initial_content_url="/api/html/borg")
+
+# @flask_app.route("/proxmox_jobs")
+# def page_proxmox_jobs():
+#     return render_template("index.html",user="ottoadm",active_tab="proxmox_jobs",initial_content_url="/api/html/proxmox_jobs")
+
+# @flask_app.route("/proxmox_hosts")
+# def page_proxmox_hosts():
+#     return render_template("index.html",user="ottoadm",active_tab="proxmox_hosts",initial_content_url="/api/html/proxmox_hosts")
+
+# @flask_app.route("/proxmox_lxc")
+# def page_proxmox_lxc():
+#     return render_template("index.html",user="ottoadm",active_tab="proxmox_lxc",initial_content_url="/api/html/proxmox_lxc")
+
+# @flask_app.route("/rsync")
+# def page_rsync():
+#     return render_template("index.html",user="ottoadm",active_tab="rsync",initial_content_url="/api/html/rsync")
+
+# app.py oder routes.py
+# routes.py
+
+#app = Flask(__name__)
+
+def load_nav(path=NAV_YAML_PATH):
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            raw = yaml.safe_load(f) or []
+    except FileNotFoundError:
+        raise RuntimeError(f"Navigation file not found: {path}")
+    except yaml.YAMLError as e:
+        raise RuntimeError(f"Error parsing navigation YAML: {e}")
+
+    items = []
+    defaults = []
+    for entry in raw:
+        k = entry.get("key")
+        if not k:
+            continue
+        item = {
+            "key": k,
+            "label": entry.get("label", k.replace("_", " ").title()),
+            "url": entry.get("url", f"/api/html/{k}"),
+            "icon": entry.get("icon", "default-icon"),
+            "default": bool(entry.get("default", False)),
+        }
+        if item["default"]:
+            defaults.append(item)
+        items.append(item)
+
+    if len(defaults) > 1:
+        keys = ", ".join(d["key"] for d in defaults)
+        raise RuntimeError(f"Multiple default nav items found in {path}: {keys}")
+
+    return items
+
+# lade nav_items beim App-Start
+nav_items = load_nav()
+
+# bestimme default item
+default_item = next((it for it in nav_items if it.get("default")), None)
+if default_item is None:
+    if nav_items:
+        default_item = nav_items[0]
+    else:
+        raise RuntimeError("nav_items is empty; navigation requires at least one entry")
+
+@flask_app.context_processor
+def inject_nav():
+    return {"nav_items": nav_items, "user": "ottoadm"}
+
+def make_page(resource_key, initial_url, list_partial=None, title=None, loader_fn=None):
+    # Konventionen: list_partial aus Modul, title = label (falls nicht übergeben)
+    if list_partial is None:
+        list_partial = f"partials/lists/{resource_key}.html"
+    if title is None:
+        # finde label aus nav_items falls vorhanden
+        label = next((it["label"] for it in nav_items if it["key"] == resource_key), None)
+        title = label or resource_key.replace("_", " ").title()
+
+    def page():
+        context = {
+            "active_tab": resource_key,
+            "initial_content_url": initial_url,
+            "title": title,
+            "endpoint": initial_url,
+            "container_id": f"tab-{resource_key}",
+            "loading_id": f"{resource_key}-loading",
+            "list_partial": list_partial,
+        }
+        if loader_fn:
+            data = loader_fn()
+            if not isinstance(data, dict):
+                raise RuntimeError("loader_fn must return a dict")
+            context.update(data)
+        return render_template("index.html", **context)
+    page.__name__ = f"page_{resource_key}"
+    return page
+
+# optional: mappe loader functions pro key (falls du serverseitig Daten liefern willst)
+loader_map = {
+    # "borg": load_borg_cfg,
+    # "proxmox_jobs": load_proxmox_jobs,
+}
+
+# Root route verwendet default_item
 @flask_app.route("/")
 def index():
     return render_template("index.html",
-                           user="ottoadm",
-                           active_tab="borg",
-                           initial_content_url="/api/tabs/borg")
+                           active_tab=default_item["key"],
+                           initial_content_url=default_item["url"])
 
-# Top-level UI routes so direct URLs work (Variante A)
-@flask_app.route("/borg")
-def page_borg():
-    return render_template("index.html",
-                           user="ottoadm",
-                           active_tab="borg",
-                           initial_content_url="/api/tabs/borg")
-
-@flask_app.route("/proxmox", defaults={"subpath": ""})
-@flask_app.route("/proxmox/<path:subpath>")
-def page_proxmox_sub(subpath: str):
-    """
-    Liefert die UI-Shell für /proxmox und alle Unterpfade.
-    Bestimmt initial_content_url anhand des Unterpfads.
-    """
-    # Normalisiere Pfad
-    key = subpath.strip("/").lower()
-
-    # Mapping Unterpfad -> api/tabs URL
-    mapping = {
-        "": "/api/tabs/proxmox/jobs",        # /proxmox -> jobs standard
-        "jobs": "/api/tabs/proxmox/jobs",
-        "lxc": "/api/tabs/proxmox/lxc",
-        "hosts": "/api/tabs/proxmox/hosts",
-    }
-
-    initial = mapping.get(key, "/api/tabs/proxmox/jobs")  # default fallback
-    return render_template("index.html",
-                           user="ottoadm",
-                           active_tab="proxmox",
-                           initial_content_url=initial)
-
-
-@flask_app.route("/rsync")
-def page_rsync():
-    return render_template("index.html",
-                           user="ottoadm",
-                           active_tab="rsync",
-                           initial_content_url="/api/tabs/rsync")
-
-# # HTMX partial: Borg list (backwards compatibility, optional)
-# @flask_app.route("/borg/list")
-# def borg_list():
-#     cfg = load_yaml(CONFIG_DIR / "borg.yaml")
-#     # _borg_list.html sollte ein wrapper-element mit data-active="borg" enthalten
-#     return render_template("_borg_list.html", jobs=cfg)
-
-# # HTMX partial: Proxmox list (Platzhalter)
-# @flask_app.route("/proxmox/list")
-# def proxmox_list():
-#     return render_template("_empty_section.html",
-#                            title="Proxmox",
-#                            message="Proxmox placeholder",
-#                            data_active="proxmox")
-
-# # HTMX partial: Rsync list (Platzhalter)
-# @flask_app.route("/rsync/list")
-# def rsync_list():
-#     return render_template("_empty_section.html",
-#                            title="Rsync",
-#                            message="Rsync placeholder",
-#                            data_active="rsync")
+# Routen programmatisch anlegen (nutzt Konventionen)
+for item in nav_items:
+    key = item["key"]
+    url = item["url"]
+    flask_app.add_url_rule(
+        f"/{key}",
+        endpoint=f"page_{key}",
+        view_func=make_page(key, url, list_partial=None, title=None, loader_fn=loader_map.get(key))
+    )
 
 # Optional: favicon (falls nicht in /static automatisch)
 @flask_app.route("/favicon.ico")
@@ -145,7 +205,7 @@ try:
     # from api.routers import borg as borg_router
     # from api.routers import proxmox as proxmox_router
     # from api.routers import rsync as rsync_router
-    from api.routers import tabs as tabs_router
+    from api.routers import html as tabs_router
     from api.routers.config import config_router
 
     # app.include_router(borg_router.router, prefix="/api", tags=["borg"])
