@@ -31,14 +31,16 @@ def get_item(name: str, item_id: str) -> Optional[Dict[str, Any]]:
         return cfg[item_key]
     return None
 
-def save_item(name: str, item_id: str, item: dict) -> None:
+def save_item(name: str, item_id, item: dict) -> None:
     if item is None:
         raise TypeError("item darf nicht None sein")
     if not isinstance(item, dict):
         raise TypeError("item muss ein dict sein")
 
     cfg = load_config(name) or {}
-    key = str(item_id).strip()
+
+    # 🔥 WICHTIG: Key NICHT in String umwandeln!
+    key = item_id
 
     existing = cfg.get(key, {})
     if not isinstance(existing, dict):
@@ -48,6 +50,7 @@ def save_item(name: str, item_id: str, item: dict) -> None:
     cfg[key] = merged
 
     save_config(name, cfg)
+
 
 def delete_item(name: str, item_id: str) -> bool:
     cfg = load_config(name) or {}

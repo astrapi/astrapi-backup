@@ -1,123 +1,123 @@
-dms_01:
+1:
   enabled: false
   description: DMS → Backup02 Hauptspeicher
   source_host: local
   source_path: /storage/borg/dms/
   target_host: backup02.simpsons.lan
   target_path: /storage/borg/dms/
-dms_02:
+2:
   enabled: true
   description: DMS → Backup02 externes Storage
   source_host: backup02.simpsons.lan
   source_path: /storage/borg/dms/
   target_host: local
   target_path: /storage_extern/borg/dms/
-dms_03:
+3:
   enabled: true
   description: DMS → Backup03 Hauptspeicher
   source_host: local
   source_path: /storage/borg/dms/
   target_host: backup03.simpsons.lan
   target_path: /storage/borg/dms/
-firewall_01:
+4:
   enabled: true
   description: Firewall → Backup02 Hauptspeicher
   source_host: local
   source_path: /storage/borg/firewall/
   target_host: backup02.simpsons.lan
   target_path: /storage/borg/firewall/
-firewall_02:
+5:
   enabled: true
   description: Firewall → Backup02 externes Storage
   source_host: backup02.simpsons.lan
   source_path: /storage/borg/firewall/
   target_host: local
   target_path: /storage_extern/borg/firewall/
-firewall_03:
+6:
   enabled: true
   description: Firewall → Backup03 Hauptspeicher
   source_host: local
   source_path: /storage/borg/firewall/
   target_host: backup03.simpsons.lan
   target_path: /storage/borg/firewall/
-cloud_01:
+7:
   enabled: true
   description: Cloud → Backup02 Hauptspeicher
   source_host: local
   source_path: /storage/borg/cloud/
   target_host: backup02.simpsons.lan
   target_path: /storage/borg/cloud/
-cloud_02:
+8:
   enabled: true
   description: Cloud → Backup02 externes Storage
   source_host: backup02.simpsons.lan
   source_path: /storage/borg/cloud/
   target_host: local
   target_path: /storage_extern/borg/cloud/
-cloud_03:
+9:
   enabled: true
   description: Cloud → Backup03 Hauptspeicher
   source_host: local
   source_path: /storage/borg/cloud/
   target_host: backup03.simpsons.lan
   target_path: /storage/borg/cloud/
-kamera_01:
+10:
   enabled: true
   description: Kamera → Backup02 Hauptspeicher
   source_host: local
   source_path: /storage/borg/kamera/
   target_host: backup02.simpsons.lan
   target_path: /storage/borg/kamera/
-kamera_02:
+11:
   enabled: true
   description: Kamera → Backup02 externes Storage
   source_host: backup02.simpsons.lan
   source_path: /storage/borg/kamera/
   target_host: local
   target_path: /storage_extern/borg/kamera/
-kamera_03:
+12:
   enabled: true
   description: Kamera → Backup03 Hauptspeicher
   source_host: local
   source_path: /storage/borg/kamera/
   target_host: backup03.simpsons.lan
   target_path: /storage/borg/kamera/
-family:
+13:
   enabled: true
   description: Family → lokales externes Storage
   source_host: backup02.simpsons.lan
   source_path: /storage/borg/family/
   target_host: local
   target_path: /storage_extern/borg/family/
-comedy:
+14:
   enabled: true
   description: Comedy → lokales externes Storage
   source_host: backup02.simpsons.lan
   source_path: /storage/borg/comedy/
   target_host: local
   target_path: /storage_extern/borg/comedy/
-concerts:
+15:
   enabled: true
   description: Concerts → lokales externes Storage
   source_host: backup02.simpsons.lan
   source_path: /storage/borg/concerts/
   target_host: local
   target_path: /storage_extern/borg/concerts/
-movies:
+16:
   enabled: true
   description: Movies → lokales externes Storage
   source_host: backup02.simpsons.lan
   source_path: /storage/borg/movies/
   target_host: local
   target_path: /storage_extern/borg/movies/
-music:
+17:
   enabled: true
   description: Music → lokales externes Storage
   source_host: backup02.simpsons.lan
   source_path: /storage/borg/music/
   target_host: local
   target_path: /storage_extern/borg/music/
-series:
+18:
   enabled: true
   description: Series → lokales externes Storage
   source_host: backup02.simpsons.lan

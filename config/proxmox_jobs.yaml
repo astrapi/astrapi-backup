@@ -1,59 +1,60 @@
-verify-storage-ct:
+1:
+  job: verify-storage-ct
   enabled: false
-  description: "Überprüfe Storage 'ct'"
+  description: Überprüfe Storage 'ct'
   host: local
   type: verify
-
-verify-storage-host:
+2:
+  job: verify-storage-host
   enabled: true
-  description: "Überprüfe Storage 'host'"
+  description: Überprüfe Storage 'host'
   host: local
   type: verify
-
-prune-storage-ct:
-  enabled: false
-  description: "Bereinige Storage 'ct'"
+3:
+  job: prune-storage-ct
+  enabled: true
+  description: Bereinige Storage 'ct'
   host: local
   type: prune
-
-prune-storage-host:
+4:
+  job: prune-storage-host
   enabled: true
-  description: "Bereinige Storage 'host'"
+  description: Bereinige Storage 'host'
   host: local
   type: prune
-
-sync-storage-ct_backup02:
+5:
+  job: sync-storage-ct_backup02
   enabled: true
-  description: "Synchronisiere Storage 'ct'"
+  description: Synchronisiere Storage 'ct'
   host: backup02
   type: sync
-
-sync-storage-host_backup02:
+6:
+  job: sync-storage-host_backup02
   enabled: true
-  description: "Synchronisiere Storage 'host'"
+  description: Synchronisiere Storage 'host'
   host: backup02
   type: sync
-
-sync-extern-ct_backup02:
-  enabled: false
-  description: "Synchronisiere externen Storage 'ct'"
-  host: backup02
-  type: sync
-
-sync-extern-host_backup02:
-  enabled: false
-  description: "Synchronisiere externen Storage 'host'"
-  host: backup02
-  type: sync
-
-sync-storage-ct_backup03:
+7:
+  job: sync-extern-ct_backup02
   enabled: true
-  description: "Synchronisiere Storage 'ct'"
+  description: Synchronisiere externen Storage 'ct'
+  host: backup02
+  type: sync
+8:
+  job: sync-extern-host_backup02
+  enabled: true
+  description: Synchronisiere externen Storage 'host'
+  host: backup02
+  type: sync
+9:
+  job: sync-storage-ct_backup03
+  enabled: true
+  description: Synchronisiere Storage 'ct'
   host: backup03
   type: sync
-
-sync-storage-host_backup03:
+10:
+  job: sync-storage-host_backup03
   enabled: true
-  description: "Synchronisiere Storage 'host'"
+  description: Synchronisiere Storage 'host'
   host: backup03
   type: sync

@@ -1,6 +1,6 @@
-test:
+1:
   enabled: false
-  description: Firewall borg backup
+  description: TEST - firewall01 & firewall02
   source_host: local
   source_path: /tmp/backup
   target_host: local
@@ -11,9 +11,9 @@ test:
   - touch testfile.txt
   post:
   - rm -rf /tmp/backup
-firewall:
+2:
   enabled: true
-  description: Firewall borg backup
+  description: firewall01 & firewall02
   source_host: local
   source_path: /tmp/backup
   target_host: local
@@ -26,9 +26,9 @@ firewall:
     /tmp/backup/firewall02.xml
   post:
   - rm -rf /tmp/backup
-dms:
+3:
   enabled: true
-  description: DMS borg backup
+  description: dms.simpsons.lan
   source_host: dms.simpsons.lan
   source_path: /tmp/backup
   target_host: backup01.simpsons.lan
@@ -42,9 +42,9 @@ dms:
   - python3 manage.py document_exporter /tmp/backup
   post:
   - rm -rf /tmp/backup
-cloud:
+4:
   enabled: true
-  description: Cloud borg backup
+  description: nextcloud.simpsons.lan
   source_host: nextcloud.simpsons.lan
   source_path: /backup
   target_host: backup01.simpsons.lan
@@ -60,51 +60,51 @@ cloud:
   - rm -rf /backup/database/*
   - sudo systemctl start nginx
   - sudo -u www-data /usr/bin/php /var/www/nextcloud/occ maintenance:mode --off
-music:
+5:
   enabled: true
-  description: Music borg backup
+  description: Music auf nfs.simpsons.lan
   source_host: nfs.simpsons.lan
   source_path: /storage/music
   target_host: backup02.simpsons.lan
   target_path: /storage/borg/music
-series:
+6:
   enabled: true
-  description: Series borg backup
+  description: Series auf nfs.simpsons.lan
   source_host: nfs.simpsons.lan
   source_path: /storage/video/series
   target_host: backup02.simpsons.lan
   target_path: /storage/borg/series
-comedy:
+7:
   enabled: true
-  description: Comedy borg backup
+  description: Comedy auf nfs.simpsons.lan
   source_host: nfs.simpsons.lan
   source_path: /storage/video/comedy
   target_host: backup02.simpsons.lan
   target_path: /storage/borg/comedy
-concerts:
+8:
   enabled: true
-  description: Concerts borg backup
+  description: Concerts auf nfs.simpsons.lan
   source_host: nfs.simpsons.lan
   source_path: /storage/video/concerts
   target_host: backup02.simpsons.lan
   target_path: /storage/borg/concerts
-family:
+9:
   enabled: true
-  description: Family borg backup
+  description: Family auf nfs.simpsons.lan
   source_host: nfs.simpsons.lan
   source_path: /storage/video/family
   target_host: backup02.simpsons.lan
   target_path: /storage/borg/family
-movies:
+10:
   enabled: true
-  description: Movies borg backup
+  description: Movies auf nfs.simpsons.lan
   source_host: nfs.simpsons.lan
   source_path: /storage/video/movies
   target_host: backup02.simpsons.lan
   target_path: /storage/borg/movies
-kamera:
+11:
   enabled: true
-  description: Kamera borg backup
+  description: Kamera auf syncthing.simpsons.lan
   source_host: syncthing.simpsons.lan
   source_path: /storage/kamera
   target_host: backup01.simpsons.lan
