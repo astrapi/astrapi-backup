@@ -2,7 +2,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="flex bg-gray-100 dark:bg-gray-900 lg:p-0 lg:gap-0 lg:justify-left">
+<div class="flex bg-gray-100 dark:bg-gray-800 lg:p-0 lg:gap-0 lg:justify-left">
 
   <!-- Mobile sidebar overlay -->
   <div id="sidebar-overlay"
@@ -19,7 +19,7 @@
       <div class="p-3 sm:p-6 lg:pr-3 lg:pt-0 lg:pb-3 lg:pl-0">
         <!-- Main Content Container - tabs loaded here via HTMX -->
         <div id="main-content"
-            class="bg-white dark:bg-yellow"
+            class="bg-gray-100 dark:bg-gray-800"
              hx-get="{{ initial_content_url or '/' ~ (nav_items[0].key if nav_items else 'repositories') }}"
              hx-trigger="load"
              hx-swap="innerHTML">
