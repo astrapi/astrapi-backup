@@ -15,20 +15,19 @@
     </button>
 {% endmacro %}
 
-{% macro toggle_button(module=None, item=None, container_id=None, loading_id=None, enabled=False) %}
-  <form
-    hx-post="/api/config/{{ module }}/{{ item }}/toggle"
-    hx-target="#{{ container_id }}-list"
-    hx-swap="innerHTML"
-    hx-indicator="#{{ loading_id }}"
-    class="w-full">
-
-    <button type="submit"
-            class="w-full px-3 py-1 text-xs {{ 'bg-yellow-600 hover:bg-yellow-700' if enabled else 'bg-blue-600 hover:bg-blue-700' }} text-white rounded focus:ring-2 focus:ring-blue-500 [&.htmx-request]:opacity-50">
-      {{ 'Disable' if enabled else 'Enable' }}
-    </button>
-  </form>
+{% macro toggle_button(module=None, item=None, container_id=None, loading_id=None, enabled=False, description=None) %}
+<button
+  hx-get="/confirm/{{ module }}/{{ item }}/toggle?container_id={{ container_id }}&loading_id={{ loading_id }}&description={{ description }}&enabled={{ enabled }}"
+  hx-target="body"
+  hx-swap="beforeend"
+  class="px-3 py-1 text-xs rounded text-white
+         {{ 'bg-yellow-600 hover:bg-yellow-700' if enabled else 'bg-blue-600 hover:bg-blue-700' }}">
+  {{ 'Disable' if enabled else 'Enable' }}
+</button>
 {% endmacro %}
+
+
+
 
 {% macro delete_button(module=None, item=None, container_id=None, loading_id=None) %}
   <form

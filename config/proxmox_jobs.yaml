@@ -12,7 +12,7 @@
   type: verify
 3:
   job: prune-storage-ct
-  enabled: true
+  enabled: false
   description: Bereinige Storage 'ct'
   host: local
   type: prune

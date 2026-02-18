@@ -113,6 +113,6 @@ def config_router(storage_key: str, tag: Optional[str] = None) -> APIRouter:
 
 
         # Wenn curl → JSON zurückgeben
-        return {"status": "ok", "item": item_id, "enabled": cfg[item_id]["enabled"]}
+        return {"status": "ok", "item": key, "enabled": cfg[key]["enabled"]}
 
     return router

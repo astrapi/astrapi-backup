@@ -10,7 +10,7 @@ from fastapi.responses import RedirectResponse
 from starlette.middleware.wsgi import WSGIMiddleware
 import uvicorn
 
-from flask import Flask, render_template, send_from_directory, abort
+from flask import Flask, render_template, send_from_directory, abort, url_for, request
 
 # -------------------------
 # Projektpfade
@@ -184,6 +184,37 @@ for item in nav_items:
         endpoint=f"page_{key}",
         view_func=make_page(key, url, list_partial=None, title=None, loader_fn=loader_map.get(key))
     )
+
+@flask_app.route("/confirm/<module>/<item>/<action>")
+def confirm_action(module, item, action):
+
+    container_id = request.args.get("container_id")
+    loading_id = request.args.get("loading_id")
+    enabled = request.args.get("enabled")  # kommt als "true"/"false" oder "1"/"0"
+    description = request.args.get("description")
+
+    # enabled in echtes Bool umwandeln
+    if isinstance(enabled, str):
+        enabled = enabled.lower() in ("1", "true", "yes")
+
+    # Aktivieren oder deaktivieren?
+    if action == "toggle":
+        verb = "deaktivieren" if enabled else "aktivieren"
+        confirm_url = f"/api/config/{module}/{item}/toggle"
+
+    elif action == "delete":
+        verb = "gelöscht"
+        confirm_url = f"/api/config/{module}/{item}/delete"
+
+    return render_template(
+        "partials/confirm_modal.html",
+        description=description,
+        verb=verb,
+        confirm_url=confirm_url,
+        container_id=container_id,
+        loading_id=loading_id
+    )
+
 
 # Optional: favicon (falls nicht in /static automatisch)
 @flask_app.route("/favicon.ico")

@@ -1,5 +1,5 @@
 1:
-  enabled: false
+  enabled: true
   description: TEST - firewall01 & firewall02
   source_host: local
   source_path: /tmp/backup
