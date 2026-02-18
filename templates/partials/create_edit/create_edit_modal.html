@@ -1,0 +1,55 @@
+<div 
+  id="create-edit-modal"
+  class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+  hx-target="this"
+  hx-swap="outerHTML"
+>
+
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-4xl space-y-6">
+
+    <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 text-center">
+      {{ "Eintrag bearbeiten" if item else "Neuen Eintrag erstellen" }}
+    </h2>
+
+    <form
+      hx-post="{{ submit_url }}"
+      hx-target="#{{ container_id }}-list"
+      hx-swap="innerHTML"
+      hx-indicator="#{{ loading_id }}"
+      hx-headers='{"HX-Request": "true"}'
+      hx-on::after-request="document.getElementById('create-edit-modal').remove()"
+      class="space-y-6"
+    >
+
+      {% set rows = schema | groupby("row") %}
+
+      {% for row, fields in rows %}
+        <div class="grid grid-cols-1 md:grid-cols-{{ fields|length }} gap-6">
+          {% for field in fields %}
+            {% include "partials/create_edit/field_renderer.html" %}
+          {% endfor %}
+        </div>
+      {% endfor %}
+
+      <div class="flex justify-end gap-3 pt-4">
+        <button 
+          type="button"
+          onclick="document.getElementById('create-edit-modal').remove()"
+          class="px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+        >
+          Abbrechen
+        </button>
+
+        <button 
+          type="submit"
+          class="px-4 py-2 rounded bg-purple-600 text-white hover:bg-purple-700"
+        >
+          Speichern
+        </button>
+      </div>
+
+    </form>
+
+  </div>
+
+</div>

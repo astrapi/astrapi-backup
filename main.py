@@ -219,6 +219,59 @@ def confirm_action(module, item, action):
     )
 
 
+def load_schema(module: str):
+    with open("templates/partials/create_edit/schemas.yaml", "r") as f:
+        data = yaml.safe_load(f)
+    return data[module]
+
+@flask_app.route("/modal/<module>/create")
+def open_create_modal(module):
+
+    container_id = request.args.get("container_id")
+    loading_id = request.args.get("loading_id")
+
+    schema = load_schema(module)
+
+    submit_url = f"/api/config/{module}/create?container_id={container_id}&loading_id={loading_id}"
+
+    return render_template(
+        "partials/create_edit/create_edit_modal.html",
+        schema=schema,
+        values=None,          # keine Werte beim Erstellen
+        item=None,            # wichtig für Titel
+        module=module,
+        submit_url=submit_url,
+        container_id=container_id,
+        loading_id=loading_id
+    )
+
+# @flask_app.route("/modal/<module>/<item>/edit")
+# def open_edit_modal(module, item):
+
+#     container_id = request.args.get("container_id")
+#     loading_id = request.args.get("loading_id")
+
+#     schema = load_schema(module)
+
+#     # Werte aus YAML laden
+#     cfg = load_config(module)
+#     values = cfg.get(item, {})
+
+#     submit_url = f"/api/config/{module}/{item}/update?container_id={container_id}&loading_id={loading_id}"
+
+#     return render_template(
+#         "partials/create_edit/create_edit_modal.html",
+#         schema=schema,
+#         values=values,
+#         item=item,
+#         module=module,
+#         submit_url=submit_url,
+#         container_id=container_id,
+#         loading_id=loading_id
+#     )
+
+
+
 # Optional: favicon (falls nicht in /static automatisch)
 @flask_app.route("/favicon.ico")
 def favicon():

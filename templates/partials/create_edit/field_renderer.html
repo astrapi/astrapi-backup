@@ -1,0 +1,50 @@
+<div class="flex flex-col gap-1">
+
+  <label class="text-gray-700 dark:text-gray-300 text-sm font-medium">
+    {{ field.label }}
+  </label>
+
+  {% if field.type == "text" %}
+    <input
+      type="text"
+      name="{{ field.name }}"
+      value="{{ values[field.name] if values else '' }}"
+      maxlength="{{ field.max if field.max else '' }}"
+      class="px-3 py-2 rounded bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+    >
+
+  {% elif field.type == "boolean" %}
+    <input
+      type="checkbox"
+      name="{{ field.name }}"
+      {% if values and values[field.name] %}checked{% endif %}
+      class="w-4 h-4"
+    >
+
+  {% elif field.type == "number" %}
+    <input
+      type="number"
+      name="{{ field.name }}"
+      value="{{ values[field.name] if values else '' }}"
+      class="px-3 py-2 rounded bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+    >
+
+  {% elif field.type == "select" %}
+    <select
+      name="{{ field.name }}"
+      class="px-3 py-2 rounded bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+    >
+      {% for opt in field.options %}
+        <option value="{{ opt }}"
+          {% if values and values[field.name] == opt %}selected{% endif %}
+        >
+          {{ opt }}
+        </option>
+      {% endfor %}
+    </select>
+
+  {% elif field.type == "list" %}
+    {% include "partials/create_edit/list_field.html" %}
+  {% endif %}
+
+</div>

@@ -1,0 +1,36 @@
+<div 
+  x-data="{
+    lines: {{ values[field.name] | tojson if values and values[field.name] else [''] }},
+    add() { this.lines.push('') },
+    remove(i) { this.lines.splice(i, 1) }
+  }"
+  class="space-y-2"
+>
+
+  <template x-for="(line, i) in lines" :key="i">
+    <div class="flex gap-2">
+      <input
+        type="text"
+        :name="`{{ field.name }}_${i}`"
+        x-model="lines[i]"
+        class="flex-1 px-3 py-2 rounded bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+      >
+      <button
+        type="button"
+        @click="remove(i)"
+        class="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+      >
+        –
+      </button>
+    </div>
+  </template>
+
+  <button
+    type="button"
+    @click="add()"
+    class="px-3 py-1 bg-gray-300 dark:bg-gray-600 text-gray-900 dark:text-gray-100 rounded hover:bg-gray-400 dark:hover:bg-gray-500"
+  >
+    +
+  </button>
+
+</div>
