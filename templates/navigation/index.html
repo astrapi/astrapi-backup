@@ -1,7 +1,5 @@
 {# templates/navigation/index.html #}
-{# Kombiniert: sidebar Wrapper + nav macros und Loop #}
 
-{# templates/navigation/index.html (oder partial) #}
 {% macro svg_icon(name) -%}
   {% if name == 'archive' %}
     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
@@ -13,38 +11,76 @@
     </svg>
   {% else %}
     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2V7z"/>
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2V7z"/>
     </svg>
   {% endif %}
 {%- endmacro %}
 
 
-{% macro nav_button(item, active_tab) -%}
+{% macro nav_button(item, active_tab) %}
 <button
+    type="button"
     hx-get="{{ item.url }}"
     hx-target="#main-content"
     hx-swap="innerHTML"
     hx-push-url="/{{ item.key }}"
-    id="nav-{{ item.key | replace('_','-') }}"
-    class="nav-item {% if active_tab == item.key %}active{% endif %} w-full text-left px-2 sm:px-3 py-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-700 dark:hover:text-blue-400 flex items-center space-x-2 sm:space-x-3"
-    type="button"
-    aria-current="{% if active_tab == item.key %}page{% else %}false{% endif %}">
+    id="nav-{{ item.key }}"
+    class="nav-item w-full text-left px-3 py-2 rounded-md flex items-center gap-3
+           text-gray-700 dark:text-gray-300
+           hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-700 dark:hover:text-blue-400
+           transition-colors"
+>
     {{ svg_icon(item.icon if item.icon is defined else '') }}
     <span>{{ item.label }}</span>
 </button>
-{%- endmacro %}
+{% endmacro %}
+
+
+
+
 
 {# --- Sidebar Wrapper + Navigation Loop --- #}
 <div id="sidebar"
-     class="w-64 bg-white dark:bg-gray-800 shadow-lg flex-shrink-0 lg:block fixed lg:static inset-y-0 left-0 z-40 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out lg:rounded-lg">
+     class="w-64 bg-white dark:bg-red-900 shadow-lg flex-shrink-0 lg:block fixed lg:static inset-y-0 left-0 z-40 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
 
-    <nav class="mt-4">
-      <div class="px-2 sm:px-4 space-y-1 sm:space-y-2">
-        {% for item in nav_items %}
-          {{ nav_button(item, active_tab) }}
-        {% endfor %}
-      </div>
-      <div class="pb-2 sm:pb-4"></div>
-    </nav>
+  <nav class="mt-4">
+
+    <!-- Navigation Items -->
+    <div class="px-2 sm:px-4 space-y-1 sm:space-y-2">
+      {% for item in nav_items %}
+        {{ nav_button(item, active_tab) }}
+      {% endfor %}
+    </div>
+
+    <!-- Divider -->
+    <div class="mt-4 border-t border-gray-200 dark:border-gray-700"></div>
+
+    <!-- Dark Mode Toggle -->
+    <div class="px-2 sm:px-4 mt-3">
+      <button onclick="toggleDarkMode()"
+              id="dark-mode-toggle"
+              class="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium
+                     bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600
+                     text-gray-700 dark:text-gray-300 rounded-md transition-colors">
+
+        <svg id="sun-icon"
+             class="w-5 h-5 text-yellow-500 hidden dark:block"
+             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+        </svg>
+
+        <svg id="moon-icon"
+             class="w-5 h-5 text-gray-600 dark:text-gray-400 block dark:hidden"
+             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+        </svg>
+
+      </button>
+    </div>
+
+  </nav>
 
 </div>
