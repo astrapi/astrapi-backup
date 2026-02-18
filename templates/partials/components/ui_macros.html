@@ -16,32 +16,24 @@
 {% endmacro %}
 
 {% macro toggle_button(module=None, item=None, container_id=None, loading_id=None, enabled=False, description=None) %}
-<button
-  hx-get="/confirm/{{ module }}/{{ item }}/toggle?container_id={{ container_id }}&loading_id={{ loading_id }}&description={{ description }}&enabled={{ enabled }}"
-  hx-target="body"
-  hx-swap="beforeend"
-  class="px-3 py-1 text-xs rounded text-white
-         {{ 'bg-yellow-600 hover:bg-yellow-700' if enabled else 'bg-blue-600 hover:bg-blue-700' }}">
-  {{ 'Disable' if enabled else 'Enable' }}
-</button>
+  <button
+    hx-get="/confirm/{{ module }}/{{ item }}/toggle?container_id={{ container_id }}&loading_id={{ loading_id }}&description={{ description }}&enabled={{ enabled }}"
+    hx-target="body"
+    hx-swap="beforeend"
+    class="px-3 py-1 text-xs rounded text-white
+          {{ 'bg-yellow-600 hover:bg-yellow-700' if enabled else 'bg-blue-600 hover:bg-blue-700' }}">
+    {{ 'Disable' if enabled else 'Enable' }}
+  </button>
 {% endmacro %}
 
-
-
-
-{% macro delete_button(module=None, item=None, container_id=None, loading_id=None) %}
-  <form
-    hx-delete="/api/config/{{ module }}/{{ item }}"
-    hx-target="#{{ container_id }}-list"
-    hx-swap="innerHTML"
-    hx-indicator="#{{ loading_id }}"
-    class="inline">
-
-    <button type="submit"
-            class="w-full px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 focus:ring-2 focus:ring-red-500 [&.htmx-request]:opacity-50">
-      Delete
-    </button>
-  </form>
+{% macro delete_button(module=None, item=None, container_id=None, loading_id=None, description=None) %}
+  <button
+    hx-get="/confirm/{{ module }}/{{ item }}/delete?container_id={{ container_id }}&loading_id={{ loading_id }}&description={{ description }}"
+    hx-target="body"
+    hx-swap="beforeend"
+    class="w-full px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 focus:ring-2 focus:ring-red-500 [&.htmx-request]:opacity-50">
+    Delete
+  </button>
 {% endmacro %}
 
 {% macro add_button(module=None, container_id=None, loading_id=None) %}

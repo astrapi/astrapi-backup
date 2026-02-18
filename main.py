@@ -200,17 +200,20 @@ def confirm_action(module, item, action):
     # Aktivieren oder deaktivieren?
     if action == "toggle":
         verb = "deaktivieren" if enabled else "aktivieren"
+        method = "post"
         confirm_url = f"/api/config/{module}/{item}/toggle"
 
     elif action == "delete":
-        verb = "gelöscht"
-        confirm_url = f"/api/config/{module}/{item}/delete"
+        verb = "löschen"
+        method = "delete"
+        confirm_url = f"/api/config/{module}/{item}"
 
     return render_template(
         "partials/confirm_modal.html",
         description=description,
         verb=verb,
         confirm_url=confirm_url,
+        method=method,
         container_id=container_id,
         loading_id=loading_id
     )

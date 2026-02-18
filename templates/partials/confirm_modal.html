@@ -17,18 +17,32 @@
       </button>
 
       <!-- Ja -->
-      <form
-        hx-post="{{ confirm_url }}?container_id={{ container_id }}&loading_id={{ loading_id }}"
-        hx-target="#{{ container_id }}-list"
-        hx-swap="innerHTML"
-        hx-indicator="#{{ loading_id }}"
-        hx-headers='{"HX-Request": "true"}'
-        hx-on::after-request="document.getElementById('confirm-modal').remove()"
-        class="inline">
-        <button type="submit" class="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700">
-          Ja
-        </button>
-      </form>
+{% if method == "delete" %}
+<form
+  hx-delete="{{ confirm_url }}?container_id={{ container_id }}&loading_id={{ loading_id }}"
+  hx-target="#{{ container_id }}-list"
+  hx-swap="innerHTML"
+  hx-indicator="#{{ loading_id }}"
+  hx-headers='{"HX-Request": "true"}'
+  hx-on::after-request="document.getElementById('confirm-modal').remove()"
+  class="inline"
+>
+{% else %}
+<form
+  hx-post="{{ confirm_url }}?container_id={{ container_id }}&loading_id={{ loading_id }}"
+  hx-target="#{{ container_id }}-list"
+  hx-swap="innerHTML"
+  hx-indicator="#{{ loading_id }}"
+  hx-headers='{"HX-Request": "true"}'
+  hx-on::after-request="document.getElementById('confirm-modal').remove()"
+  class="inline"
+>
+{% endif %}
+    <button type="submit" class="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700">
+        Ja
+    </button>
+</form>
+
     </div>
   </div>
 </div>
