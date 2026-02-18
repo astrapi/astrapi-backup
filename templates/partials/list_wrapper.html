@@ -2,7 +2,7 @@
 {% import 'partials/components/ui_macros.html' as ui %}
 
 {% if cfg %}
-  <div class="space-y-4">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     {% for name, item in cfg.items() %}
       {% set item_name = name %}
       {% set item_data = item %}
@@ -15,19 +15,19 @@
           <div class="min-w-0 space-y-3">
 
             <!-- Titel + Enabled Badge -->
-            <div class="flex items-start justify-between">
-              <div class="min-w-0">
-                <div class="flex items-baseline gap-3">
-                  <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
-                    {{ (item_data.description or '') ~ ' (' ~ item_name ~ ')' }}
-                  </h3>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:gap-3">
+              
+              <!-- Titel -->
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
+                {{ (item_data.description or '') ~ ' (' ~ item_name ~ ')' }}
+              </h3>
 
-                  <span class="ml-2 px-2 py-1 text-xs rounded-full
-                    {{ 'bg-green-100 text-green-800' if item_data.enabled else 'bg-red-100 text-red-800' }}">
-                    {{ 'Enabled' if item_data.enabled else 'Disabled' }}
-                  </span>
-                </div>
-              </div>
+              <!-- Badge -->
+              <span class="px-2 py-1 text-xs rounded-full w-fit
+                {{ 'bg-green-100 text-green-800' if item_data.enabled else 'bg-red-100 text-red-800' }}">
+                {{ 'Enabled' if item_data.enabled else 'Disabled' }}
+              </span>
+
             </div>
 
             <!-- MODUL-SPEZIFISCHER CONTENT -->
@@ -36,7 +36,7 @@
           </div>
 
           <!-- RECHTE SPALTE: Buttons -->
-          <div class="flex flex-col space-y-2 w-24">
+          <div class="flex flex-row sm:flex-col gap-2 w-full sm:w-24">
 
             {{ ui.edit_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id) }}
             {{ ui.toggle_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id, enabled=item_data.enabled) }}
