@@ -44,6 +44,13 @@ flask_app = Flask(
     static_url_path="/static"
 )
 
+flask_app.config.update(
+    DEBUG=True,
+    TEMPLATES_AUTO_RELOAD=True,
+    SEND_FILE_MAX_AGE_DEFAULT=0
+)
+
+
 @flask_app.context_processor
 def inject_common():
     # Globale Template-Variablen (kann erweitert werden)
