@@ -54,33 +54,30 @@ def config_router(storage_key: str, tag: Optional[str] = None) -> APIRouter:
         return get_item(storage_key, item_id)
 
     @router.delete("/{item_id}")
-    def delete_one(request: Request, item_id: str):
+    def delete_one(request: Request, item_id: str, hx_request: str | None = Header(None)):
         ok = delete_item(storage_key, item_id)
 
         if not ok:
             raise HTTPException(status_code=404, detail="Item not found")
 
-        # Liste neu rendern
-        return templates.TemplateResponse(
-            f"partials/lists/{storage_key}.html",
-            {
-                "request": request,
-                "cfg": load_config(storage_key),
-                "endpoint": f"/api/html/{storage_key}",
-                "container_id": f"tab-{storage_key}",
-                "loading_id": f"loading-{storage_key}",
-            }
-        )
+        # Wenn HTMX → HTML zurückgeben
+        if hx_request:
+            return templates.TemplateResponse(
+                "partials/list_wrapper.html",
+                {
+                    "request": request,
+                    "cfg": load_config(storage_key),
+                    "module": storage_key,
+                    "content_template": f"partials/lists/{storage_key}.html",
+                    "container_id": f"tab-{storage_key}",
+                    "loading_id": f"{storage_key}-loading",
+                }
+            )
 
     @router.post("/{item_id}/toggle")
-    def toggle_item(
-        request: Request,
-        item_id: str,
-        hx_request: str | None = Header(None)
-    ):
+    def toggle_item(request: Request, item_id: str, hx_request: str | None = Header(None)):
         cfg = load_config(storage_key)
 
-        # 🔥 Key normalisieren (Option B)
         key = item_id
         if key not in cfg:
             try:
@@ -88,11 +85,6 @@ def config_router(storage_key: str, tag: Optional[str] = None) -> APIRouter:
             except ValueError:
                 pass
         
-        # # Toggle durchführen
-        # cfg = load_config(storage_key)
-        # cfg[item_id]["enabled"] = not cfg[item_id].get("enabled", False)
-        # save_item(storage_key, item_id, cfg[item_id])
-
         # Toggle durchführen
         cfg[key]["enabled"] = not cfg[key].get("enabled", False)
         save_item(storage_key, key, cfg[key])
