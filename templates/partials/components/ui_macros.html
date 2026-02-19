@@ -38,7 +38,7 @@
 
 {% macro add_button(module=None, container_id=None, loading_id=None) %}
 <button
-  hx-get="/modal/{{ module }}/create?container_id={{ container_id }}&loading_id={{ loading_id }}"
+  hx-get="/ui/{{ module }}/create?container_id={{ container_id }}&loading_id={{ loading_id }}"
   hx-target="body"
   hx-swap="beforeend"
   class="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700"
@@ -47,33 +47,15 @@
 </button>
 {% endmacro %}
 
-{% macro add_button2(module=None, container_id=None, loading_id=None) %}
-  <form
-    hx-post="/api/config/{{ module }}/add"
-    hx-target="#{{ container_id }}-list"
-    hx-swap="innerHTML"
-    hx-indicator="#{{ loading_id }}"
-    class="inline">
-
-    <button type="submit"
-            class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium
-                   bg-white text-emerald-700 border border-emerald-300 hover:bg-emerald-50">
-      Add
-    </button>
-  </form>
-{% endmacro %}
-
 {% macro edit_button(module=None, item=None, container_id=None, loading_id=None) %}
-  <form
-    hx-get="/api/config/{{ module }}/{{ item }}/edit"
-    hx-target="#{{ container_id }}-list"
-    hx-swap="innerHTML"
-    hx-indicator="#{{ loading_id }}"
-    class="w-full">
-
-    <button type="submit"
-            class="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 focus:ring-2 focus:ring-green-500 w-full">
-      Edit
-    </button>
-  </form>
+<button
+  hx-get="/confirm/{{ module }}/{{ item }}/edit?container_id={{ container_id }}&loading_id={{ loading_id }}&description={{ description }}"
+  hx-target="body"
+  hx-swap="beforeend"
+  class="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 focus:ring-2 focus:ring-green-500 w-full"
+>
+  Edit
+</button>
 {% endmacro %}
+
+

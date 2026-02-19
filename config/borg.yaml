@@ -12,7 +12,7 @@
   post:
   - rm -rf /tmp/backup
 2:
-  enabled: true
+  enabled: false
   description: firewall01 & firewall02
   source_host: local
   source_path: /tmp/backup

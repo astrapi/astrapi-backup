@@ -16,7 +16,7 @@ router = APIRouter(tags=["tabs"])
 ALLOWED_MODULES = {"borg", "proxmox_jobs", "proxmox_lxc", "proxmox_hosts", "rsync"}
 
 # 1) Wrapper fragment: liefert Wrapper (Titel + Buttons + List)
-@router.get("/api/html/{module}", response_class=HTMLResponse)
+@router.get("/{module}", response_class=HTMLResponse)
 def tab_module_wrapper(request: Request, module: str):
     if module not in ALLOWED_MODULES:
         raise HTTPException(status_code=404, detail="Module not found")
@@ -44,7 +44,7 @@ def tab_module_wrapper(request: Request, module: str):
 
 
 # 2) List fragment: liefert NUR die Liste (keinen Wrapper)
-@router.get("/api/html/{module}/list", response_class=HTMLResponse)
+@router.get("/{module}/list", response_class=HTMLResponse)
 def tab_module_list(request: Request, module: str):
     if module not in ALLOWED_MODULES:
         raise HTTPException(status_code=404, detail="Module not found")
