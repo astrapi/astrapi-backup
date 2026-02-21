@@ -1,7 +1,7 @@
 from flask import render_template, request
 
 from .schema_loader import load_schema
-from api.storage import load_config
+from api.storage import get_item
 
 def register_modal_routes(app):
 
@@ -24,38 +24,38 @@ def register_modal_routes(app):
             loading_id=loading_id
         )
 
-    @app.route("/ui/<module>/xxx")
-    def open_edit_modal(module):
-        container_id = request.args.get("container_id")
-        loading_id = request.args.get("loading_id")
-        item = request.args.get("item")
+    # @app.route("/ui/<module>/xxx")
+    # def open_edit_modal(module):
+    #     container_id = request.args.get("container_id")
+    #     loading_id = request.args.get("loading_id")
+    #     item = request.args.get("item")
         
-        schema = load_schema(module)
+    #     schema = load_schema(module)
 
-        # 1) Konfiguration laden
-        cfg = load_config(module)
+    #     # 1) Konfiguration laden
+    #     cfg = load_config(module)
 
-        # 2) Werte des Items extrahieren
-        if item not in cfg:
-            return f"Item '{item}' not found in module '{module}'", 404
+    #     # 2) Werte des Items extrahieren
+    #     if item not in cfg:
+    #         return f"Item '{item}' not found in module '{module}'", 404
 
-        values = cfg[item]
+    #     values = cfg[item]
 
-        submit_url = (
-            f"/api/config/{module}/edit"
-            f"?container_id={container_id}&loading_id={loading_id}"
-        )
+    #     submit_url = (
+    #         f"/api/config/{module}/edit"
+    #         f"?container_id={container_id}&loading_id={loading_id}"
+    #     )
 
-        return render_template(
-            "partials/create_edit/create_edit_modal.html",
-            schema=schema,
-            values=None,     # <-- HIER!
-            item=item,         # <-- wichtig für Titel
-            module=module,
-            submit_url=submit_url,
-            container_id=container_id,
-            loading_id=loading_id
-        )
+    #     return render_template(
+    #         "partials/create_edit/create_edit_modal.html",
+    #         schema=schema,
+    #         values=None,     # <-- HIER!
+    #         item=item,         # <-- wichtig für Titel
+    #         module=module,
+    #         submit_url=submit_url,
+    #         container_id=container_id,
+    #         loading_id=loading_id
+    #     )
 
 
     @app.route("/confirm/<module>/<item>/<action>")
@@ -81,34 +81,36 @@ def register_modal_routes(app):
         elif action == "edit":
             container_id = request.args.get("container_id")
             loading_id = request.args.get("loading_id")
-            item = request.args.get("item")
-            
+
             schema = load_schema(module)
 
-            # 1) Konfiguration laden
-            # cfg = load_config(module)
+            # Item laden
+            values = get_item(module, item)
+            
+            # Falls kein Item existiert (z. B. bei "create")
+            if values is None:
+                values = {}
 
-            # 2) Werte des Items extrahieren
-            # if item not in cfg:
-            #     return f"Item '{item}' not found in module '{module}'", 404
-
-            # values = cfg[item]
+            # pre/post sicherstellen
+            values.setdefault("pre", [])
+            values.setdefault("post", [])
 
             submit_url = (
-                f"/api/config/{module}/edit"
+                f"/api/config/{module}/{item}"
                 f"?container_id={container_id}&loading_id={loading_id}"
             )
 
             return render_template(
                 "partials/create_edit/create_edit_modal.html",
                 schema=schema,
-                values=None,     # <-- HIER!
-                item=item,         # <-- wichtig für Titel
+                values=values,
+                item=item,
                 module=module,
                 submit_url=submit_url,
                 container_id=container_id,
                 loading_id=loading_id
             )
+
 
         return render_template(
             "partials/confirm_modal.html",

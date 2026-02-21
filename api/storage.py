@@ -13,6 +13,7 @@ def load_config(name: str) -> Dict[str, Any]:
         return yaml.safe_load(f)
 
 def save_config(name: str, data: Dict[str, Any]) -> None:
+    print(data)
     p = _path(name)
     # Falls None übergeben wird, schreibe eine leere Mapping‑Datei
     if data is None:
@@ -25,11 +26,23 @@ def save_config(name: str, data: Dict[str, Any]) -> None:
 def get_item(name: str, item_id: str) -> Optional[Dict[str, Any]]:
     if item_id is None:
         return None
-    item_key = str(item_id).strip()
+
     cfg = load_config(name) or {}
-    if item_key in cfg:
-        return cfg[item_key]
+
+    # 1) exakter String-Match
+    if item_id in cfg:
+        return cfg[item_id]
+
+    # 2) int-Match
+    try:
+        item_int = int(item_id)
+        if item_int in cfg:
+            return cfg[item_int]
+    except ValueError:
+        pass
+
     return None
+
 
 def save_item(name: str, item_id, item: dict) -> None:
     if item is None:
@@ -39,17 +52,11 @@ def save_item(name: str, item_id, item: dict) -> None:
 
     cfg = load_config(name) or {}
 
-    # 🔥 WICHTIG: Key NICHT in String umwandeln!
-    key = item_id
-
-    existing = cfg.get(key, {})
-    if not isinstance(existing, dict):
-        existing = {}
-
-    merged = {**existing, **item}
-    cfg[key] = merged
+    # 🔥 WICHTIG: NICHT mit alten Daten mergen!
+    cfg[item_id] = item
 
     save_config(name, cfg)
+
 
 
 def delete_item(name: str, item_id: str) -> bool:

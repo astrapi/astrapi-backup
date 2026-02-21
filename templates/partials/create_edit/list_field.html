@@ -1,11 +1,12 @@
 <div 
-  x-data="{
-    lines: {{ values[field.name] | tojson if values and values[field.name] else [''] }},
-    add() { this.lines.push('') },
+  x-data='{
+    "lines": {{ values.get(field.name, []) | tojson }},
+    add() { this.lines.push("") },
     remove(i) { this.lines.splice(i, 1) }
-  }"
+  }'
   class="space-y-2"
 >
+
 
   <template x-for="(line, i) in lines" :key="i">
     <div class="flex gap-2">
@@ -32,5 +33,4 @@
   >
     +
   </button>
-
 </div>

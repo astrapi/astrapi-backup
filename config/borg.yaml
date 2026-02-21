@@ -1,19 +1,6 @@
-1:
-  enabled: true
-  description: TEST - firewall01 & firewall02
-  source_host: local
-  source_path: /tmp/backup
-  target_host: local
-  target_path: /storage/borg/firewall
-  pre:
-  - mkdir -p /tmp/backup
-  - cd /tmp/backup
-  - touch testfile.txt
-  post:
-  - rm -rf /tmp/backup
 2:
-  enabled: false
-  description: firewall01 & firewall02
+  enabled: true
+  description: firewall01 & firewall021
   source_host: local
   source_path: /tmp/backup
   target_host: local

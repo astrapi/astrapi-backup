@@ -11,15 +11,29 @@
       {{ "Eintrag bearbeiten" if item else "Neuen Eintrag erstellen" }}
     </h2>
 
-    <form
-      hx-post="{{ submit_url }}"
-      hx-target="#{{ container_id }}-list"
-      hx-swap="innerHTML"
-      hx-indicator="#{{ loading_id }}"
-      hx-headers='{"HX-Request": "true"}'
-      hx-on::after-request="document.getElementById('create-edit-modal').remove()"
-      class="space-y-6"
-    >
+{% if item %}
+<form
+  hx-patch="{{ submit_url }}"
+  hx-target="#{{ container_id }}-list"
+  hx-swap="innerHTML"
+  hx-indicator="#{{ loading_id }}"
+  hx-headers='{"HX-Request": "true"}'
+  hx-on::after-request="document.getElementById('create-edit-modal').remove()"
+  class="space-y-6"
+>
+{% else %}
+<form
+  hx-post="{{ submit_url }}"
+  hx-target="#{{ container_id }}-list"
+  hx-swap="innerHTML"
+  hx-indicator="#{{ loading_id }}"
+  hx-headers='{"HX-Request": "true"}'
+  hx-on::after-request="document.getElementById('create-edit-modal').remove()"
+  class="space-y-6"
+>
+{% endif %}
+
+
 
       {% set rows = schema | groupby("row") %}
 

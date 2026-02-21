@@ -1,14 +1,16 @@
+#api/app.py
 from fastapi import FastAPI
 from api.routers import html as tabs_router
 from api.routers.config import config_router
 
-def create_api_app():
-    app = FastAPI(
-        title="backupctl API",
-        docs_url="/docs",
-        redoc_url="/redoc",
-        openapi_url="/openapi.json"
-    )
+def create():
+    app = FastAPI()
+    # app = FastAPI(
+    #     title="backupctl API",
+    #     docs_url="/docs",
+    #     redoc_url="/redoc",
+    #     openapi_url="/openapi.json"
+    # )
 
     # HTML/Tabs unter /api/html/*
     app.include_router(tabs_router.router, prefix="/html")

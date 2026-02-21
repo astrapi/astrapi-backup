@@ -1,4 +1,4 @@
-# ui/flask_app.py
+# ui/app.py
 from flask import Flask
 from pathlib import Path
 from .navigation import load_nav
@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TEMPLATES_DIR = ROOT / "templates"
 STATIC_DIR = ROOT / "static"
 
-def create_flask_app():
+def create():
     app = Flask(
         __name__,
         template_folder=str(TEMPLATES_DIR),
