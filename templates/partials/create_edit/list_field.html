@@ -1,6 +1,6 @@
 <div 
   x-data='{
-    "lines": {{ values.get(field.name, []) | tojson }},
+    "lines": {{ (values or {}).get(field.name, []) | tojson }},
     add() { this.lines.push("") },
     remove(i) { this.lines.splice(i, 1) }
   }'

@@ -20,7 +20,7 @@ def load_nav(path=NAV_YAML_PATH):
         item = {
             "key": k,
             "label": entry.get("label", k.replace("_", " ").title()),
-            "url": entry.get("url", f"/api/html/{k}"),
+            "url": entry.get("url", f"/api/ui/{k}/tab"),
             "icon": entry.get("icon", "default-icon"),
             "default": bool(entry.get("default", False)),
         }

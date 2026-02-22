@@ -2,26 +2,26 @@
 # Reihenfolge bestimmt die Anzeige im Menü
 - key: borg
   label: Borg
-  url: /api/html/borg
+  url: /api/ui/borg/tab
   icon: borg
 
 - key: proxmox_jobs
   label: Proxmox Jobs
-  url: /api/html/proxmox_jobs
+  url: /api/ui/proxmox_jobs/tab
   icon: server
 
 - key: proxmox_lxc
   label: Proxmox LXC
-  url: /api/html/proxmox_lxc
+  url: /api/ui/proxmox_lxc/tab
   icon: container
 
 - key: proxmox_hosts
   label: Proxmox Hosts
-  url: /api/html/proxmox_hosts
+  url: /api/ui/proxmox_hosts/tab
   icon: hosts
 
 - key: rsync
   label: Rsync
-  url: /api/html/rsync
+  url: /api/ui/rsync/tab
   icon: sync
   default: true

@@ -1,5 +1,5 @@
 1:
-  enabled: false
+  enabled: true
   description: DMS → Backup02 Hauptspeicher
   source_host: local
   source_path: /storage/borg/dms/

@@ -9,43 +9,134 @@ import uuid
 
 templates = Jinja2Templates(directory="templates")
 
+
+def clean_empty_fields(data: dict) -> dict:
+    cleaned = {}
+    for key, value in data.items():
+        if value is None:
+            continue
+        if isinstance(value, str) and value.strip() == "":
+            continue
+        if isinstance(value, list) and len(value) == 0:
+            continue
+        cleaned[key] = value
+    return cleaned
+
 def config_router(storage_key: str, tag: Optional[str] = None) -> APIRouter:
     router = APIRouter(tags=[tag] if tag else [storage_key])
 
-    @router.get("/")
-    def list_all():
-        return load_config(storage_key)
+    @router.post("/create")
+    async def create_one(request: Request):
+        form = await request.form()
+        payload = dict(form)
 
-    @router.get("/{item_id}")
-    def get_one(item_id: str):
-        item = get_item(storage_key, item_id)
-        if item is None:
-            raise HTTPException(status_code=404, detail="Item not found")
-        return item
+        # Checkbox normalisieren
+        payload["enabled"] = payload.get("enabled") == "on"
 
-    @router.post("/", summary="Create a new item", status_code=201)
-    def create_one(payload: Dict[str, Any] = Body(...)):
-        if not isinstance(payload, dict):
-            raise HTTPException(status_code=400, detail="Payload must be a JSON object")
-        item = payload.get("item")
-        if item is None or not isinstance(item, dict):
-            raise HTTPException(status_code=400, detail="Payload must contain an 'item' object")
+        # Schema laden
+        schema = load_schema(storage_key)
 
-        item_id = payload.get("id")
-        if item_id:
-            item_id = str(item_id).strip()
-        else:
-            item_id = uuid.uuid4().hex
+        # Listenfelder vorbereiten
+        list_fields = [field["name"] for field in schema if field.get("type") == "list"]
+        lists = {name: [] for name in list_fields}
 
-        if get_item(storage_key, item_id) is not None:
-            raise HTTPException(status_code=409, detail="Item already exists")
+        # Listenfelder extrahieren (z.B. source_0, source_1)
+        for key, value in payload.items():
+            for list_name in list_fields:
+                prefix = f"{list_name}_"
+                if key.startswith(prefix):
+                    index = int(key.split("_")[1])
+                    lists[list_name].append((index, value))
 
-        save_item(storage_key, item_id, item)
+        # Listen sortieren und Werte extrahieren
+        for name in list_fields:
+            lists[name] = [v for _, v in sorted(lists[name])]
 
-        headers = {"Location": f"/api/config/{storage_key}/{item_id}"}
-        return Response(content="", status_code=status.HTTP_201_CREATED, headers=headers)
+        # Listenfelder aus payload entfernen
+        payload = {
+            k: v for k, v in payload.items()
+            if not any(k.startswith(f"{name}_") for name in list_fields)
+        }
 
-    @router.patch("/{item_id}")
+        # Fehlende Felder aus Schema auffüllen
+        for field in schema:
+            name = field["name"]
+            if name not in payload and field.get("type") != "list":
+                payload[name] = ""
+
+        # Listen hinzufügen
+        for name in list_fields:
+            payload[name] = lists[name]
+
+        # Nächste freie numerische ID
+        cfg = load_config(storage_key)
+        existing_ids = [int(k) for k in cfg.keys() if str(k).isdigit()]
+        next_id = max(existing_ids) + 1 if existing_ids else 1
+
+        # Cleanup
+        payload = clean_empty_fields(payload)
+
+        save_item(storage_key, next_id, payload)
+
+        # HTMX → Tab neu rendern
+        if request.headers.get("HX-Request") == "true":
+            return templates.TemplateResponse(
+                "partials/list_wrapper.html",
+                {
+                    "request": request,
+                    "cfg": load_config(storage_key),
+                    "module": storage_key,
+                    "content_template": f"partials/lists/{storage_key}.html",
+                    "container_id": f"tab-{storage_key}",
+                    "loading_id": f"{storage_key}-loading",
+                }
+            )
+
+        return payload
+
+
+
+
+
+    # @router.get("/")
+    # def list_all():
+    #     return load_config(storage_key)
+
+    # @router.get("/{item_id}")
+    # def get_one(item_id: str):
+    #     item = get_item(storage_key, item_id)
+    #     if item is None:
+    #         raise HTTPException(status_code=404, detail="Item not found")
+    #     return item
+
+    # @router.post("/create", summary="Create a new item", status_code=201)
+    # def create_one(payload: Dict[str, Any] = Body(...)):
+    #     print("Hallo Welt1!")
+    #     if not isinstance(payload, dict):
+    #         raise HTTPException(status_code=400, detail="Payload must be a JSON object")
+    #     item = payload.get("item")
+    #     if item is None or not isinstance(item, dict):
+    #         raise HTTPException(status_code=400, detail="Payload must contain an 'item' object")
+
+    #     print(payload)
+
+    #     item_id = payload.get("id")
+    #     if item_id:
+    #         item_id = str(item_id).strip()
+    #     else:
+    #         item_id = uuid.uuid4().hex
+
+    #     if get_item(storage_key, item_id) is not None:
+    #         raise HTTPException(status_code=409, detail="Item already exists")
+
+    #     print("Hallo Welt2!")
+
+    #     save_item(storage_key, item_id, item)
+
+    #     headers = {"Location": f"/api/config/{storage_key}/{item_id}"}
+    #     return Response(content="", status_code=status.HTTP_201_CREATED, headers=headers)
+
+    @router.patch("/{item_id}/edit")
     async def patch_one(item_id: str, request: Request):
         item_id = int(item_id)
 
@@ -112,24 +203,7 @@ def config_router(storage_key: str, tag: Optional[str] = None) -> APIRouter:
 
         return existing
 
-
-
-    def clean_empty_fields(data: dict) -> dict:
-        cleaned = {}
-        for key, value in data.items():
-            if value is None:
-                continue
-            if isinstance(value, str) and value.strip() == "":
-                continue
-            if isinstance(value, list) and len(value) == 0:
-                continue
-            cleaned[key] = value
-        return cleaned
-
-
-
-
-    @router.delete("/{item_id}")
+    @router.delete("/{item_id}/delete")
     def delete_one(request: Request, item_id: str, hx_request: str | None = Header(None)):
         ok = delete_item(storage_key, item_id)
 

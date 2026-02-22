@@ -1,4 +1,4 @@
-# api/routers/html.py
+# api/routers/ui.py
 from pathlib import Path
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import HTMLResponse
@@ -15,8 +15,7 @@ router = APIRouter(tags=["tabs"])
 
 ALLOWED_MODULES = {"borg", "proxmox_jobs", "proxmox_lxc", "proxmox_hosts", "rsync"}
 
-# 1) Wrapper fragment: liefert Wrapper (Titel + Buttons + List)
-@router.get("/{module}", response_class=HTMLResponse)
+@router.get("/{module}/tab", response_class=HTMLResponse)
 def tab_module_wrapper(request: Request, module: str):
     if module not in ALLOWED_MODULES:
         raise HTTPException(status_code=404, detail="Module not found")
@@ -30,20 +29,13 @@ def tab_module_wrapper(request: Request, module: str):
         "title": module.replace("_", " ").title(),
         "container_id": f"tab-{module}",
         "loading_id": f"{module}-loading",
-
-        # Wichtig: Wrapper + Content-Template setzen
         "list_wrapper": "partials/list_wrapper.html",
         "content_template": f"partials/lists/{module}.html",
-
-        # optional: Refresh-Endpoint
-        "endpoint": f"/api/html/{module}",
+        "endpoint": f"/api/ui/{module}",
     }
 
     return templates.TemplateResponse("partials/tab_wrapper.html", context)
 
-
-
-# 2) List fragment: liefert NUR die Liste (keinen Wrapper)
 @router.get("/{module}/list", response_class=HTMLResponse)
 def tab_module_list(request: Request, module: str):
     if module not in ALLOWED_MODULES:

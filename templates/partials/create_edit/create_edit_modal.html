@@ -33,8 +33,6 @@
 >
 {% endif %}
 
-
-
       {% set rows = schema | groupby("row") %}
 
       {% for row, fields in rows %}
@@ -53,7 +51,6 @@
         >
           Abbrechen
         </button>
-
         <button 
           type="submit"
           class="px-4 py-2 rounded bg-purple-600 text-white hover:bg-purple-700"
@@ -61,9 +58,6 @@
           Speichern
         </button>
       </div>
-
     </form>
-
   </div>
-
 </div>

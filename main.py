@@ -6,14 +6,15 @@ from ui.app import create as create_ui
 from api.app import create as create_api
 import uvicorn
 
+
 def create_app():
+    
     api = create_api()
     ui = create_ui()
 
-    app = FastAPI()
+    app = api
 
     app.mount("/static", StaticFiles(directory="static"), name="static")
-    
     app.mount("/api", api)
     app.mount("/", WSGIMiddleware(ui))
 

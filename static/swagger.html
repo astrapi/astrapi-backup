@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="/static/swagger/swagger-ui.css">
+  <link rel="stylesheet" href="/static/swagger/swagger-dark.css">
+</head>
+<body>
+  <div id="swagger-ui"></div>
+
+    <script src="/static/swagger/swagger-ui-bundle.js"></script>
+    <script src="/static/swagger/swagger-ui-standalone-preset.js"></script>
+  <script>
+    SwaggerUIBundle({
+      url: "{{OPENAPI_URL}}",
+      dom_id: "#swagger-ui",
+        presets: [
+        SwaggerUIBundle.presets.apis,
+        SwaggerUIStandalonePreset
+      ],
+      layout: "StandaloneLayout"
+    });
+  </script>
+</body>
+</html>

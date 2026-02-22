@@ -1,0 +1,38 @@
+/* Topbar entfernen */
+.topbar {
+    display: none !important;
+}
+
+/* Server-Dropdown entfernen */
+.servers {
+    display: none !important;
+}
+
+/* Hintergrund */
+.swagger-ui, body {
+    background-color: #1e1e1e !important;
+    color: #e0e0e0 !important;
+}
+
+/* Panels */
+.opblock {
+    background-color: #2b2b2b !important;
+    border-color: #444 !important;
+}
+
+/* Summary */
+.opblock-summary {
+    background-color: #333 !important;
+    color: #fff !important;
+}
+
+/* Responses */
+.response-col_status {
+    color: #9cdcfe !important;
+}
+
+/* Text */
+.swagger-ui .markdown p,
+.swagger-ui .opblock-description-wrapper p {
+    color: #ccc !important;
+}

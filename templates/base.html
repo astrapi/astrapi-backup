@@ -84,6 +84,37 @@
 
       </div>
 
+      <div class="flex items-center space-x-4">
+<div class="relative" x-data="{ open: false }">
+
+  <button 
+    class="btn btn-primary"
+    @click="open = !open"
+  >
+    Neu
+  </button>
+
+  <div 
+    x-show="open"
+    @click.away="open = false"
+    class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 shadow-lg rounded-md py-2 z-50"
+  >
+    {% for item in nav_items %}
+      <button
+        class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600"
+        hx-indicator="#global-loading"
+        hx-get="/ui/{{ item.key }}/create?container_id={{ container_id }}&loading_id={{ loading_id }}"
+        hx-target="body"
+        hx-swap="beforeend"
+      >
+        {{ item.label }}
+      </button>
+    {% endfor %}
+  </div>
+
+</div>
+
+      </div>
     </div>
   </div>
 </nav>
@@ -185,5 +216,7 @@
 <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
 
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<div id="modal-container"></div>
+
 </body>
 </html>
