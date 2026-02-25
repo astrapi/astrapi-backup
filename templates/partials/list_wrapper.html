@@ -39,7 +39,7 @@
           <div class="flex flex-row sm:flex-col gap-2 w-full sm:w-24">
 
             {{ ui.edit_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id) }}
-            {{ ui.add_button(module=module, container_id=container_id, loading_id=loading_id) }}
+            <!-- {{ ui.add_button(module=module, container_id=container_id, loading_id=loading_id) }} -->
             {{ ui.toggle_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id, enabled=item_data.enabled, description=item_data.description) }}
             {{ ui.delete_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id, description=item_data.description) }}
 

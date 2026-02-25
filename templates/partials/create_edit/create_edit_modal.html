@@ -4,37 +4,35 @@
   hx-target="this"
   hx-swap="outerHTML"
 >
-
   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-4xl space-y-6">
 
     <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 text-center">
       {{ "Eintrag bearbeiten" if item else "Neuen Eintrag erstellen" }}
     </h2>
 
-{% if item %}
-<form
-  hx-patch="{{ submit_url }}"
-  hx-target="#{{ container_id }}-list"
-  hx-swap="innerHTML"
-  hx-indicator="#{{ loading_id }}"
-  hx-headers='{"HX-Request": "true"}'
-  hx-on::after-request="document.getElementById('create-edit-modal').remove()"
-  class="space-y-6"
->
-{% else %}
-<form
-  hx-post="{{ submit_url }}"
-  hx-target="#{{ container_id }}-list"
-  hx-swap="innerHTML"
-  hx-indicator="#{{ loading_id }}"
-  hx-headers='{"HX-Request": "true"}'
-  hx-on::after-request="document.getElementById('create-edit-modal').remove()"
-  class="space-y-6"
->
-{% endif %}
+    {% if item %}
+    <form
+      id="create-edit-form"
+      hx-patch="{{ submit_url }}"
+      hx-target="#{{ container_id }}-list"
+      hx-swap="innerHTML"
+      hx-indicator="#{{ loading_id }}"
+      hx-headers='{"HX-Request": "true"}'
+      class="space-y-6"
+    >
+    {% else %}
+    <form
+      id="create-edit-form"
+      hx-post="{{ submit_url }}"
+      hx-target="#{{ container_id }}-list"
+      hx-swap="innerHTML"
+      hx-indicator="#{{ loading_id }}"
+      hx-headers='{"HX-Request": "true"}'
+      class="space-y-6"
+    >
+    {% endif %}
 
       {% set rows = schema | groupby("row") %}
-
       {% for row, fields in rows %}
         <div class="grid grid-cols-1 md:grid-cols-{{ fields|length }} gap-6">
           {% for field in fields %}
@@ -52,7 +50,8 @@
           Abbrechen
         </button>
         <button 
-          type="submit"
+          type="button"
+          id="create-edit-submit"
           class="px-4 py-2 rounded bg-purple-600 text-white hover:bg-purple-700"
         >
           Speichern
@@ -61,3 +60,89 @@
     </form>
   </div>
 </div>
+
+<script>
+(function () {
+  const form = document.getElementById('create-edit-form');
+  const submitBtn = document.getElementById('create-edit-submit');
+
+  function validateField(input) {
+    const errorEl = input.parentElement.querySelector('.validation-error');
+    let message = '';
+
+    const isRequired = input.dataset.required === 'true';
+    const value = input.value.trim();
+
+    if (isRequired && value === '') {
+      message = 'Dieses Feld ist erforderlich.';
+    } else if (input.type === 'number' && value !== '') {
+      const num = Number(value);
+      if (isNaN(num)) {
+        message = 'Bitte eine gültige Zahl eingeben.';
+      } else if (input.min !== '' && num < Number(input.min)) {
+        message = `Mindestwert ist ${input.min}.`;
+      } else if (input.max !== '' && num > Number(input.max)) {
+        message = `Maximalwert ist ${input.max}.`;
+      }
+    } else if (input.minLength > 0 && value.length < input.minLength) {
+      message = `Mindestens ${input.minLength} Zeichen erforderlich.`;
+    } else if (input.pattern && value !== '' && !new RegExp(`^${input.pattern}$`).test(value)) {
+      message = input.title || 'Ungültiges Format.';
+    }
+
+    if (errorEl) {
+      errorEl.textContent = message;
+      errorEl.classList.toggle('hidden', message === '');
+    }
+
+    // Roten Rand setzen/entfernen
+    if (message) {
+      input.classList.add('border-red-500', 'ring-1', 'ring-red-500');
+      input.classList.remove('border-transparent');
+    } else {
+      input.classList.remove('border-red-500', 'ring-1', 'ring-red-500');
+      input.classList.add('border-transparent');
+    }
+
+    return message === '';
+  }
+
+  // Live-Validierung beim Verlassen eines Feldes
+  form.querySelectorAll('input[data-required], input[type="number"], input[minlength], select[data-required]')
+    .forEach(input => {
+      input.addEventListener('blur', () => validateField(input));
+      input.addEventListener('input', () => {
+        // Fehler sofort entfernen sobald der User tippt
+        if (input.dataset.invalid === 'true') validateField(input);
+      });
+    });
+
+  // Submit abfangen und erst validieren
+  submitBtn.addEventListener('click', function () {
+    const inputs = form.querySelectorAll('input[data-required], input[type="number"], input[minlength], select[data-required]');
+    let valid = true;
+
+    inputs.forEach(input => {
+      if (!validateField(input)) valid = false;
+    });
+
+    if (!valid) {
+      // Zum ersten Fehler scrollen
+      const firstError = form.querySelector('.validation-error:not(.hidden)');
+      if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    // Validierung bestanden → HTMX-Request manuell auslösen
+    htmx.trigger(form, 'submit');
+
+    // Modal nach erfolgreichem Request schließen
+    form.addEventListener('htmx:afterRequest', function handler(e) {
+      if (e.detail.successful) {
+        document.getElementById('create-edit-modal')?.remove();
+      }
+      form.removeEventListener('htmx:afterRequest', handler);
+    });
+  });
+})();
+</script>

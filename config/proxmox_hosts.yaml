@@ -35,10 +35,5 @@
   description: vpn.simpsons.lan
   enabled: true
 8:
-  host: nfs01
-  description: nfs01.simpsons.lan
-  enabled: true
-9:
-  host: nfs02
-  description: nfs02.simpsons.lan
-  enabled: true
+  description: test rsync
+  enabled: false

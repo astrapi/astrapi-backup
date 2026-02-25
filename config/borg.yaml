@@ -114,3 +114,7 @@
   - '*/.trashed*'
   - '*/.ttx*'
   - '*/thumbnails*'
+12:
+  description: firewall01 & firewall02
+  source_host: local
+  enabled: false
