@@ -1,3 +1,47 @@
+1:
+  enabled: true
+  description: TEST - firewall01 & firewall02
+  source_host: local
+  source_path: /tmp/backup
+  target_host: local
+  target_path: /storage/borg/firewall
+  pre:
+  - mkdir -p /tmp/backup
+  - cd /tmp/backup
+  - touch testfile.txt
+  post:
+  - rm -rf /tmp/backup
+2:
+  enabled: true
+  description: firewall01 & firewall02
+  source_host: local
+  source_path: /tmp/backup
+  target_host: local
+  target_path: /storage/borg/firewall
+  pre:
+  - mkdir -p /tmp/backup
+  - scp -o BatchMode=yes -o ConnectTimeout=10 backupadm@172.19.0.201:/conf/config.xml
+    /tmp/backup/firewall01.xml
+  - scp -o BatchMode=yes -o ConnectTimeout=10 backupadm@172.19.0.202:/conf/config.xml
+    /tmp/backup/firewall02.xml
+  post:
+  - rm -rf /tmp/backup
+3:
+  enabled: true
+  description: dms.simpsons.lan
+  source_host: dms.simpsons.lan
+  source_path: /tmp/backup
+  target_host: backup01.simpsons.lan
+  target_path: /storage/borg/dms
+  ssh_user: paperless
+  pre:
+  - mkdir -p /tmp/backup
+  - 'cd ~ '
+  - source .venv/bin/activate
+  - cd src
+  - python3 manage.py document_exporter /tmp/backup
+  post:
+  - rm -rf /tmp/backup
 4:
   enabled: true
   description: nextcloud.simpsons.lan
@@ -70,14 +114,3 @@
   - '*/.trashed*'
   - '*/.ttx*'
   - '*/thumbnails*'
-12:
-  description: firewall01 & firewall02
-  enabled: false
-  post:
-  - ''
-  - ''
-  - ''
-  pre:
-  - ''
-  - ''
-  - ''

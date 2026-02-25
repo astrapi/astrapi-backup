@@ -1,7 +1,7 @@
 1:
   host: proxmox01
   description: proxmox01.simpsons.lan
-  enabled: false
+  enabled: true
   source:
   - cluster.pxar:/var/lib/pve-cluster
 2:
@@ -39,6 +39,6 @@
   description: nfs01.simpsons.lan
   enabled: true
 9:
-  host: nfs021
+  host: nfs02
   description: nfs02.simpsons.lan
   enabled: true

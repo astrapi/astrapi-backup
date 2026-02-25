@@ -11,6 +11,7 @@
       value="{{ values[field.name] if values else '' }}"
       maxlength="{{ field.max if field.max else '' }}"
       class="px-3 py-2 rounded bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+      {% if field.required %} data-required="true" {% endif %}
     >
 
   {% elif field.type == "boolean" %}

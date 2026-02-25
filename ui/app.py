@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, redirect
 from pathlib import Path
 from .navigation import load_nav
 from .context_processors import inject_common, inject_nav
@@ -116,6 +116,10 @@ def create():
     @app.route("/ui/openapi.json")
     def openapi_json():
         return app.apispec.to_dict()
+
+    @app.get("/") 
+    def root():
+        return redirect("/borg")
 
     # Nur diese eine Zeile für die Doku:
     add_ui_routes_to_spec(app)

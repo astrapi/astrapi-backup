@@ -8,6 +8,15 @@
   </h1>
 </div>
 
+<button
+    class="btn btn-primary"
+    hx-get="/ui/{{ module }}/create"
+    hx-target="body"
+    hx-swap="beforeend"
+>
+    Neu
+</button>
+
 
 <div id="{{ container_id }}-list" class="grid gap-4">
   {% include list_wrapper %}

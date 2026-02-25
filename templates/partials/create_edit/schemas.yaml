@@ -5,6 +5,7 @@ borg:
     max: 50
     column: 1
     row: 1
+    required: true
 
   - name: enabled
     type: boolean
