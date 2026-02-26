@@ -1,195 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Borgitory - A comprehensive web-based management interface for BorgBackup repositories with real-time monitoring, automated scheduling, and cloud synchronization capabilities.">
-  <meta name="keywords" content="borgbackup, backup, web-interface, scheduling, cloud-sync, archive-management, data-protection">
-  <title>{% block title %} backupctl - Backup Control {% endblock title %}</title>
-
-  <!-- Favicon 
-  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='favicon/apple-touch-icon.png') }}">
-  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon/favicon-32x32.png') }}">
-  <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon/favicon-16x16.png') }}">
-  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon/favicon.ico') }}">
-  <link rel="manifest" href="{{ url_for('static', filename='favicon/site.webmanifest') }}">-->
-
-  <!-- HTMX + extensions -->
-<!--   <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-  <script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
-  <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script> -->
-
-  <!-- Tailwind (configures dark mode via class) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = { darkMode: 'class' }
-  </script>
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://unpkg.com/alpinejs" defer></script>
-
-
-  <!-- Borgitory component CSS (modern-components) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='1.8'><path d='M3 10.4C3 7.2 3 5.6 3.38 5.08C3.76 4.54 5.26 4.03 8.26 3L8.84 2.8C10.4 2.27 11.19 2 12 2s1.6.27 3.16.8l.57.2C18.74 4.03 20.24 4.54 20.62 5.08C21 5.62 21 7.22 21 10.42v1.57C21 17.63 16.76 20.37 14.1 21.53 13.38 21.84 13.02 22 12 22s-1.38-.16-2.1-.47C7.24 20.37 3 17.63 3 11.99V10.4z'/><polyline points='9 12 11 14 15 10'/></svg>">
+  <title>{% block title %}backupctl{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/modern-components.css') }}">
-
-  <script src="{{ url_for('static', filename='js/tailwind-theme.js') }}"></script>
-
-<script>
-  tailwind.config = {
-    darkMode: 'class',
-    theme: {
-      extend: window.tailwindTheme
-    }
-  }
-</script>
-
 </head>
+<body>
 
-<body class="bg-gray-100 dark:bg-gray-800 min-h-screen">
+{% block content %}{% endblock %}
 
-<nav class="bg-gray-100 dark:bg-gray-800 shadow-sm">
-  <div class="px-4 sm:px-6 lg:px-8">
-    <div class="flex justify-between h-16">
-
-
-      <div class="flex items-center">
-
-        <!-- Hamburger Menu Button (Mobile Only) -->
-        <button id="mobile-menu-button"
-                hx-on:click=" document.getElementById('sidebar').classList.toggle('mobile-open'); document.getElementById('sidebar-overlay').classList.toggle('hidden'); document.getElementById('sidebar-overlay').classList.toggle('show'); document.getElementById('hamburger-icon').classList.toggle('hidden'); document.getElementById('close-icon').classList.toggle('hidden'); document.body.classList.toggle('mobile-sidebar-open'); this.setAttribute('aria-expanded', this.getAttribute('aria-expanded') === 'true' ? 'false' : 'true'); "
-                class="lg:hidden mr-3 p-2 rounded-md text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
-                aria-expanded="false" aria-controls="mobile-sidebar">
-          <span class="sr-only">Open sidebar</span>
-
-          <!-- Hamburger Icon -->
-          <svg id="hamburger-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-          </svg>
-
-          <!-- Close Icon -->
-          <svg id="close-icon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-        </button>
-
-        <!-- Dein SVG Logo + Link -->
-        <a href="/" class="flex items-center gap-3">
-          <svg class="w-8 h-8 text-gray-900 dark:text-gray-100"
-               viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 10.4167C3 7.21907 3 5.62028 3.37752 5.08241C3.75503 4.54454 5.25832 4.02996 8.26491 3.00079L8.83772 2.80472C10.405 2.26824 11.1886 2 12 2C12.8114 2 13.595 2.26824 15.1623 2.80472L15.7351 3.00079C18.7417 4.02996 20.245 4.54454 20.6225 5.08241C21 5.62028 21 7.21907 21 10.4167C21 10.8996 21 11.4234 21 11.9914C21 17.6294 16.761 20.3655 14.1014 21.5273C13.38 21.8424 13.0193 22 12 22C10.9807 22 10.62 21.8424 9.89856 21.5273C7.23896 20.3655 3 17.6294 3 11.9914C3 11.4234 3 10.8996 3 10.4167Z" stroke="currentColor" stroke-width="1.5"/>
-          </svg>
-
-          <span class="text-xl font-semibold text-gray-900 dark:text-gray-100"> Backup Control </span>
-        </a>
-      </div>
-
-      <div class="flex items-center space-x-4">
-</div>
-
-      </div>
-    </div>
-  </div>
-</nav>
-
-
-
-  <main>
-    {% block content %} {% endblock content %}
-  </main>
-
-  <!-- <div id="notification-area" class="fixed top-4 right-4 z-50"></div> -->
-
-  <!-- Timezone Detection Script
-  <script>
-    function getBrowserTimezoneOffset() { return new Date().getTimezoneOffset(); }
-    function setCookie(name, value, days = 30) {
-      const expires = new Date();
-      expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
-      document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
-    }
-    function setupTimezoneCookie() {
-      const timezoneOffset = getBrowserTimezoneOffset();
-      setCookie('browser_timezone_offset', timezoneOffset.toString());
-    }
-    document.addEventListener('DOMContentLoaded', setupTimezoneCookie);
-  </script> -->
-
-  <!-- Component JavaScript Files (Borgitory) -->
-  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/components/navigation.js') }}"></script>
-  <!-- <script src="{{ url_for('static', filename='js/components/jobs.js') }}"></script> -->
-
-  <script>
-
-    // Logout function
-    //async function logout() {
-    //  try {
-    //    const response = await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
-    //    if (response.ok) {
-    //      showHTMXNotification('Logged out successfully', 'success');
-    //      setTimeout(() => { window.location.href = '/login'; }, 1000);
-    //    } else {
-    //      showHTMXNotification('Logout failed', 'error');
-    //    }
-    //  } catch (error) {
-    //    console.error('Logout error:', error);
-    //    showHTMXNotification('Logout failed', 'error');
-    //  }
-    //}
-
-    // Global HTMX event listeners
-    document.body.addEventListener('htmx:responseError', function(evt) {
-      if (!evt.target.hasAttribute('hx-on::after-request')) {
-        showHTMXNotification('An error occurred: ' + evt.detail.xhr.statusText, 'error');
-      }
-    });
-
-    // Close sidebar when clicking outside on mobile
-    document.addEventListener('click', function(event) {
-      const sidebar = document.getElementById('sidebar');
-      const button = document.getElementById('mobile-menu-button');
-      const isClickInsideSidebar = sidebar && sidebar.contains(event.target);
-      const isClickOnButton = button && button.contains(event.target);
-      const isMobile = window.innerWidth < 1024;
-      if (isMobile && !isClickInsideSidebar && !isClickOnButton && sidebar && sidebar.classList.contains('mobile-open')) {
-        htmxCloseMobileSidebar();
-      }
-    });
-
-    // Close sidebar on window resize to desktop
-    window.addEventListener('resize', function() {
-      const sidebar = document.getElementById('sidebar');
-      if (window.innerWidth >= 1024 && sidebar && sidebar.classList.contains('mobile-open')) {
-        htmxCloseMobileSidebar();
-      }
-    });
-
-    // Handle escape key to close sidebar
-    document.addEventListener('keydown', function(event) {
-      const sidebar = document.getElementById('sidebar');
-      if (event.key === 'Escape' && sidebar && sidebar.classList.contains('mobile-open')) {
-        htmxCloseMobileSidebar();
-      }
-    });
-
-    // Global click handler to close autocomplete dropdowns
-    document.addEventListener('click', function(event) {
-      const clickedAutocomplete = event.target.closest('[data-path-autocomplete]');
-      if (!clickedAutocomplete) {
-        const autocompleteDropdowns = document.querySelectorAll('[data-path-autocomplete] [id$="dropdown"]');
-        autocompleteDropdowns.forEach(dropdown => { dropdown.style.display = 'none'; });
-      }
-    });
-  </script>
-
-
-<script src="https://unpkg.com/htmx.org@1.9.10/dist/htmx.min.js"></script>
-
-<script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
-<script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
-
-<script src="{{ url_for('static', filename='js/app.js') }}"></script>
 <div id="modal-container"></div>
-
+<script src="https://unpkg.com/htmx.org@1.9.10/dist/htmx.min.js"></script>
+<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ url_for('static', filename='js/components/navigation.js') }}"></script>
+<script>
+  function toggleDarkMode() {
+    document.documentElement.classList.toggle('light-mode');
+    localStorage.setItem('lightMode', document.documentElement.classList.contains('light-mode') ? '1' : '0');
+  }
+  if (localStorage.getItem('lightMode') === '1') document.documentElement.classList.add('light-mode');
+</script>
 </body>
 </html>

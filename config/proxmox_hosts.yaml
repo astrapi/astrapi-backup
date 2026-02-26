@@ -34,6 +34,3 @@
   host: vpn
   description: vpn.simpsons.lan
   enabled: true
-8:
-  description: test rsync
-  enabled: false

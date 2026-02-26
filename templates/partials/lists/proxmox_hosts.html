@@ -1,14 +1,4 @@
-{# templates/lists/proxmox_lxc.html #}
-
-<div class="text-sm text-gray-600 dark:text-gray-300 space-y-2">
-
-  <div class="flex items-center gap-2">
-  <div class="flex items-center gap-2">
-    <span class="font-medium text-gray-700 dark:text-gray-200">Host:</span>
-    <span class="font-mono truncate max-w-[48ch]">
-      {{ (item_data.host or '-') }}
-    </span>
-  </div>
-  </div>
-
+{# templates/partials/lists/proxmox_hosts.html #}
+<div class="meta-grid">
+  <span class="meta-label">Host</span><span class="meta-value">{{ item_data.host or '—' }}</span>
 </div>

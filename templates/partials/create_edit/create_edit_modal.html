@@ -1,60 +1,51 @@
-<div 
+<div
   id="create-edit-modal"
-  class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-  hx-target="this"
-  hx-swap="outerHTML"
+  class="ds-modal-backdrop"
 >
-  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-4xl space-y-6">
-
-    <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 text-center">
-      {{ "Eintrag bearbeiten" if item else "Neuen Eintrag erstellen" }}
-    </h2>
-
-    {% if item %}
-    <form
-      id="create-edit-form"
+  <div class="ds-modal" style="max-width:620px; padding:20px 24px;">
+{% if item %}
+    <form id="create-edit-form"
       hx-patch="{{ submit_url }}"
       hx-target="#{{ container_id }}-list"
       hx-swap="innerHTML"
       hx-indicator="#{{ loading_id }}"
       hx-headers='{"HX-Request": "true"}'
-      class="space-y-6"
+      style="display:flex; flex-direction:column; gap:14px;"
     >
     {% else %}
-    <form
-      id="create-edit-form"
+    <form id="create-edit-form"
       hx-post="{{ submit_url }}"
       hx-target="#{{ container_id }}-list"
       hx-swap="innerHTML"
       hx-indicator="#{{ loading_id }}"
       hx-headers='{"HX-Request": "true"}'
-      class="space-y-6"
+      style="display:flex; flex-direction:column; gap:14px;"
     >
     {% endif %}
 
       {% set rows = schema | groupby("row") %}
       {% for row, fields in rows %}
-        <div class="grid grid-cols-1 md:grid-cols-{{ fields|length }} gap-6">
+        <div style="display:grid; grid-template-columns:{% if fields|length == 2 and fields[1].type == 'boolean' %}1fr auto{% else %}repeat({{ fields|length }}, 1fr){% endif %}; gap:12px; align-items:{% if fields|length == 2 and fields[1].type == 'boolean' %}end{% else %}start{% endif %};">
           {% for field in fields %}
             {% include "partials/create_edit/field_renderer.html" %}
           {% endfor %}
         </div>
       {% endfor %}
 
-      <div class="flex justify-end gap-3 pt-4">
-        <button 
+      <!-- Footer -->
+      <div style="display:flex; justify-content:center; gap:8px; padding-top:10px; border-top:1px solid var(--border-s); margin-top:2px;">
+        <button
           type="button"
           onclick="document.getElementById('create-edit-modal').remove()"
-          class="px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          class="btn btn-ghost"
         >
           Abbrechen
         </button>
-        <button 
+        <button
           type="button"
           id="create-edit-submit"
-          class="px-4 py-2 rounded bg-purple-600 text-white hover:bg-purple-700"
-        >
-          Speichern
+          class="btn btn-primary"
+        >Speichern
         </button>
       </div>
     </form>
@@ -67,9 +58,8 @@
   const submitBtn = document.getElementById('create-edit-submit');
 
   function validateField(input) {
-    const errorEl = input.parentElement.querySelector('.validation-error');
+    const errorEl = input.parentElement.querySelector('.form-error');
     let message = '';
-
     const isRequired = input.dataset.required === 'true';
     const value = input.value.trim();
 
@@ -86,57 +76,34 @@
       }
     } else if (input.minLength > 0 && value.length < input.minLength) {
       message = `Mindestens ${input.minLength} Zeichen erforderlich.`;
-    } else if (input.pattern && value !== '' && !new RegExp(`^${input.pattern}$`).test(value)) {
-      message = input.title || 'Ungültiges Format.';
     }
 
     if (errorEl) {
       errorEl.textContent = message;
-      errorEl.classList.toggle('hidden', message === '');
+      errorEl.classList.toggle('visible', message !== '');
     }
-
-    // Roten Rand setzen/entfernen
-    if (message) {
-      input.classList.add('border-red-500', 'ring-1', 'ring-red-500');
-      input.classList.remove('border-transparent');
-    } else {
-      input.classList.remove('border-red-500', 'ring-1', 'ring-red-500');
-      input.classList.add('border-transparent');
-    }
-
+    input.classList.toggle('is-invalid', message !== '');
     return message === '';
   }
 
-  // Live-Validierung beim Verlassen eines Feldes
-  form.querySelectorAll('input[data-required], input[type="number"], input[minlength], select[data-required]')
+  form.querySelectorAll('input[data-required], input[type="number"], select[data-required]')
     .forEach(input => {
       input.addEventListener('blur', () => validateField(input));
-      input.addEventListener('input', () => {
-        // Fehler sofort entfernen sobald der User tippt
-        if (input.dataset.invalid === 'true') validateField(input);
-      });
+      input.addEventListener('input', () => { if (input.classList.contains('is-invalid')) validateField(input); });
     });
 
-  // Submit abfangen und erst validieren
   submitBtn.addEventListener('click', function () {
-    const inputs = form.querySelectorAll('input[data-required], input[type="number"], input[minlength], select[data-required]');
+    const inputs = form.querySelectorAll('input[data-required], input[type="number"], select[data-required]');
     let valid = true;
-
-    inputs.forEach(input => {
-      if (!validateField(input)) valid = false;
-    });
+    inputs.forEach(input => { if (!validateField(input)) valid = false; });
 
     if (!valid) {
-      // Zum ersten Fehler scrollen
-      const firstError = form.querySelector('.validation-error:not(.hidden)');
+      const firstError = form.querySelector('.form-error.visible');
       if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 
-    // Validierung bestanden → HTMX-Request manuell auslösen
     htmx.trigger(form, 'submit');
-
-    // Modal nach erfolgreichem Request schließen
     form.addEventListener('htmx:afterRequest', function handler(e) {
       if (e.detail.successful) {
         document.getElementById('create-edit-modal')?.remove();

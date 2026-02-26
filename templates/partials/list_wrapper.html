@@ -1,58 +1,38 @@
-{# templates/partials/list_wrapper.html #}
 {% import 'partials/components/ui_macros.html' as ui %}
 
 {% if cfg %}
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    {% for name, item in cfg.items() %}
-      {% set item_name = name %}
-      {% set item_data = item %}
+  {% for name, item in cfg.items() %}
+    {% set item_name = name %}
+    {% set item_data = item %}
 
-      <article class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6" data-name="{{ item_name }}">
+    <article class="ds-card {{ 'on' if item_data.enabled else 'off' }}">
+      <div class="card-inner">
 
-        <div class="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6">
-
-          <!-- LINKE SPALTE -->
-          <div class="min-w-0 space-y-3">
-
-            <!-- Titel + Enabled Badge -->
-            <div class="flex flex-col sm:flex-row sm:items-center sm:gap-3">
-              
-              <!-- Titel -->
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
-                {{ (item_data.description or '') ~ ' (' ~ item_name ~ ')' }}
-              </h3>
-
-              <!-- Badge -->
-              <span class="px-2 py-1 text-xs rounded-full w-fit
-                {{ 'bg-green-100 text-green-800' if item_data.enabled else 'bg-red-100 text-red-800' }}">
-                {{ 'Enabled' if item_data.enabled else 'Disabled' }}
-              </span>
-
-            </div>
-
-            <!-- MODUL-SPEZIFISCHER CONTENT -->
+        <div class="card-body">
+          <div class="card-title">{{ item_data.description or item_name }}</div>
+          <div class="card-meta">
             {% include content_template %}
-
           </div>
-
-          <!-- RECHTE SPALTE: Buttons -->
-          <div class="flex flex-row sm:flex-col gap-2 w-full sm:w-24">
-
-            {{ ui.edit_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id) }}
-            <!-- {{ ui.add_button(module=module, container_id=container_id, loading_id=loading_id) }} -->
-            {{ ui.toggle_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id, enabled=item_data.enabled, description=item_data.description) }}
-            {{ ui.delete_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id, description=item_data.description) }}
-
-          </div>
-
         </div>
 
-      </article>
+        <div class="card-actions">
+          {{ ui.toggle_switch(module=module, item=item_name, container_id=container_id, loading_id=loading_id, enabled=item_data.enabled, description=item_data.description) }}
+          {{ ui.edit_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id) }}
+          {{ ui.delete_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id, description=item_data.description) }}
+        </div>
 
-    {% endfor %}
-  </div>
+      </div>
+    </article>
+  {% endfor %}
 {% else %}
-  <div class="text-sm text-gray-500 dark:text-gray-400">
-    Keine Einträge gefunden.
+  <div class="empty-state">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+      <rect x="3" y="3" width="18" height="18" rx="2"/>
+      <line x1="9" y1="9" x2="15" y2="9"/>
+      <line x1="9" y1="12" x2="15" y2="12"/>
+      <line x1="9" y1="15" x2="12" y2="15"/>
+    </svg>
+    <div class="empty-state-title">Keine Einträge vorhanden</div>
+    <div class="empty-state-sub">Erstelle den ersten Eintrag mit „Neu"</div>
   </div>
 {% endif %}

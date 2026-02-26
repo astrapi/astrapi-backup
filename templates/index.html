@@ -1,49 +1,17 @@
-{# templates/index.html #}
 {% extends "base.html" %}
 
 {% block content %}
-<div class="flex bg-gray-100 dark:bg-gray-800 lg:p-0 lg:gap-0 lg:justify-left">
-
-  <!-- Mobile sidebar overlay -->
-  <div id="sidebar-overlay"
-       class="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden hidden"
-       hx-on:click="document.getElementById('sidebar').classList.remove('mobile-open'); this.classList.add('hidden'); this.classList.remove('show'); document.getElementById('hamburger-icon').classList.remove('hidden'); document.getElementById('close-icon').classList.add('hidden'); document.getElementById('mobile-menu-button').setAttribute('aria-expanded','false'); document.body.classList.remove('mobile-sidebar-open');">
-  </div>
-
-  <!-- Container for sidebar and main content -->
-  <div class="flex w-full lg:gap-3">
-    {% include "navigation/index.html" %}
-
-    <!-- Main Content Area -->
-    <div class="flex-1 flex flex-col lg:ml-0">
-      <div class="p-3 sm:p-6 lg:pr-3 lg:pt-0 lg:pb-3 lg:pl-0">
-        <!-- Main Content Container - tabs loaded here via HTMX -->
-        <div id="main-content"
-            class="bg-gray-100 dark:bg-gray-800"
-             hx-get="{{ initial_content_url or '/' ~ (nav_items[0].key if nav_items else 'repositories') }}"
-             hx-trigger="load"
-             hx-swap="innerHTML">
-          <!-- Default loading state -->
-          <div class="text-gray-500 dark:text-gray-400 text-sm">
-            Loading {{ active_tab or (nav_items[0].label if nav_items else 'repositories') }}...
-          </div>
-        </div>
+<div class="app-layout">
+  {% include "navigation/index.html" %}
+  <div class="main-content">
+    <div id="main-content"
+         hx-get="{{ initial_content_url or '/' ~ (nav_items[0].key if nav_items else 'borg') }}"
+         hx-trigger="load"
+         hx-swap="innerHTML">
+      <div style="color:var(--text-muted);font-family:var(--font-mono);font-size:13px);">
+        Laden…
       </div>
     </div>
   </div>
 </div>
-
-<style>
-  .nav-item.active {
-    @apply bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 border-r-2 border-blue-600 dark:border-blue-400;
-  }
-
-  .tab-content {
-    min-height: 500px;
-  }
-
-  .htmx-indicator {
-    display: none;
-  }
-</style>
-{% endblock content %}
+{% endblock %}

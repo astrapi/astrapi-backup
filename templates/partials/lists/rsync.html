@@ -1,21 +1,10 @@
-{# templates/lists/rsync.html #}
-
+{# templates/partials/lists/rsync.html #}
 {% set module = "rsync" %}
-
-<div class="text-sm text-gray-600 dark:text-gray-300 space-y-2">
-
-  <div class="flex items-center gap-2">
-    <span class="font-medium text-gray-700 dark:text-gray-200">Source:</span>
-    <span class="font-mono truncate max-w-[48ch]">
-      {{ (item_data.source_host or '-') ~ ':' ~ (item_data.source_path or '-') }}
-    </span>
-  </div>
-
-  <div class="flex items-center gap-2">
-    <span class="font-medium text-gray-700 dark:text-gray-200">Target:</span>
-    <span class="font-mono truncate max-w-[48ch]">
-      {{ (item_data.target_host or '-') ~ ':' ~ (item_data.target_path or '-') }}
-    </span>
-  </div>
-
+<div class="meta-grid">
+  {% if item_data.source_host or item_data.source_path %}
+  <span class="meta-label">SRC</span><span class="meta-value">{{ (item_data.source_host or '—') ~ ':' ~ (item_data.source_path or '—') }}</span>
+  {% endif %}
+  {% if item_data.target_host or item_data.target_path %}
+  <span class="meta-label">DST</span><span class="meta-value">{{ (item_data.target_host or '—') ~ ':' ~ (item_data.target_path or '—') }}</span>
+  {% endif %}
 </div>

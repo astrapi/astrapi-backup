@@ -1,18 +1,5 @@
-{# templates/lists/proxmox_lxc.html #}
-
-<div class="text-sm text-gray-600 dark:text-gray-300 space-y-2">
-
-  <div class="flex items-center gap-2">
-    <span class="font-medium text-gray-700 dark:text-gray-200">ID:</span>
-    <span class="font-mono truncate max-w-[48ch]">
-      {{ (item_data.id or '-') }}
-    </span>
-  </div>
-
-  <div class="flex items-center gap-2">
-    <span class="font-medium text-gray-700 dark:text-gray-200">Node:</span>
-    <span class="font-mono truncate max-w-[48ch]">
-      {{ (item_data.node or '-')  }}
-    </span>
-  </div>
+{# templates/partials/lists/proxmox_lxc.html #}
+<div class="meta-grid">
+  <span class="meta-label">ID</span>  <span class="meta-value">{{ item_data.id or '—' }}</span>
+  <span class="meta-label">Node</span><span class="meta-value">{{ item_data.node or '—' }}</span>
 </div>

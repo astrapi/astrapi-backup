@@ -1,31 +1,29 @@
-// Dark Mode Functions
+// Dark Mode
 function toggleDarkMode() {
-    const html = document.documentElement;
-    const isDark = html.classList.contains('dark');
-    
-    if (isDark) {
-        html.classList.remove('dark');
-        localStorage.setItem('darkMode', 'false');
-    } else {
-        html.classList.add('dark');
-        localStorage.setItem('darkMode', 'true');
-    }
+    document.documentElement.classList.toggle('light-mode');
+    localStorage.setItem('lightMode', document.documentElement.classList.contains('light-mode') ? '1' : '0');
 }
 
 function initializeDarkMode() {
-    const savedMode = localStorage.getItem('darkMode');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    if (savedMode === 'true' || (savedMode === null && prefersDark)) {
-        document.documentElement.classList.add('dark');
+    if (localStorage.getItem('lightMode') === '1') {
+        document.documentElement.classList.add('light-mode');
     }
 }
 
-// Initialize dark mode and notifications on page load
+// Active Nav
+function updateActiveNav() {
+    const path = window.location.pathname.replace(/^\/+/, "") || "borg";
+    document.querySelectorAll(".nav-item").forEach(btn => {
+        const key = btn.id.replace("nav-", "");
+        if (key) {
+            btn.classList.toggle("active", path === key);
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     initializeDarkMode();
     updateActiveNav();
-    //initializeNotifications();
 });
 
 document.body.addEventListener("htmx:afterSwap", (evt) => {
@@ -34,18 +32,6 @@ document.body.addEventListener("htmx:afterSwap", (evt) => {
     }
 });
 
-function updateActiveNav() {
-    const path = window.location.pathname.replace(/^\/+/, "");
-
-    document.querySelectorAll(".nav-item").forEach(btn => {
-        const key = btn.id.replace("nav-", "");
-        const isActive = (path === key);
-
-        btn.classList.toggle("bg-blue-100", isActive);
-        btn.classList.toggle("text-blue-700", isActive);
-        btn.classList.toggle("dark:bg-gray-700", isActive);
-        btn.classList.toggle("dark:text-blue-400", isActive);
-        btn.classList.toggle("font-semibold", isActive);
-    });
-}
-
+document.body.addEventListener("htmx:pushedIntoHistory", () => {
+    updateActiveNav();
+});

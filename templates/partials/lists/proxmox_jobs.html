@@ -1,19 +1,6 @@
-{# templates/lists/proxmox_jobs.html #}
-
-<div class="text-sm text-gray-600 dark:text-gray-300 space-y-2">
-
-  <div class="flex items-center gap-2">
-    <span class="font-medium text-gray-700 dark:text-gray-200">Host:</span>
-    <span class="font-mono truncate max-w-[48ch]">
-      {{ (item_data.host or '-') }}
-    </span>
-  </div>
-
-  <div class="flex items-center gap-2">
-    <span class="font-medium text-gray-700 dark:text-gray-200">Job:</span>
-    <span class="font-mono truncate max-w-[48ch]">
-      {{ (item_data.job or '-') }}
-    </span>
-  </div>  
-
+{# templates/partials/lists/proxmox_jobs.html #}
+<div class="meta-grid">
+  <span class="meta-label">Type</span><span class="meta-value">{{ item_data.type or '—' }}</span>
+  <span class="meta-label">Host</span><span class="meta-value">{{ item_data.host or '—' }}</span>
+  <span class="meta-label">Job</span> <span class="meta-value">{{ item_data.job or '—' }}</span>
 </div>
