@@ -111,4 +111,32 @@ def register_modal_routes(app):
             loading_id=loading_id
         )
 
+    # ── Scheduler ────────────────────────────────────────────────
+
+    @app.route("/ui/scheduler/create")
+    @ui_tag("scheduler")
+    def scheduler_create():
+        return render_template("partials/scheduler/create_modal.html")
+
+    @app.route("/ui/scheduler/<job_id>/edit")
+    @ui_tag("scheduler")
+    def scheduler_edit(job_id):
+        import scheduler.engine as engine
+        job = engine.get_job(job_id)
+        if job is None:
+            return "Job nicht gefunden", 404
+        return render_template("partials/scheduler/edit_modal.html", job=job)
+
+    @app.route("/ui/scheduler/<job_id>/delete")
+    @ui_tag("scheduler")
+    def scheduler_delete(job_id):
+        description = request.args.get("description", job_id)
+        return render_template(
+            "partials/confirm_modal.html",
+            description=description, verb="löschen",
+            confirm_url=f"/api/scheduler/jobs/{job_id}",
+            method="delete",
+            container_id="tab-scheduler", loading_id="scheduler-loading"
+        )
+
 

@@ -25,3 +25,13 @@
   url: /api/ui/rsync/tab
   icon: sync
   default: true
+
+- key: scheduler
+  label: Scheduler
+  url: /api/ui/scheduler/tab
+  icon: clock
+
+- key: errors
+  label: Fehler
+  url: /api/ui/errors/tab
+  icon: alert

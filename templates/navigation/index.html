@@ -26,6 +26,20 @@
       <path d="M7 16V4m0 0L3 8m4-4l4 4"/>
       <path d="M17 8v12m0 0l4-4m-4 4l-4-4"/>
     </svg>
+  {% elif name == 'clock' %}
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="12" cy="12" r="10"/>
+      <polyline points="12 6 12 12 16 14"/>
+    </svg>
+  {% elif name == 'alert' %}
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <path d="M9 2h6l1 4-2 1v2l3 1-1 3h-2v3h-6v-3H6l-1-3 3-1V7L6 6z"/>
+      <circle cx="10" cy="10" r="0.5" fill="currentColor" stroke="none"/>
+      <circle cx="14" cy="10" r="0.5" fill="currentColor" stroke="none"/>
+      <path d="M9 15c0 1 1.5 2 3 2s3-1 3-2"/>
+      <path d="M7 6C5 5 4 3 4 3"/><path d="M17 6c2-1 3-3 3-3"/>
+      <line x1="7" y1="2" x2="5" y2="1"/><line x1="17" y1="2" x2="19" y2="1"/>
+    </svg>
   {% else %}
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
       <circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/>

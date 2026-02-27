@@ -78,3 +78,51 @@
     </svg>
   </button>
 {% endmacro %}
+
+{% macro run_button(module=None, item=None, container_id=None, enabled=True) %}
+  <button
+    hx-post="/api/run/{{ module }}/{{ item }}?debug=false"
+    hx-target="#{{ container_id }}-list"
+    hx-swap="innerHTML"
+    hx-headers='{"HX-Request": "true"}'
+    class="btn-icon btn-icon-run"
+    title="{{ 'Ausführen' if enabled else 'Deaktiviert – nur Debug-Run möglich' }}"
+    {% if not enabled %}disabled style="opacity:.3; cursor:not-allowed;"{% endif %}
+  >
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polygon points="5 3 19 12 5 21 5 3"/>
+    </svg>
+  </button>
+{% endmacro %}
+
+{% macro run_debug_button(module=None, item=None, container_id=None) %}
+  <button
+    hx-post="/api/run/{{ module }}/{{ item }}?debug=true"
+    hx-target="#{{ container_id }}-list"
+    hx-swap="innerHTML"
+    hx-headers='{"HX-Request": "true"}'
+    class="btn-icon btn-icon-debug"
+    title="Ausführen (Debug)"
+  >
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polygon points="5 3 19 12 5 21 5 3"/>
+      <line x1="1" y1="1" x2="23" y2="23"/>
+    </svg>
+  </button>
+{% endmacro %}
+
+{% macro log_button(module=None, item=None) %}
+  <button
+    hx-get="/api/run/{{ module }}/{{ item }}/logs"
+    hx-target="body"
+    hx-swap="beforeend"
+    class="btn-icon btn-icon-log"
+    title="Log anzeigen"
+  >
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+    </svg>
+  </button>
+{% endmacro %}

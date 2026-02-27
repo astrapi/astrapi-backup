@@ -96,3 +96,6 @@ dmypy.json
 
 config/rsync.yaml
 config/proxmox.yaml
+
+data/
+logs/

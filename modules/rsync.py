@@ -1,134 +1,63 @@
+# modules/rsync.py
 import subprocess
-import yaml
-from helpers.logger import log
 
-from config import config
-from helpers.cmd import run_cmd
+from helpers.logger import log, set_log_context, clear_log_context
+from helpers.reachability import require_hosts
+from helpers.cmd import run_cmd, build_connection_string, is_local
+from config import is_debug
 
-with open("config/rsync.yaml", "r") as f: 
-    CONFIG = yaml.safe_load(f)
+from api.storage import load_config as _load_config
+def _get_config(): return _load_config("rsync")
+
 
 def run():
-    for job_id, entries in CONFIG.items(): 
-        for entry in entries:
-            if not entry.get("enabled", False):
-                continue
+    for job_id, entry in _get_config().items():
+        if not entry.get("enabled", False):
+            continue
+        run_single(job_id, entry)
 
-            _rsync(entry)
+
+def run_single(job_id, entry=None):
+    if entry is None:
+        entry = _get_config().get(job_id) or _get_config().get(
+            int(job_id) if str(job_id).isdigit() else job_id)
+    if entry is None:
+        log("ERROR", f"Rsync-Eintrag '{job_id}' nicht gefunden")
+        return
+    set_log_context("rsync", job_id)
+    try:
+        log("INFO", f"=== Rsync '{entry.get('description', job_id)}' gestartet ===")
+        if not is_debug():
+            hosts = [h for h in {entry.get("source_host"), entry.get("target_host")}
+                     if h and not is_local(h)]
+            if not require_hosts(hosts):
+                return
+        _rsync(entry)
+        log("INFO", f"=== Rsync '{entry.get('description', job_id)}' abgeschlossen ===")
+    finally:
+        clear_log_context()
+
 
 def _rsync(entry):
     source_host = entry["source_host"]
     source_path = entry["source_path"]
     target_host = entry["target_host"]
     target_path = entry["target_path"]
+
+    # rsync wird immer auf dem Source-Host ausgeführt
     connection = build_connection_string(source_host)
 
-    base_cmd = [
-        "rsync", 
-        "-av", 
-        "--delete", 
-        "--itemize-changes",
-        source_path
-    ]
-
-    if target_host == "local":
-        cmd = [
-            *base_cmd,
-            target_path
-        ]    
+    # Ziel: lokal oder remote
+    if is_local(target_host):
+        target = target_path
     else:
-        cmd = [
-            *base_cmd,
-            f"{target_host}:{target_path}"
-        ] 
+        target = f"{target_host}:{target_path}"
+
+    cmd = ["rsync", "-av", "--delete", "--itemize-changes", source_path, target]
 
     try:
-        result = run_cmd(cmd, connection)
-        log("INFO", f"Rsync erfolgreich.")
+        run_cmd(cmd, connection)
+        log("INFO", "Rsync erfolgreich.")
     except subprocess.CalledProcessError as e:
         log("WARNING", "Rsync fehlgeschlagen:")
-        if e.stderr:
-            log("ERROR", e.stderr.strip())
-        else:
-            log("ERROR", "Unbekannter Fehler.")
-
-# def run2():
-#     for job_id, entries in SYNC_CONFIG.items():
-#         log("INFO", f"rsync für '{job_id}'")
-#         for entry in entries:
-
-#             if not entry.get("enabled", False):
-#                 continue
-
-#             source_host = entry["source_host"]
-#             source_path = entry["source_path"]
-#             target_host = entry["target_host"]
-#             target_path = entry["target_path"]
-
-#             is_source_local = (source_host == "local")
-#             is_target_local = (target_host == "local")
-
-#             source = source_path
-
-#             if is_target_local:
-#                 target = target_path
-#             else:
-#                 target = f"{target_host}:{target_path}"
-
-#             base_cmd = [
-#                 "rsync", 
-#                 "-av", 
-#                 "--delete", 
-#                 "--itemize-changes", 
-#                 source, 
-#                 target
-#             ]
-
-#             if is_source_local:
-#                 cmd = base_cmd
-                
-#                 try:
-#                     if config.debug:
-#                         log("DEBUG", f"{' '.join(cmd)}")
-#                     else:
-#                         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-#                         log("INFO", f"rsync erfolgreich: {source} → {target}")
-#                 except subprocess.CalledProcessError:
-#                     log("ERROR", f"rsync fehlgeschlagen: {source} → {target}")
-#             else:
-#                 if is_empty_remote(source_host, target_path): 
-#                     log("ERROR", f"Quelle ist leer: {source_host}:{target_path} → rsync abgebrochen") 
-#                     continue
-#                 else:                
-#                     cmd = ["ssh", f"backupadm@{source_host}", " ".join(base_cmd)]
-
-#                     try:
-#                         if config.debug:
-#                             log("DEBUG", f"{' '.join(cmd)}")
-#                         else:
-#                             subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-#                             log("INFO", f"rsync erfolgreich: {source} → {target}")
-#                     except subprocess.CalledProcessError:
-#                         log("ERROR", f"rsync fehlgeschlagen: {source} → {target}")
-
-# def is_empty_remote(source_host: str, target_path: str) -> bool:
-#     # Debug-Modus: nichts ausführen, immer False zurückgeben
-#     if config.debug:
-#         log("DEBUG", f"Skip is_empty_remote({source_host}, {target_path}) wegen Debug-Modus")
-#         return False
-
-#     cmd = [
-#         "ssh",
-#         f"backupadm@{source_host}",
-#         f'test -z "$(ls -A {target_path})"'
-#     ]
-
-#     result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-#     # returncode == 0 → test war TRUE → Verzeichnis ist leer
-#     return result.returncode == 0
-
-def build_connection_string(host: str, ssh_user: str | None = None) -> str:
-    if host == "local":
-        return "local"
-    return f"{ssh_user or 'backupadm'}@{host}"
+        log("ERROR", e.stderr.strip() if e.stderr else "Unbekannter Fehler.")

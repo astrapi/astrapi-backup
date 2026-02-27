@@ -1,13 +1,14 @@
 # api/routers/config.py
 from typing import Any, Dict, Optional
 from fastapi import APIRouter, HTTPException, Body, Response, status, Request, Header
-from fastapi.templating import Jinja2Templates
-from ..storage import load_config, get_item, delete_item, save_item
+from api.templates import templates as _templates_import
+from api.routers.run import get_running
+from ..storage import load_config, get_item, delete_item, save_item, next_item_id
 from ui.schema_loader import load_schema
 
 import uuid
 
-templates = Jinja2Templates(directory="templates")
+templates = _templates_import
 
 
 def clean_empty_fields(data: dict) -> dict:
@@ -69,9 +70,7 @@ def config_router(storage_key: str, tag: Optional[str] = None) -> APIRouter:
             payload[name] = lists[name]
 
         # Nächste freie numerische ID
-        cfg = load_config(storage_key)
-        existing_ids = [int(k) for k in cfg.keys() if str(k).isdigit()]
-        next_id = max(existing_ids) + 1 if existing_ids else 1
+        next_id = next_item_id(storage_key)
 
         # Cleanup
         payload = clean_empty_fields(payload)
@@ -89,6 +88,7 @@ def config_router(storage_key: str, tag: Optional[str] = None) -> APIRouter:
                     "content_template": f"partials/lists/{storage_key}.html",
                     "container_id": f"tab-{storage_key}",
                     "loading_id": f"{storage_key}-loading",
+                    "running": get_running(),
                 }
             )
 
@@ -150,37 +150,38 @@ def config_router(storage_key: str, tag: Optional[str] = None) -> APIRouter:
         # Checkbox normalisieren
         payload["enabled"] = payload.get("enabled") == "on"
 
-        # Listenfelder extrahieren
-        pre = []
-        post = []
-
-        for key, value in payload.items():
-            if key.startswith("pre_"):
-                index = int(key.split("_")[1])
-                pre.append((index, value))
-            elif key.startswith("post_"):
-                index = int(key.split("_")[1])
-                post.append((index, value))
-
-        pre = [v for _, v in sorted(pre)]
-        post = [v for _, v in sorted(post)]
-
-        # pre_*/post_* entfernen
-        payload = {k: v for k, v in payload.items() if not k.startswith(("pre_", "post_"))}
-
-        # Schema laden
+        # Schema laden – alle Listfelder generisch extrahieren
         schema = load_schema(storage_key)
+        list_fields = [field["name"] for field in schema if field.get("type") == "list"]
 
-        # Felder, die im Formular fehlen → leere Strings
+        lists = {name: [] for name in list_fields}
+        for key, value in payload.items():
+            for list_name in list_fields:
+                if key.startswith(f"{list_name}_"):
+                    try:
+                        index = int(key[len(list_name)+1:])
+                        lists[list_name].append((index, value))
+                    except ValueError:
+                        pass
+
+        for name in list_fields:
+            lists[name] = [v for _, v in sorted(lists[name])]
+
+        # Alle list_*-Schlüssel aus payload entfernen
+        list_prefixes = tuple(f"{name}_" for name in list_fields)
+        payload = {k: v for k, v in payload.items()
+                   if not any(k.startswith(p) for p in list_prefixes)}
+
+        # Felder die im Formular fehlen → leere Strings
         for field in schema:
             name = field["name"]
-            if name not in payload:
+            if name not in payload and field.get("type") != "list":
                 payload[name] = ""
 
         # Merge-Patch
         existing.update(payload)
-        existing["pre"] = pre
-        existing["post"] = post
+        for name in list_fields:
+            existing[name] = lists[name]
 
         # Cleanup
         existing = clean_empty_fields(existing)
@@ -198,6 +199,7 @@ def config_router(storage_key: str, tag: Optional[str] = None) -> APIRouter:
                     "content_template": f"partials/lists/{storage_key}.html",
                     "container_id": f"tab-{storage_key}",
                     "loading_id": f"{storage_key}-loading",
+                    "running": get_running(),
                 }
             )
 
@@ -221,6 +223,7 @@ def config_router(storage_key: str, tag: Optional[str] = None) -> APIRouter:
                     "content_template": f"partials/lists/{storage_key}.html",
                     "container_id": f"tab-{storage_key}",
                     "loading_id": f"{storage_key}-loading",
+                    "running": get_running(),
                 }
             )
 
@@ -250,6 +253,7 @@ def config_router(storage_key: str, tag: Optional[str] = None) -> APIRouter:
                     "content_template": f"partials/lists/{storage_key}.html",
                     "container_id": f"tab-{storage_key}",
                     "loading_id": f"{storage_key}-loading",
+                    "running": get_running(),
                 }
             )
 
