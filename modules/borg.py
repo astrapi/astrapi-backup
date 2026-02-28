@@ -27,7 +27,9 @@ def run_single(job_id, entry=None):
     if entry is None:
         log("ERROR", f"Borg-Eintrag '{job_id}' nicht gefunden")
         return
-    set_log_context("borg", job_id)
+
+    log_item_id = f"{job_id}_debug" if is_debug() else job_id
+    set_log_context("borg", log_item_id)
     try:
         log("INFO", f"=== Borg '{entry.get('description', job_id)}' gestartet ===")
         if not is_debug():
@@ -47,10 +49,15 @@ def run_single(job_id, entry=None):
 
 
 def _hook(phase: str, entry):
-    host = entry.get("source_host")
-    ssh_user = entry.get("ssh_user")
-    connection = build_connection_string(host, ssh_user or "backupadm")
-    cmd = "; ".join(entry.get(phase))
+    host       = entry.get("source_host")
+    ssh_user   = entry.get("ssh_user") or "backupadm"
+    connection = build_connection_string(host, ssh_user)
+    hooks = entry.get(phase) or []
+    if isinstance(hooks, str):
+        hooks = [l for l in hooks.split("\n") if l]
+    cmd = "; ".join(hooks)
+    if not cmd:
+        return
     try:
         run_cmd(cmd, connection)
         log("INFO", f"Hook '{phase}' erfolgreich")
@@ -59,76 +66,100 @@ def _hook(phase: str, entry):
         log("ERROR", e.stderr.strip() if e.stderr else "Unbekannter Fehler.")
 
 
+def _local_fqdn() -> str:
+    """
+    FQDN dieses Servers – wird als SSH-Ziel für remote→lokal Borg-Repos genutzt.
+    Konfigurierbar via LOCAL_FQDN in config/secrets.env (empfohlen).
+    Fallback: socket.getfqdn() – kann unter manchen Systemen eine IP zurückgeben.
+    """
+    configured = os.getenv("LOCAL_FQDN", "").strip()
+    if configured:
+        return configured
+    import socket
+    fqdn = socket.getfqdn()
+    # Fallback auf Hostname wenn getfqdn() eine IP zurückgibt
+    if fqdn and not fqdn.replace(".", "").isdigit():
+        return fqdn
+    return socket.gethostname()
+
+
+def _repo(source_host: str, target_host: str, target_path: str) -> str:
+    """
+    Borg-Repository-Pfad aus Sicht des ausführenden Hosts (source_host).
+
+    source lokal  + target lokal   →  /pfad
+    source lokal  + target remote  →  backupadm@target:/pfad
+    source remote + target lokal   →  backupadm@backup01.fqdn:/pfad
+    source remote + target remote  →  backupadm@target:/pfad
+    """
+    if is_local(target_host):
+        if is_local(source_host):
+            return target_path
+        else:
+            return f"backupadm@{_local_fqdn()}:{target_path}"
+    else:
+        return f"backupadm@{target_host}:{target_path}"
+
+
 def _backup(entry):
-    source_host = entry.get("source_host")
-    target_host = entry.get("target_host")
-    connection = build_connection_string(source_host)
+    source_host  = entry.get("source_host")
+    target_host  = entry.get("target_host")
+    # Borg läuft immer als backupadm – ssh_user gilt nur für Hooks
+    connection   = build_connection_string(source_host, "backupadm")
     archive_name = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     env = dict(os.environ)
     env["BORG_PASSPHRASE"] = get_secret("BORG_PASSPHRASE")
 
+    repo    = _repo(source_host, target_host, entry.get("target_path"))
+    archive = f"{repo}::{archive_name}"
+    src     = f"{entry.get('source_path')}/./"
+
     base_cmd = [
         "/var/lib/backupadm/.venv/bin/borg", "create",
         "--verbose", "--stats", "--compression", "auto,zstd",
-        "--exclude-caches", "--exclude", "'*/lost+found'"
+        "--exclude-caches",
     ]
     for pattern in entry.get("exclude", []):
-        base_cmd.extend(["--exclude", f"'{pattern}'"])
+        base_cmd.extend(["--exclude", pattern])
 
     if is_local(source_host):
-        # Backup läuft lokal, Ziel ist lokal oder remote
-        if is_local(target_host):
-            repo = f"{entry.get('target_path')}::{archive_name}"
-        else:
-            repo = f"backupadm@{target_host}:{entry.get('target_path')}::{archive_name}"
-        cmd = [*base_cmd, repo, f"{entry.get('source_path')}/./"]
+        cmd = [*base_cmd, archive, src]
     else:
-        # Backup läuft auf Remote-Host, Borg-Passphrase muss mitgegeben werden
-        if is_local(target_host):
-            repo = f"{entry.get('target_path')}::{archive_name}"
-        else:
-            repo = f"backupadm@{target_host}:{entry.get('target_path')}::{archive_name}"
-        cmd = [f"BORG_PASSPHRASE={env['BORG_PASSPHRASE']}", *base_cmd, repo,
-               f"{entry.get('source_path')}/./"]
+        cmd = [f"BORG_PASSPHRASE={env['BORG_PASSPHRASE']}", *base_cmd, archive, src]
 
     try:
         run_cmd(cmd, connection, env=env)
         log("INFO", "Borg-Backup erfolgreich.")
     except subprocess.CalledProcessError as e:
-        log("WARNING", f"Borg-Backup fehlgeschlagen")
+        log("WARNING", "Borg-Backup fehlgeschlagen")
         log("ERROR", e.stderr.strip() if e.stderr else "Unbekannter Fehler.")
 
 
 def _prune(entry):
     source_host = entry.get("source_host")
     target_host = entry.get("target_host")
-    connection = build_connection_string(source_host)
+    # Borg läuft immer als backupadm – ssh_user gilt nur für Hooks
+    connection  = build_connection_string(source_host, "backupadm")
 
     env = dict(os.environ)
     env["BORG_PASSPHRASE"] = get_secret("BORG_PASSPHRASE")
 
+    repo = _repo(source_host, target_host, entry.get("target_path"))
+
     base_cmd = [
         "/var/lib/backupadm/.venv/bin/borg", "prune",
-        "--keep-daily=7", "--keep-weekly=4", "--keep-monthly=12", "--keep-yearly=5"
+        "--keep-daily=7", "--keep-weekly=4", "--keep-monthly=12", "--keep-yearly=5",
     ]
 
     if is_local(source_host):
-        if is_local(target_host):
-            repo = entry.get("target_path")
-        else:
-            repo = f"backupadm@{target_host}:{entry.get('target_path')}"
         cmd = [*base_cmd, repo]
     else:
-        if is_local(target_host):
-            repo = entry.get("target_path")
-        else:
-            repo = f"backupadm@{target_host}:{entry.get('target_path')}"
         cmd = [f"BORG_PASSPHRASE={env['BORG_PASSPHRASE']}", *base_cmd, repo]
 
     try:
         run_cmd(cmd, connection, env=env)
         log("INFO", "Borg-Prune erfolgreich.")
     except subprocess.CalledProcessError as e:
-        log("WARNING", f"Borg-Prune fehlgeschlagen")
+        log("WARNING", "Borg-Prune fehlgeschlagen")
         log("ERROR", e.stderr.strip() if e.stderr else "Unbekannter Fehler.")

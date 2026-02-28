@@ -123,20 +123,31 @@ def _row_to_dict(module: str, row: sqlite3.Row) -> Dict[str, Any]:
     return d
 
 
+def _to_list(val) -> list:
+    """Stellt sicher dass val eine Liste ist – kein versehentliches char-join."""
+    if val is None:
+        return []
+    if isinstance(val, list):
+        return val
+    if isinstance(val, str):
+        return [l for l in val.split("\n") if l]
+    return list(val)
+
+
 def _dict_to_params(module: str, item: Dict[str, Any]) -> Dict[str, Any]:
     """Python-dict → DB-Parameter-dict."""
     p = dict(item)
     p["enabled"] = 1 if item.get("enabled", True) else 0
 
     if module == "borg":
-        p["pre_hooks"]  = "\n".join(item.get("pre",  []) or [])
-        p["post_hooks"] = "\n".join(item.get("post", []) or [])
-        p["exclude"]    = "\n".join(item.get("exclude", []) or [])
+        p["pre_hooks"]  = "\n".join(_to_list(item.get("pre")))
+        p["post_hooks"] = "\n".join(_to_list(item.get("post")))
+        p["exclude"]    = "\n".join(_to_list(item.get("exclude")))
         p.pop("pre",  None)
         p.pop("post", None)
 
     if module == "proxmox_hosts":
-        p["extra_sources"] = "\n".join(item.get("source", []) or [])
+        p["extra_sources"] = "\n".join(_to_list(item.get("source")))
         p.pop("source", None)
 
     # DB-PK nie als Parameter mitgeben (AUTOINCREMENT)

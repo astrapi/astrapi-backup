@@ -33,8 +33,8 @@ def create():
     app.include_router(run_router, prefix="/run")
     app.include_router(scheduler_router, prefix="/scheduler")
 
-    print("Registered routes:")
-    for route in app.routes:
-        print(route.path, route.name)
+    # print("Registered routes:")
+    # for route in app.routes:
+    #     print(route.path, route.name)
 
     return app

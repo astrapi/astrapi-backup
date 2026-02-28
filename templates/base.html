@@ -24,6 +24,28 @@
     localStorage.setItem('lightMode', document.documentElement.classList.contains('light-mode') ? '1' : '0');
   }
   if (localStorage.getItem('lightMode') === '1') document.documentElement.classList.add('light-mode');
+
+  // HX-Trigger: openLogModal – öffnet Live-Log-Modal nach Run-POST
+  document.body.addEventListener('openLogModal', function(e) {
+    var module = e.detail.module;
+    var itemId = e.detail.itemId;
+    fetch('/api/run/' + module + '/' + itemId + '/logs?live=1')
+      .then(function(r) { return r.text(); })
+      .then(function(html) {
+        // Altes Modal entfernen falls vorhanden
+        var old = document.getElementById('log-modal');
+        if (old) old.remove();
+        document.body.insertAdjacentHTML('beforeend', html);
+        // Nach Run-Ende Karten neu laden (Badge entfernen)
+        var modal = document.getElementById('log-modal');
+        if (modal) {
+          modal.addEventListener('runDone', function() {
+            htmx.ajax('GET', '/api/run/' + module + '/status',
+              {target: '#tab-' + module + '-list', swap: 'innerHTML'});
+          });
+        }
+      });
+  });
 </script>
 </body>
 </html>

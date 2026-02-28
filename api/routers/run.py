@@ -1,12 +1,11 @@
 # api/routers/run.py
 import asyncio
+import json
 import threading
 from pathlib import Path
-from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
-from fastapi.templating import Jinja2Templates
 
 from config import set_debug
 from helpers.logger import (get_log_dates, read_log, get_all_errors,
@@ -14,7 +13,7 @@ from helpers.logger import (get_log_dates, read_log, get_all_errors,
 from api.storage import load_config
 
 ROOT = Path(__file__).resolve().parents[2]
-templates = None  # wird von api/templates.py gesetzt – Import unten
+templates = None
 
 def _get_templates():
     global templates
@@ -26,10 +25,10 @@ def _get_templates():
 router = APIRouter(tags=["run"])
 
 _running: dict = {}
-_running_lock = threading.Lock()
+_running_lock  = threading.Lock()
 
-MODULE_RUN_ID   = "__run__"    # item_id für normalen Modul-Gesamt-Run
-MODULE_DEBUG_ID = "__debug__"  # item_id für Debug-Modul-Gesamt-Run
+MODULE_RUN_ID   = "__run__"
+MODULE_DEBUG_ID = "__debug__"
 
 
 def _is_running(module: str, item_id: str) -> bool:
@@ -47,20 +46,39 @@ def get_running() -> dict:
     return dict(_running)
 
 
+# ── Status-Endpunkt für Badge-Refresh ────────────────────────────
+
+@router.get("/{module}/status", response_class=HTMLResponse)
+def module_status(module: str, request: Request):
+    cfg = load_config(module)
+    return _get_templates().TemplateResponse(
+        "partials/list_wrapper.html",
+        {
+            "request": request, "cfg": cfg, "module": module,
+            "container_id": f"tab-{module}", "loading_id": f"{module}-loading",
+            "content_template": f"partials/lists/{module}.html",
+            "running": get_running(),
+        },
+    )
+
+
 # ── Einzelnen Eintrag ausführen ───────────────────────────────────
 
 @router.post("/{module}/{item_id}", response_class=HTMLResponse)
 def run_item(module: str, item_id: str, request: Request, debug: bool = False):
-    if _is_running(module, item_id):
+    log_id = f"{item_id}_debug" if debug else item_id
+
+    if _is_running(module, log_id):
         raise HTTPException(status_code=409, detail="Läuft bereits")
+
+    _mark_running(module, log_id, "debug" if debug else "run")
 
     def _execute():
         set_debug(debug)
-        _mark_running(module, item_id, "debug" if debug else "run")
         try:
             _dispatch_single(module, item_id)
         finally:
-            _mark_done(module, item_id)
+            _mark_done(module, log_id)
             set_debug(False)
 
     threading.Thread(target=_execute, daemon=True).start()
@@ -76,14 +94,9 @@ def run_item(module: str, item_id: str, request: Request, debug: bool = False):
         },
     ).body.decode()
 
-    open_modal_js = (
-        f'<script>(function(){{'
-        f'fetch("/api/run/{module}/{item_id}/logs?live=1")'
-        f'.then(r=>r.text())'
-        f'.then(html=>{{document.body.insertAdjacentHTML("beforeend",html)}});'
-        f'}})();</script>'
-    )
-    return HTMLResponse(list_html + open_modal_js)
+    # HX-Trigger feuert openLogModal-Event im Browser → base.html-Handler öffnet Modal
+    trigger = json.dumps({"openLogModal": {"module": module, "itemId": log_id}})
+    return HTMLResponse(list_html, headers={"HX-Trigger": trigger})
 
 
 # ── Ganzes Modul ausführen ────────────────────────────────────────
@@ -91,14 +104,14 @@ def run_item(module: str, item_id: str, request: Request, debug: bool = False):
 @router.post("/{module}", response_class=HTMLResponse)
 def run_module(module: str, request: Request, debug: bool = False):
     run_id = MODULE_DEBUG_ID if debug else MODULE_RUN_ID
-    key = f"{module}:{run_id}"
-    if key in _running:
+
+    if _is_running(module, run_id):
         raise HTTPException(status_code=409, detail="Modul läuft bereits")
+
+    _mark_running(module, run_id, "debug" if debug else "run")
 
     def _execute():
         set_debug(debug)
-        _mark_running(module, run_id, "debug" if debug else "run")
-        # Tee-Context: alle Einzellogs werden auch ins Modul-Log gespiegelt
         set_tee_context(module, run_id)
         try:
             _dispatch_module(module)
@@ -120,15 +133,8 @@ def run_module(module: str, request: Request, debug: bool = False):
         },
     ).body.decode()
 
-    # Log-Modal für den Modul-Gesamt-Run öffnen
-    open_modal_js = (
-        f'<script>(function(){{'
-        f'fetch("/api/run/{module}/{run_id}/logs?live=1")'
-        f'.then(r=>r.text())'
-        f'.then(html=>{{document.body.insertAdjacentHTML("beforeend",html)}});'
-        f'}})();</script>'
-    )
-    return HTMLResponse(list_html + open_modal_js)
+    trigger = json.dumps({"openLogModal": {"module": module, "itemId": run_id}})
+    return HTMLResponse(list_html, headers={"HX-Trigger": trigger})
 
 
 # ── SSE: Live-Log-Stream ──────────────────────────────────────────
@@ -147,7 +153,7 @@ async def stream_log(module: str, item_id: str):
             yield "event: done\ndata: \n\n"
             return
 
-        sent_lines = 0
+        sent_lines      = 0
         idle_after_done = 0
 
         while True:
@@ -163,15 +169,13 @@ async def stream_log(module: str, item_id: str):
                     continue
                 level = "info"
                 if "WARNING:" in line: level = "warning"
-                elif "ERROR:"   in line: level = "error"
-                elif "DEBUG:"   in line: level = "debug"
+                elif "ERROR:"  in line: level = "error"
+                elif "DEBUG:"  in line: level = "debug"
                 safe = line.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
-                html = f'<div class="log-line log-{level}">{safe}</div>'
-                yield f"data: {html}\n\n"
+                yield f"data: <div class=\"log-line log-{level}\">{safe}</div>\n\n"
             sent_lines = len(lines)
 
-            running = _is_running(module, item_id)
-            if not running:
+            if not _is_running(module, item_id):
                 idle_after_done += 0.5
                 if idle_after_done >= 3:
                     yield "event: done\ndata: \n\n"
@@ -192,15 +196,14 @@ async def stream_log(module: str, item_id: str):
 
 @router.get("/{module}/{item_id}/logs", response_class=HTMLResponse)
 def get_item_logs(module: str, item_id: str, request: Request, live: int = 0):
-    dates = get_log_dates(module, item_id)
+    dates    = get_log_dates(module, item_id)
     selected = dates[0] if dates else None
-    lines = read_log(module, item_id, selected) if selected else []
-    description = _item_description(module, item_id)
+    lines    = read_log(module, item_id, selected) if selected else []
     return _get_templates().TemplateResponse(
         "partials/log_modal.html",
         {
             "request": request, "module": module, "item_id": item_id,
-            "description": description,
+            "description": _item_description(module, item_id),
             "dates": dates, "selected": selected, "lines": lines,
             "live": bool(live),
         },
@@ -208,10 +211,9 @@ def get_item_logs(module: str, item_id: str, request: Request, live: int = 0):
 
 @router.get("/{module}/{item_id}/logs/{date}", response_class=HTMLResponse)
 def get_item_log_by_date(module: str, item_id: str, date: str, request: Request):
-    lines = read_log(module, item_id, date)
     return _get_templates().TemplateResponse(
         "partials/log_content.html",
-        {"request": request, "lines": lines, "date": date},
+        {"request": request, "lines": read_log(module, item_id, date), "date": date},
     )
 
 @router.get("/errors", response_class=HTMLResponse)
@@ -229,50 +231,39 @@ def _item_description(module: str, item_id: str) -> str:
         return f"{module.replace('_', ' ').title()} – Gesamt-Run"
     if item_id == MODULE_DEBUG_ID:
         return f"{module.replace('_', ' ').title()} – Debug-Run"
+    debug = item_id.endswith("_debug")
+    base  = item_id.removesuffix("_debug")
     try:
         cfg = load_config(module)
-        raw = cfg.get(item_id) or cfg.get(
-            int(item_id) if str(item_id).isdigit() else item_id) or {}
-        return raw.get("description", item_id)
+        raw = cfg.get(base) or cfg.get(int(base) if base.isdigit() else base) or {}
+        desc = raw.get("description", base)
+        return f"{desc} (Debug)" if debug else desc
     except Exception:
         return item_id
 
 
 def _dispatch_single(module: str, item_id: str) -> None:
-    if module == "borg":
-        from modules.borg import run_single
-        run_single(item_id)
-    elif module == "rsync":
-        from modules.rsync import run_single
-        run_single(item_id)
-    elif module == "proxmox_lxc":
-        from modules.proxmox_lxc import run_single
-        run_single(item_id)
-    elif module == "proxmox_hosts":
-        from modules.proxmox_hosts import run_single
-        run_single(item_id)
-    elif module == "proxmox_jobs":
-        from modules.proxmox_jobs import run_single
-        run_single(item_id)
+    fn = {
+        "borg":          lambda: __import__("modules.borg",          fromlist=["run_single"]).run_single(item_id),
+        "rsync":         lambda: __import__("modules.rsync",         fromlist=["run_single"]).run_single(item_id),
+        "proxmox_lxc":   lambda: __import__("modules.proxmox_lxc",   fromlist=["run_single"]).run_single(item_id),
+        "proxmox_hosts": lambda: __import__("modules.proxmox_hosts", fromlist=["run_single"]).run_single(item_id),
+        "proxmox_jobs":  lambda: __import__("modules.proxmox_jobs",  fromlist=["run_single"]).run_single(item_id),
+    }.get(module)
+    if fn:
+        fn()
     else:
         from helpers.logger import log
         log("ERROR", f"Unbekanntes Modul: {module}")
 
 
 def _dispatch_module(module: str) -> None:
-    if module == "borg":
-        from modules.borg import run
-        run()
-    elif module == "rsync":
-        from modules.rsync import run
-        run()
-    elif module in ("proxmox_lxc", "proxmox_hosts", "proxmox_jobs"):
-        from modules import proxmox
-        # Nur das jeweilige Sub-Modul ausführen
-        if module == "proxmox_lxc":
-            from modules.proxmox_lxc import run
-        elif module == "proxmox_hosts":
-            from modules.proxmox_hosts import run
-        else:
-            from modules.proxmox_jobs import run
-        run()
+    fn = {
+        "borg":          lambda: __import__("modules.borg",          fromlist=["run"]).run(),
+        "rsync":         lambda: __import__("modules.rsync",         fromlist=["run"]).run(),
+        "proxmox_lxc":   lambda: __import__("modules.proxmox_lxc",   fromlist=["run"]).run(),
+        "proxmox_hosts": lambda: __import__("modules.proxmox_hosts", fromlist=["run"]).run(),
+        "proxmox_jobs":  lambda: __import__("modules.proxmox_jobs",  fromlist=["run"]).run(),
+    }.get(module)
+    if fn:
+        fn()

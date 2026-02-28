@@ -45,6 +45,9 @@ def _register(job_id: str, entry: dict) -> None:
 
 
 def init_scheduler() -> None:
+    # Schutz gegen doppelten Start durch uvicorn-Reloader (spawnt zwei Prozesse)
+    if _scheduler.running:
+        return
     data = _load()
     for job_id, entry in data.items():
         _register(job_id, entry)

@@ -57,6 +57,7 @@
         badge.innerHTML = '<span style="color:#4ade80">✔</span> Abgeschlossen';
         badge.style.background = 'rgba(74,222,128,0.12)';
         badge.style.color = '#4ade80';
+        document.getElementById('log-modal').dispatchEvent(new Event('runDone'));
       });
 
       es.onerror = function() {

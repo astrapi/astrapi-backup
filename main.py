@@ -1,7 +1,7 @@
 #main.py
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from starlette.middleware.wsgi import WSGIMiddleware
+from a2wsgi import WSGIMiddleware
 from ui.app import create as create_ui
 from api.app import create as create_api
 import uvicorn
