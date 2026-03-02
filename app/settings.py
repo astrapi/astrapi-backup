@@ -1,5 +1,5 @@
 APP_NAME    = "backupctl"
-APP_VERSION = "0.82.0"
+APP_VERSION = "0.83.0"
 APP_LANG    = "de"
 
 import os

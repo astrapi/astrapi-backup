@@ -47,4 +47,11 @@ def load_nav(path: Path) -> list[dict]:
             f"Mehrere Default-Nav-Items gefunden: {[d['key'] for d in defaults]}"
         )
 
+    # Kein explizites Default: erstes nicht-separator Item übernimmt die Rolle
+    if not defaults:
+        for item in items:
+            if not item["separator"]:
+                item["default"] = True
+                break
+
     return items

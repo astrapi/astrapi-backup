@@ -104,7 +104,8 @@ def create(app_root: Path, config: dict | None = None, extra_init=None) -> Flask
     if extra_init:
         extra_init(app)
 
-    default_item = next((it for it in nav_items if it["default"]), nav_items[0])
+    default_item = next((it for it in nav_items if not it.get("separator") and it.get("default")), 
+                        next(it for it in nav_items if not it.get("separator")))
 
     @app.get("/")
     def root():

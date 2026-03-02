@@ -1,4 +1,8 @@
-# Navigation Light-Mode – nur Borg Repos, Browser, Statistiken
+# Navigation Light-Mode
+
+- separator: true
+  group: Borg
+
 - key: repos
   label: Repositories
   url: /api/repos/tab
