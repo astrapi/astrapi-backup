@@ -1,0 +1,78 @@
+{% if field.type == "boolean" %}
+<div style="display:flex; align-items:center; justify-content:flex-end; padding-bottom:9px;">
+  <input
+    type="checkbox"
+    name="{{ field.name }}"
+    {% if values and values[field.name] %}checked{% endif %}
+    id="field-{{ field.name }}"
+    style="display:none;"
+  >
+  <button
+    type="button"
+    id="toggle-{{ field.name }}"
+    class="toggle-switch {% if values and values[field.name] %}toggle-on{% else %}toggle-off{% endif %}"
+    onclick="
+      var cb = document.getElementById('field-{{ field.name }}');
+      cb.checked = !cb.checked;
+      this.classList.toggle('toggle-on', cb.checked);
+      this.classList.toggle('toggle-off', !cb.checked);
+    "
+  ><span class="toggle-knob"></span></button>
+</div>
+
+{% else %}
+<div class="form-group">
+  <label class="form-label">
+    {{ field.label }}
+    {% if field.required %}<span class="required-mark">*</span>{% endif %}
+  </label>
+
+  {% if field.type == "text" %}
+    <input
+      type="text"
+      name="{{ field.name }}"
+      value="{{ values[field.name] if values else '' }}"
+      {% if field.max %}maxlength="{{ field.max }}"{% endif %}
+      {% if field.min_length %}minlength="{{ field.min_length }}"{% endif %}
+      {% if field.pattern %}pattern="{{ field.pattern }}"{% endif %}
+      {% if field.required %}data-required="true"{% endif %}
+      {% if field.placeholder %}placeholder="{{ field.placeholder }}"{% endif %}
+      class="form-input"
+    >
+    <span class="form-error"></span>
+
+  {% elif field.type == "number" %}
+    <input
+      type="number"
+      name="{{ field.name }}"
+      value="{{ values[field.name] if values else '' }}"
+      {% if field.min is defined %}min="{{ field.min }}"{% endif %}
+      {% if field.max is defined %}max="{{ field.max }}"{% endif %}
+      {% if field.required %}data-required="true"{% endif %}
+      class="form-input"
+    >
+    <span class="form-error"></span>
+
+  {% elif field.type == "select" %}
+    <select
+      name="{{ field.name }}"
+      {% if field.required %}data-required="true"{% endif %}
+      class="form-select"
+    >
+      {% if not field.required %}
+        <option value="" style="color:var(--text-muted);">– bitte wählen –</option>
+      {% endif %}
+      {% for opt in field.options %}
+        <option value="{{ opt }}"
+          {% if values and values[field.name] == opt %}selected{% endif %}
+        >{{ opt }}</option>
+      {% endfor %}
+    </select>
+    <span class="form-error"></span>
+
+  {% elif field.type == "list" %}
+    {% include "partials/create_edit/list_field.html" %}
+  {% endif %}
+
+</div>
+{% endif %}

@@ -1,0 +1,56 @@
+{% extends "_base.html" %}
+
+{% block extra_js %}
+<script>
+(function() {
+  var _timers = {};
+  var MODS = ['borg','rsync','proxmox_lxc','proxmox_hosts','proxmox_jobs'];
+
+  function _listEl(mod) { return document.getElementById('tab-' + mod + '-list'); }
+  function _hasBadge(mod) { var el = _listEl(mod); return el && !!el.querySelector('.run-badge'); }
+
+  function _poll(mod) {
+    htmx.ajax('GET', '/api/run/' + mod + '/status',
+      {target: '#tab-' + mod + '-list', swap: 'innerHTML'});
+  }
+
+  function startPolling(mod) {
+    if (_timers[mod]) return;
+    _timers[mod] = setInterval(function() { _poll(mod); }, 2500);
+  }
+
+  function stopPolling(mod) {
+    clearInterval(_timers[mod]);
+    delete _timers[mod];
+  }
+
+  // Nach jedem HTMX-Swap auf einer Liste: Badge prüfen → Polling starten/stoppen
+  document.body.addEventListener('htmx:afterSettle', function(e) {
+    var id = e.target && e.target.id || '';
+    MODS.forEach(function(mod) {
+      if (id === 'tab-' + mod + '-list') {
+        if (_hasBadge(mod)) { startPolling(mod); }
+        else                { stopPolling(mod);  }
+      }
+    });
+  });
+
+  // Run-POST → HX-Trigger → openLogModal: Log-Modal öffnen
+  // Das Badge kommt bereits im Response-HTML mit (run.py setzt running vor dem Return)
+  document.body.addEventListener('openLogModal', function(e) {
+    var module = e.detail.module;
+    var itemId = e.detail.itemId;
+    // Polling sicherheitshalber sofort starten (Badge ist schon im geswatten HTML)
+    startPolling(module);
+    // Log-Modal laden
+    fetch('/api/run/' + module + '/' + itemId + '/logs?live=1')
+      .then(function(r) { return r.text(); })
+      .then(function(html) {
+        var old = document.getElementById('log-modal');
+        if (old) old.remove();
+        document.body.insertAdjacentHTML('beforeend', html);
+      });
+  });
+})();
+</script>
+{% endblock %}

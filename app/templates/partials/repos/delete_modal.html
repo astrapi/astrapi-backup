@@ -1,0 +1,35 @@
+{# partials/repos/delete_modal.html #}
+<div class="ds-modal-backdrop open" id="modal-repo-delete"
+     onclick="if(event.target.id==='modal-repo-delete') this.remove()">
+  <div class="confirm-dialog" onclick="event.stopPropagation()">
+    <div class="confirm-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+        <path d="M10 11v6m4-6v6"/><path d="M9 6V4h6v2"/>
+      </svg>
+    </div>
+    <div style="text-align:center; font-size:15px; font-weight:700; color:var(--text); margin-bottom:6px;">
+      Eintrag entfernen?
+    </div>
+    <div style="text-align:center; font-size:13px; color:var(--text-2); margin-bottom:6px;">
+      »{{ repo.name }}« wird aus der Liste entfernt.
+    </div>
+    <div style="text-align:center; font-size:12px; color:var(--text-3); margin-bottom:20px;">
+      Das Repository auf dem Dateisystem (<code style="font-family:var(--mono); font-size:11px;">{{ repo.path }}</code>)
+      wird <strong>nicht gelöscht</strong>.
+    </div>
+    <div style="display:flex; gap:10px; justify-content:center;">
+      <button class="btn btn-ghost btn-sm"
+              onclick="document.getElementById('modal-repo-delete').remove()">
+        Abbrechen
+      </button>
+      <button class="btn btn-danger btn-sm"
+              hx-delete="/api/repos/{{ repo.id }}"
+              hx-target="#tab-repos"
+              hx-swap="outerHTML">
+        Entfernen
+      </button>
+    </div>
+  </div>
+</div>

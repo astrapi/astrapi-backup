@@ -1,0 +1,74 @@
+{# backupctl tab_wrapper – wird vom FastAPI-Router gerendert #}
+{# Kennt: cfg, module, title, container_id, loading_id, content_template, endpoint, running #}
+{% import 'partials/components/ui_macros.html' as ui %}
+
+<div id="{{ container_id }}" class="tab-content">
+  <div class="page-header">
+    <div class="page-title">{{ title }}</div>
+    {% if not light_mode %}
+    <div style="display:flex; gap:6px; align-items:center;">
+
+      {# Alle aktivieren / deaktivieren #}
+      <button class="btn btn-ghost btn-sm"
+        hx-post="/api/config/{{ module }}/enable-all"
+        hx-target="#{{ container_id }}-list" hx-swap="innerHTML"
+        hx-headers='{"HX-Request": "true"}'
+        title="Alle aktivieren">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 13l4 4L19 7"/>
+        </svg>
+        Alle an
+      </button>
+      <button class="btn btn-ghost btn-sm"
+        hx-post="/api/config/{{ module }}/disable-all"
+        hx-target="#{{ container_id }}-list" hx-swap="innerHTML"
+        hx-headers='{"HX-Request": "true"}'
+        title="Alle deaktivieren">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Alle aus
+      </button>
+
+      {# Run all / Run all debug #}
+      <button class="btn btn-ghost btn-sm"
+        hx-post="/api/run/{{ module }}?debug=false"
+        hx-target="#{{ container_id }}-list" hx-swap="innerHTML"
+        hx-headers='{"HX-Request": "true"}'
+        title="Alle ausführen">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+        Run all
+      </button>
+      <button class="btn btn-ghost btn-sm"
+        hx-post="/api/run/{{ module }}?debug=true"
+        hx-target="#{{ container_id }}-list" hx-swap="innerHTML"
+        hx-headers='{"HX-Request": "true"}'
+        title="Alle ausführen (Debug)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+          <line x1="1" y1="1" x2="23" y2="23"/>
+        </svg>
+        Debug
+      </button>
+
+      {# Neu #}
+      <button class="btn btn-primary btn-sm"
+        hx-get="/ui/{{ module }}/create?container_id={{ container_id }}&loading_id={{ loading_id }}"
+        hx-target="body" hx-swap="beforeend">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Neu
+      </button>
+    </div>
+    {% endif %}
+  </div>
+
+  <div id="{{ container_id }}-list" class="ds-list-grid">
+    {% include "partials/list_wrapper.html" %}
+  </div>
+
+  <div id="{{ loading_id }}" class="htmx-indicator"></div>
+</div>

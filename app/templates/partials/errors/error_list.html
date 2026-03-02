@@ -1,0 +1,67 @@
+{# templates/partials/errors/error_list.html #}
+{% if errors %}
+  <div style="display:flex; flex-direction:column; gap:6px;">
+    {% set current_date = namespace(val="") %}
+    {% for err in errors %}
+
+      {% if err.date != current_date.val %}
+        {% set current_date.val = err.date %}
+        <div style="margin-top:{{ '4px' if loop.first else '18px' }}; margin-bottom:4px;
+                    font-size:11px; font-weight:600; color:var(--text-3);
+                    text-transform:uppercase; letter-spacing:0.08em;">
+          {{ err.date }}
+        </div>
+      {% endif %}
+
+      <div style="border-radius:var(--rad); background:var(--card);
+                  border:1px solid var(--border-s);
+                  border-left:3px solid #f87171;
+                  overflow:hidden;">
+
+        <!-- Fehler-Header -->
+        <div style="display:flex; align-items:center; justify-content:space-between;
+                    padding:7px 10px; border-bottom:1px solid var(--border-s);">
+          <span style="font-size:12px; font-weight:600; color:var(--text);">
+            {{ err.module | replace('_', ' ') | title }} / {{ err.description }}
+          </span>
+          <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
+            <span style="font-size:11px; color:var(--text-3); font-family:var(--mono);">
+              {{ err.time }}
+            </span>
+            <button
+              onclick="htmx.ajax('GET', '/api/run/{{ err.module }}/{{ err.item_id }}/logs', {target: 'body', swap: 'beforeend'})"
+              style="background:none; border:none; color:var(--text-3); cursor:pointer;
+                     font-size:11px; padding:2px 6px; border-radius:var(--rad);
+                     transition:background var(--t), color var(--t);"
+              onmouseover="this.style.background='var(--sel)'; this.style.color='var(--text)'"
+              onmouseout="this.style.background='none'; this.style.color='var(--text-3)'"
+              title="Log öffnen"
+            >
+              → Log
+            </button>
+          </div>
+        </div>
+
+        <!-- Fehler-Zeilen -->
+        <div style="padding:8px 12px; font-family:var(--mono); font-size:12px;
+                    line-height:1.65; display:flex; flex-direction:column; gap:1px;">
+          {% for line in err.lines %}
+            <div class="log-line {{ 'log-warning' if 'WARNING:' in line else 'log-error' }}">
+              {{- line -}}
+            </div>
+          {% endfor %}
+        </div>
+
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty-state">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+      <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+      <polyline points="22 4 12 14.01 9 11.01"/>
+    </svg>
+    <div class="empty-state-title">Keine Fehler in den letzten 14 Tagen</div>
+    <div class="empty-state-sub">Alle Backups laufen fehlerfrei</div>
+  </div>
+{% endif %}
