@@ -24,12 +24,14 @@
         <div class="card-title">
           {{ item_data.description or item_name }}
           {% if is_running %}
-            <span class="run-badge">● {{ 'Debug' if run_mode == 'debug' else 'läuft' }}</span>
+            <span class="run-badge">{{ 'Debug' if run_mode == 'debug' else 'läuft' }}</span>
           {% endif %}
         </div>
+        {% if not light_mode %}
         {{ ui.toggle_switch(module=module, item=item_name, container_id=container_id,
                             loading_id=loading_id, enabled=item_data.enabled,
                             description=item_data.description) }}
+        {% endif %}
       </div>
 
       <!-- Card Body -->
@@ -43,6 +45,7 @@
 
       <!-- Card Footer -->
       <div class="card-footer">
+        {% if not light_mode %}
         <div style="display:flex; gap:4px;">
           {{ ui.run_button(module=module, item=item_name, container_id=container_id, enabled=item_data.enabled) }}
           {{ ui.run_debug_button(module=module, item=item_name, container_id=container_id) }}
@@ -52,6 +55,11 @@
           {{ ui.edit_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id) }}
           {{ ui.delete_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id, description=item_data.description) }}
         </div>
+        {% else %}
+        <div style="display:flex; gap:4px;">
+          {{ ui.log_button(module=module, item=item_name) }}
+        </div>
+        {% endif %}
       </div>
 
     </article>

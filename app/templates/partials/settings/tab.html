@@ -10,6 +10,7 @@
     {# ════════════════════════════════════════════════════════════════
        BACKUP-ZEITPLAN
        ════════════════════════════════════════════════════════════════ #}
+    {% if not light_mode %}
     <section>
       <div class="settings-section-label">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -104,11 +105,13 @@
         </div>
       </div>
     </section>
+    {% endif %}
 
 
     {# ════════════════════════════════════════════════════════════════
        BENACHRICHTIGUNGEN
        ════════════════════════════════════════════════════════════════ #}
+    {% if not light_mode %}
     <section>
       <div class="settings-section-label">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -152,6 +155,7 @@
         </form>
       </div>
     </section>
+    {% endif %}
 
 
     {# ════════════════════════════════════════════════════════════════
@@ -195,6 +199,7 @@
     {# ════════════════════════════════════════════════════════════════
        WAKE ON LAN
        ════════════════════════════════════════════════════════════════ #}
+    {% if not light_mode %}
     <section>
       <div class="settings-section-label">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -262,6 +267,7 @@
         </form>
       </div>
     </section>
+    {% endif %}
 
 
     {# ════════════════════════════════════════════════════════════════

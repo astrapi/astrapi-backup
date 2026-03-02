@@ -2,6 +2,7 @@
 <div id="tab-repos" class="tab-content">
   <div class="page-header">
     <div class="page-title">Repositories</div>
+    {% if not light_mode %}
     <button class="btn btn-primary btn-sm"
             hx-get="/api/repos/create-modal"
             hx-target="#modal-container"
@@ -11,6 +12,7 @@
       </svg>
       Neu anlegen
     </button>
+    {% endif %}
   </div>
 
   <div id="repos-list">

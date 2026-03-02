@@ -5,6 +5,7 @@
 <div id="{{ container_id }}" class="tab-content">
   <div class="page-header">
     <div class="page-title">{{ title }}</div>
+    {% if not light_mode %}
     <div style="display:flex; gap:6px; align-items:center;">
 
       {# Alle aktivieren / deaktivieren #}
@@ -62,6 +63,7 @@
         Neu
       </button>
     </div>
+    {% endif %}
   </div>
 
   <div id="{{ container_id }}-list" class="ds-list-grid">

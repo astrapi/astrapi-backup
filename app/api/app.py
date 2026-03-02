@@ -20,8 +20,10 @@ def create():
     from api.storage import init_db
     init_db()
 
-    from scheduler.engine import init_scheduler
-    init_scheduler()
+    from settings import LIGHT_MODE
+    if not LIGHT_MODE:
+        from scheduler.engine import init_scheduler
+        init_scheduler()
 
     # Custom Swagger UI
     app.include_router(swagger_router)

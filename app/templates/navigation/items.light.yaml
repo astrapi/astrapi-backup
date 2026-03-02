@@ -1,0 +1,24 @@
+# Navigation Light-Mode – nur Borg Repos, Browser, Statistiken
+- key: repos
+  label: Repositories
+  url: /api/repos/tab
+  icon: archive
+  default: true
+
+- key: browser
+  label: Archiv-Browser
+  url: /api/browser/tab
+  icon: search
+
+- key: stats
+  label: Statistiken
+  url: /api/stats/tab
+  icon: bar-chart
+
+- separator: true
+  group: System
+
+- key: settings
+  label: Einstellungen
+  url: /api/ui/settings/tab
+  icon: settings

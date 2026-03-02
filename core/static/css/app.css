@@ -8,9 +8,9 @@
 /* Pixel-gemessen am GNOME Einstellungen Screenshot             */
 :root {
   /* GNOME Adwaita Dark – aus pattern-templates.svg + libadwaita Quellen */
-  --bg:          #242226;   /* Content-Bereich, Adwaita dark window  */
-  --sb:          #2b292f;   /* Sidebar – aus SVG keyboard #2b292f    */
-  --card:        #383438;   /* Karten – Adwaita dark card surface    */
+  --bg:          #222226;   /* Content-Bereich, Adwaita dark window  */
+  --sb:          #2e2e32;   /* Sidebar – aus SVG keyboard #2b292f    */
+  --card:        #333337;   /* Karten – Adwaita dark card surface    */
   --card-hi:     #403e44;   /* Hover auf Karten                      */
   --sel:         #484549;   /* Aktiver Nav-Eintrag                   */
   --input-bg:    #383438;   /* Inputs, gleich wie Karten             */
@@ -64,8 +64,8 @@
 .light-mode {
   /* GNOME Adwaita Light – exakt aus pattern-templates.svg */
   --bg:          #fafafb;   /* SVG window bg: #fafafb                */
-  --sb:          #edecf0;   /* Sidebar leicht getönt                 */
-  --card:        #ffffff;   /* Cards weiß wie in Adwaita             */
+  --sb:          #f2f2f4;   /* Sidebar leicht getönt                 */
+  --card:        #fafafb;   /* Cards weiß wie in Adwaita             */
   --card-hi:     #f4f3f7;   /* Hover                                 */
   --sel:         #dddbe3;   /* Active nav item                       */
   --input-bg:    #ffffff;
@@ -154,18 +154,9 @@ input,select,textarea { font-family:var(--font); }
   transition:background var(--t) var(--ease);
 }
 .nav-item:hover  { background:rgba(255,255,255,0.07); }
-.nav-item.active {
-  background: rgba(53,132,228,0.18);  /* Adwaita: blauer Akzent-Hintergrund */
-  color: var(--b);
-  font-weight: 500;
-}
-.nav-item.active .nav-icon { opacity: 1; color: var(--b); }
+.nav-item.active { background:var(--sel); color:var(--text); font-weight:400; }
 .light-mode .nav-item:hover  { background:rgba(0,0,0,0.06); }
-.light-mode .nav-item.active {
-  background: rgba(28,113,216,0.12);
-  color: var(--b);
-}
-.light-mode .nav-item.active .nav-icon { color: var(--b); }
+.light-mode .nav-item.active { background:rgba(0,0,0,0.12); }
 .nav-icon { width:18px; height:18px; flex-shrink:0; opacity:0.85; transition:opacity var(--t); }
 .nav-item:hover .nav-icon  { opacity:1; }
 .nav-item.active .nav-icon { opacity:1; }
@@ -259,8 +250,14 @@ input,select,textarea { font-family:var(--font); }
 /* ═══════════════════════════ CARDS ══════════════════════════════ */
 .ds-card {
   border-radius:var(--rad); padding:0; overflow:hidden;
-  border:none;          /* kein Border – GNOME-Stil                  */
-  box-shadow:none;      /* kein Shadow  – GNOME-Stil                 */
+  border:None;
+  box-shadow:none; 
+  transition:background var(--t) var(--ease);
+}
+.light-mode .ds-card {
+  border-radius:var(--rad); padding:0; overflow:hidden;
+  border:2px solid #e0e0e0;
+  box-shadow:none; 
   transition:background var(--t) var(--ease);
 }
 .ds-card.on  { background:var(--card); }
