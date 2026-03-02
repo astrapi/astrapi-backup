@@ -1,0 +1,41 @@
+{# partials/stats/tab.html #}
+<div id="tab-stats" class="tab-content">
+  <div class="page-header">
+    <div class="page-title">Statistiken</div>
+  </div>
+
+  {% if not repos %}
+  <div class="empty-state">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+      <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+      <line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>
+    </svg>
+    <div class="empty-state-title">Keine Repositories</div>
+    <div class="empty-state-sub">Lege zuerst ein Repository unter <em>Repositories</em> an.</div>
+  </div>
+  {% else %}
+  {# Repo-Auswahl Tabs #}
+  <div style="display:flex; gap:4px; flex-wrap:wrap; margin-bottom:16px;">
+    {% for repo in repos %}
+    <button class="btn btn-ghost btn-sm {{ 'btn-primary' if repo.id == default_id else '' }}"
+            hx-get="/api/stats/{{ repo.id }}"
+            hx-target="#stats-content"
+            hx-swap="innerHTML"
+            onclick="document.querySelectorAll('.stats-repo-btn').forEach(b => b.classList.remove('btn-primary'));
+                     this.classList.add('btn-primary')"
+            class="btn btn-ghost btn-sm stats-repo-btn {{ 'btn-primary' if repo.id == default_id else '' }}">
+      {{ repo.name }}
+    </button>
+    {% endfor %}
+  </div>
+
+  <div id="stats-content"
+       hx-get="/api/stats/{{ default_id }}"
+       hx-trigger="load"
+       hx-swap="innerHTML">
+    <div style="text-align:center; padding:40px; color:var(--text-3);">
+      Lade Statistiken …
+    </div>
+  </div>
+  {% endif %}
+</div>

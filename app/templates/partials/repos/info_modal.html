@@ -1,0 +1,86 @@
+{# partials/repos/info_modal.html #}
+<div class="ds-modal-backdrop open" id="modal-repo-info"
+     onclick="if(event.target.id==='modal-repo-info') this.remove()">
+  <div class="ds-modal" style="max-width:680px;" onclick="event.stopPropagation()">
+    <div class="ds-modal-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      {{ repo.name }}
+    </div>
+
+    {# Statistiken #}
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:18px;">
+      {% for label, value in [
+        ('Archive', archive_count),
+        ('Originalgröße', orig_size),
+        ('Dedupliziert', dedup_size),
+        ('Einsparung', dedup_ratio),
+      ] %}
+      <div style="background:var(--sel); border-radius:var(--rad); padding:10px 12px; text-align:center;">
+        <div style="font-size:18px; font-weight:700; color:var(--text); letter-spacing:-0.02em;">{{ value }}</div>
+        <div style="font-size:11px; color:var(--text-3); text-transform:uppercase; letter-spacing:0.04em; margin-top:2px;">{{ label }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {# Repo-Metadaten #}
+    <div class="meta-grid" style="margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid var(--border-s);">
+      <span class="meta-label">Pfad</span>
+      <span class="meta-value" style="font-family:var(--mono); font-size:12px; color:var(--text-2);">{{ repo.path }}</span>
+      <span class="meta-label">Verschl.</span>
+      <span class="meta-value" style="font-family:var(--mono); color:var(--text-2);">{{ repo.encryption }}</span>
+      {% if info.repository %}
+      <span class="meta-label">ID</span>
+      <span class="meta-value" style="font-family:var(--mono); font-size:11px; color:var(--text-3);">
+        {{ info.repository.id[:16] }}…
+      </span>
+      {% endif %}
+    </div>
+
+    {# Archiv-Liste #}
+    {% if archives %}
+    <div style="font-size:12px; font-weight:600; color:var(--text-2); text-transform:uppercase;
+                letter-spacing:0.06em; margin-bottom:8px;">
+      Archive ({{ archive_count }} gesamt)
+    </div>
+    <div style="max-height:320px; overflow-y:auto; display:flex; flex-direction:column; gap:4px;">
+      {% for a in archives %}
+      <div style="display:flex; align-items:center; justify-content:space-between;
+                  padding:7px 10px; border-radius:var(--rad);
+                  background:var(--card-hi); font-size:13px;">
+        <span style="font-family:var(--mono); font-size:12.5px; color:var(--text);">{{ a.name }}</span>
+        <div style="display:flex; align-items:center; gap:16px;">
+          <span style="font-size:11.5px; color:var(--text-3);">{{ a.time_fmt if a.time_fmt is defined else a.time[:16].replace('T',' ') }}</span>
+          <a class="btn-icon btn-icon-log"
+             style="text-decoration:none;"
+             title="Archiv durchsuchen"
+             hx-get="/api/browser/{{ repo.id }}/{{ a.name }}/browse"
+             hx-target="#main-content"
+             hx-swap="innerHTML"
+             onclick="document.getElementById('modal-repo-info').remove()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center; padding:24px; color:var(--text-3); font-size:13px;">
+      Keine Archive gefunden.
+    </div>
+    {% endif %}
+
+    <div style="display:flex; justify-content:flex-end; margin-top:16px; padding-top:12px; border-top:1px solid var(--border-s);">
+      <button class="btn btn-ghost btn-sm"
+              onclick="document.getElementById('modal-repo-info').remove()">
+        Schließen
+      </button>
+    </div>
+  </div>
+</div>

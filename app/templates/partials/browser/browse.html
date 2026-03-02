@@ -1,0 +1,160 @@
+{# Verzeichnis-Ansicht – FUSE-frei via borg list --json-lines #}
+
+{# ── Header ──────────────────────────────────────────────────────── #}
+<div style="display:flex; align-items:center; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
+  <button class="btn btn-ghost btn-sm"
+          hx-get="/api/browser/{{ repo.id }}/archives"
+              hx-indicator="#browser-loading"
+          hx-target="#main-content"
+          hx-swap="innerHTML">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+    Archive
+  </button>
+  <span style="color:var(--text-3);">/</span>
+  <span style="font-size:13px; font-weight:600; font-family:var(--mono);">{{ archive }}</span>
+  <span style="margin-left:auto; font-size:11px; color:var(--text-3);">{{ total }} Einträge</span>
+</div>
+
+{# ── Breadcrumbs ──────────────────────────────────────────────────── #}
+<div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;
+            padding:8px 12px; background:var(--card); border-radius:6px;
+            margin-bottom:12px; font-size:12px; font-family:var(--mono);">
+  {% for crumb in breadcrumbs %}
+    {% if not loop.last %}
+      <button class="btn-ghost" style="padding:2px 6px; border-radius:4px; border:none;
+                background:transparent; cursor:pointer; color:var(--b); font-family:var(--mono); font-size:12px;"
+              hx-get="/api/browser/{{ repo.id }}/{{ archive }}/browse?path={{ crumb.path | urlencode }}"
+              hx-indicator="#browser-loading"
+              hx-target="#main-content"
+              hx-swap="innerHTML">{{ crumb.label }}</button>
+      <span style="color:var(--text-3);">/</span>
+    {% else %}
+      <span style="color:var(--text-2);">{{ crumb.label }}</span>
+    {% endif %}
+  {% endfor %}
+</div>
+
+{# ── Fehlermeldung ──────────────────────────────────────────────── #}
+{% if error %}
+<div class="ds-card on" style="padding:16px; color:var(--err); font-size:13px;">{{ error }}</div>
+{% endif %}
+
+{# ── Dateiliste ───────────────────────────────────────────────────── #}
+{% if not error %}
+<div class="ds-card on">
+
+  {# Kopfzeile #}
+  <div style="display:grid; grid-template-columns:1fr 100px 140px 36px;
+              padding:6px 14px; border-bottom:1px solid rgba(0,0,0,0.45);
+              font-size:11px; font-weight:600; color:var(--text-3);
+              text-transform:uppercase; letter-spacing:0.06em;">
+    <span>Name</span>
+    <span style="text-align:right;">Größe</span>
+    <span style="text-align:right; padding-right:4px;">Geändert</span>
+    <span></span>
+  </div>
+
+  {# Zurück-Button (wenn nicht an Wurzel) #}
+  {% if parent_path is not none %}
+  <button
+    style="display:grid; grid-template-columns:1fr 100px 140px 36px;
+           align-items:center; padding:9px 14px;
+           border:none; background:transparent; width:100%;
+           border-bottom:1px solid rgba(0,0,0,0.25);
+           cursor:pointer; color:var(--text-2);
+           transition:background 100ms;"
+    onmouseover="this.style.background='rgba(255,255,255,0.04)'"
+    onmouseout="this.style.background='transparent'"
+    hx-get="/api/browser/{{ repo.id }}/{{ archive }}/browse?path={{ parent_path | urlencode }}"
+              hx-indicator="#browser-loading"
+    hx-target="#main-content" hx-swap="innerHTML">
+    <div style="display:flex; align-items:center; gap:8px; font-size:13px; font-family:var(--mono);">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+      ..
+    </div>
+    <span></span><span></span><span></span>
+  </button>
+  {% endif %}
+
+  {# Verzeichnisse #}
+  {% for d in dirs %}
+  <button
+    style="display:grid; grid-template-columns:1fr 100px 140px 36px;
+           align-items:center; padding:9px 14px;
+           border:none; background:transparent; width:100%;
+           border-bottom:1px solid rgba(0,0,0,0.25);
+           cursor:pointer; color:var(--text);
+           transition:background 100ms;"
+    onmouseover="this.style.background='rgba(255,255,255,0.04)'"
+    onmouseout="this.style.background='transparent'"
+    hx-get="/api/browser/{{ repo.id }}/{{ archive }}/browse?path={{ d.path | urlencode }}"
+              hx-indicator="#browser-loading"
+    hx-target="#main-content" hx-swap="innerHTML">
+    <div style="display:flex; align-items:center; gap:8px; font-size:13px; font-family:var(--mono);">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.8" style="color:#f5c211; flex-shrink:0;">
+        <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
+      </svg>
+      {{ d.name }}/
+    </div>
+    <span></span>
+    <span style="font-size:11px; color:var(--text-3); text-align:right; padding-right:4px;">
+      {{ d.mtime }}
+    </span>
+    <span></span>
+  </button>
+  {% endfor %}
+
+  {# Dateien #}
+  {% for f in files %}
+  <div
+    style="display:grid; grid-template-columns:1fr 100px 140px 36px;
+           align-items:center; padding:9px 14px;
+           border-bottom:1px solid rgba(0,0,0,0.25);
+           transition:background 100ms;"
+    onmouseover="this.style.background='rgba(255,255,255,0.04)'"
+    onmouseout="this.style.background='transparent'">
+    <div style="display:flex; align-items:center; gap:8px; font-size:13px;
+                font-family:var(--mono); min-width:0;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.8" style="color:var(--text-3); flex-shrink:0;">
+        <path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/>
+        <polyline points="13 2 13 9 20 9"/>
+      </svg>
+      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ f.name }}</span>
+    </div>
+    <span style="font-size:11px; color:var(--text-3); text-align:right; font-family:var(--mono);">
+      {{ f.size_fmt }}
+    </span>
+    <span style="font-size:11px; color:var(--text-3); text-align:right; padding-right:4px;">
+      {{ f.mtime }}
+    </span>
+    <a href="/api/browser/{{ repo.id }}/{{ archive }}/download?path={{ f.path | urlencode }}"
+       title="Herunterladen"
+       style="display:flex; align-items:center; justify-content:center;
+              width:28px; height:28px; border-radius:5px; color:var(--text-3);
+              transition:background 100ms, color 100ms;"
+       onmouseover="this.style.background='rgba(255,255,255,0.08)'; this.style.color='var(--text)'"
+       onmouseout="this.style.background='transparent'; this.style.color='var(--text-3)'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+    </a>
+  </div>
+  {% endfor %}
+
+  {# Leer #}
+  {% if not dirs and not files and not error %}
+  <div style="padding:24px; text-align:center; color:var(--text-3); font-size:13px;">
+    Dieses Verzeichnis ist leer.
+  </div>
+  {% endif %}
+
+</div>
+{% endif %}

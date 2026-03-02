@@ -1,9 +1,0 @@
-test01:
-  description: test01
-  cron: 50 21 * * *
-  modules:
-  - borg
-  enabled: true
-  last_run: 27.02.2026 23:23
-  last_status: OK
-  last_duration: 2 Minuten und 28 Sekunden

@@ -1,0 +1,47 @@
+{# Browser Tab – Repo-Auswahl #}
+<div class="page-header">
+  <div class="page-title">Archiv-Browser</div>
+</div>
+
+<div id="browser-loading" style="display:none; align-items:center; gap:10px; padding:16px 0; color:var(--text-3); font-size:13px;"
+     class="htmx-indicator">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+       style="animation:spin 1s linear infinite;">
+    <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
+    <path d="M12 2a10 10 0 0 1 10 10" stroke-opacity="1"/>
+  </svg>
+  Archiv wird geladen …
+</div>
+
+<div id="browser-root" style="display:flex; flex-direction:column; gap:16px;">
+  {% if not repos %}
+  <div class="ds-card on" style="padding:24px; text-align:center; color:var(--text-3);">
+    Keine Repositories konfiguriert.
+  </div>
+  {% else %}
+  <div class="ds-card on">
+    <div class="card-header">
+      <div class="card-title">Repository wählen</div>
+    </div>
+    <div style="padding:12px; display:flex; flex-direction:column; gap:6px;">
+      {% for repo in repos %}
+      <button class="nav-item"
+              style="justify-content:space-between; border-radius:6px;"
+              hx-get="/api/browser/{{ repo.id }}/archives"
+              hx-target="#browser-root"
+              hx-swap="innerHTML"
+              hx-indicator="#browser-loading">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <polyline points="21 8 21 21 3 21 3 8"/>
+            <rect x="1" y="3" width="22" height="5"/>
+          </svg>
+          <span style="font-weight:500;">{{ repo.name }}</span>
+        </div>
+        <span style="font-family:var(--mono); font-size:11px; color:var(--text-3);">{{ repo.path }}</span>
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>

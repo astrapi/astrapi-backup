@@ -1,0 +1,69 @@
+{# partials/repos/edit_modal.html #}
+<div class="ds-modal-backdrop open" id="modal-repo-edit"
+     onclick="if(event.target.id==='modal-repo-edit') this.remove()">
+  <div class="ds-modal" onclick="event.stopPropagation()">
+    <div class="ds-modal-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+      </svg>
+      Repository bearbeiten
+    </div>
+
+    <form hx-post="/api/repos/{{ repo.id }}/edit"
+          hx-target="#tab-repos"
+          hx-swap="outerHTML"
+          style="display:flex; flex-direction:column; gap:14px;">
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="form-group">
+          <label class="form-label">Name <span class="required-mark">*</span></label>
+          <input type="text" name="name" class="form-input" value="{{ repo.name }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Verschlüsselung</label>
+          <input type="text" class="form-input" value="{{ repo.encryption }}" disabled
+                 style="opacity:0.5; cursor:not-allowed;">
+          <span style="font-size:11px; color:var(--text-3);">Nachträglich nicht änderbar</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Pfad <span class="required-mark">*</span></label>
+        <input type="text" name="path" class="form-input"
+               value="{{ repo.path }}" style="font-family:var(--mono)" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          Passphrase
+          {% if has_passphrase %}
+          <span style="font-size:11px; color:var(--g); margin-left:6px;">✔ gespeichert</span>
+          {% endif %}
+        </label>
+        <input type="password" name="passphrase" class="form-input"
+               placeholder="Leer lassen um nicht zu ändern"
+               autocomplete="new-password">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Beschreibung</label>
+        <input type="text" name="description" class="form-input" value="{{ repo.description }}">
+      </div>
+
+      <div style="display:flex; gap:10px; justify-content:flex-end;
+                  padding-top:8px; border-top:1px solid var(--border-s);">
+        <button type="button" class="btn btn-ghost btn-sm"
+                onclick="document.getElementById('modal-repo-edit').remove()">
+          Abbrechen
+        </button>
+        <button type="submit" class="btn btn-primary btn-sm">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Speichern
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

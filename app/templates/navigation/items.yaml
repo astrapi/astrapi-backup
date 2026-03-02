@@ -1,0 +1,70 @@
+# Navigation mit Gruppen-Trennern
+# separator: true  → visuelle Trennlinie
+# group: "Label"   → Gruppen-Überschrift (optional)
+
+- key: borg
+  label: Borg
+  url: /api/ui/borg/tab
+  icon: database
+
+- key: rsync
+  label: Rsync
+  url: /api/ui/rsync/tab
+  icon: chart
+  default: true
+
+- key: proxmox_jobs
+  label: Proxmox Jobs
+  url: /api/ui/proxmox_jobs/tab
+  icon: server
+
+- key: proxmox_lxc
+  label: Proxmox LXC
+  url: /api/ui/proxmox_lxc/tab
+  icon: list
+
+- key: proxmox_hosts
+  label: Proxmox Hosts
+  url: /api/ui/proxmox_hosts/tab
+  icon: shield
+
+- separator: true
+  group: Repositories
+
+- key: repos
+  label: Repositories
+  url: /api/repos/tab
+  icon: archive
+
+- key: browser
+  label: Archiv-Browser
+  url: /api/browser/tab
+  icon: search
+
+- key: stats
+  label: Statistiken
+  url: /api/stats/tab
+  icon: bar-chart
+
+- key: history
+  label: Job-History
+  url: /api/history/tab
+  icon: clock
+
+- separator: true
+  group: System
+
+- key: sysinfo
+  label: Systeminfo
+  url: /api/sysinfo/tab
+  icon: monitor
+
+- key: errors
+  label: Fehler
+  url: /api/ui/errors/tab
+  icon: alert
+
+- key: settings
+  label: Einstellungen
+  url: /api/ui/settings/tab
+  icon: settings
