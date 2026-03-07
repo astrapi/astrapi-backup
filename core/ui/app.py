@@ -4,6 +4,7 @@ from jinja2 import ChoiceLoader, FileSystemLoader
 
 from .navigation import load_nav
 from .page_factory import register_pages
+from .swagger_utils import register_ui_docs
 
 CORE_ROOT = Path(__file__).resolve().parents[1]
 
@@ -110,5 +111,16 @@ def create(app_root: Path, config: dict | None = None, extra_init=None) -> Flask
     @app.get("/")
     def root():
         return redirect(f"/{default_item['key']}")
+
+    # ── UI-Docs (Swagger für Flask-Routen) ───────────────────────────────────
+    # Nach allen Routen registrieren damit die Spec vollständig ist
+    swagger_html = CORE_ROOT / "static" / "swagger.html"
+    if not swagger_html.exists():
+        swagger_html = app_root / "static" / "swagger.html"
+    try:
+        register_ui_docs(app, project_root=CORE_ROOT.parent, swagger_html_path=swagger_html)
+    except Exception as e:
+        import warnings
+        warnings.warn(f"UI-Docs konnten nicht registriert werden: {e}")
 
     return app

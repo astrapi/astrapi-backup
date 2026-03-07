@@ -32,3 +32,4 @@ psutil>=6.0             # CPU/RAM/Disk-Metriken in sysinfo
 
 # ── Migration (einmalig, danach entfernbar) ───────────────────────
 python-dotenv>=1.0      # ← NUR für secrets.env→DB-Migration – danach entfernbar
+apispec>=6.0
