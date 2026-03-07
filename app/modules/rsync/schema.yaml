@@ -1,0 +1,38 @@
+id_field: id
+fields:
+  - name: description
+    type: text
+    label: Beschreibung
+    max: 50
+    column: 1
+    row: 1
+    required: true
+  - name: enabled
+    type: boolean
+    label: Aktiviert
+    column: 2
+    row: 1
+  - name: source_host
+    type: text
+    label: Source Host
+    max: 50
+    column: 1
+    row: 2
+  - name: source_path
+    type: text
+    label: Source Path
+    max: 50
+    column: 2
+    row: 2
+  - name: target_host
+    type: text
+    label: Target Host
+    max: 50
+    column: 1
+    row: 3
+  - name: target_path
+    type: text
+    label: Target Path
+    max: 50
+    column: 2
+    row: 3

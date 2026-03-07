@@ -1,19 +1,33 @@
-# api/templates.py – zentrale Jinja2-Instanz mit ChoiceLoader (app/ > core/)
+# api/templates.py – zentrale Jinja2-Instanz mit ChoiceLoader (app/ > module/ > core/)
 from pathlib import Path
 from fastapi.templating import Jinja2Templates
-from jinja2 import ChoiceLoader, FileSystemLoader
+from jinja2 import ChoiceLoader, FileSystemLoader, PrefixLoader
 
-# app/ ist der Arbeitsordner (Python-Root beim Start via app/main.py)
-# core/ liegt eine Ebene darüber: app/../core/
 _APP_ROOT       = Path(__file__).resolve().parent.parent          # = app/
 _PROJECT_ROOT   = _APP_ROOT.parent                                # = backupctl/
 _APP_TEMPLATES  = _APP_ROOT      / "templates"
-_CORE_TEMPLATES = _PROJECT_ROOT  / "core" / "templates"
+_CORE_TEMPLATES = _PROJECT_ROOT  / "core" / "ui" / "templates"
 
 templates = Jinja2Templates(directory=str(_APP_TEMPLATES))
-templates.env.loader = ChoiceLoader([
+
+# Basis-Loader: app/templates/ > core/ui/templates/
+_base_loaders: list = [
     FileSystemLoader(str(_APP_TEMPLATES)),
     FileSystemLoader(str(_CORE_TEMPLATES)),
-])
+]
 
-# ── Custom Filter ────────────────────────────────────────────────
+# PrefixLoader für jedes Modul das ein templates/-Unterverzeichnis hat
+# → render_template("borg/partials/list.html") → modules/borg/templates/partials/list.html
+_prefix_loaders: list = []
+_modules_dir = _APP_ROOT / "modules"
+if _modules_dir.is_dir():
+    for _mod_dir in sorted(_modules_dir.iterdir()):
+        if not _mod_dir.is_dir() or _mod_dir.name.startswith("_"):
+            continue
+        _tpl_dir = _mod_dir / "templates"
+        if _tpl_dir.is_dir():
+            _prefix_loaders.append(
+                PrefixLoader({_mod_dir.name: FileSystemLoader(str(_tpl_dir))})
+            )
+
+templates.env.loader = ChoiceLoader(_prefix_loaders + _base_loaders)

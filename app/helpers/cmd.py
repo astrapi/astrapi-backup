@@ -4,7 +4,7 @@ import socket
 import subprocess
 from functools import lru_cache
 from helpers.logger import log
-from config import is_debug
+from helpers.debug import is_debug
 
 # Timeouts für Subprocess-Aufrufe.
 # Backup-Jobs können stundenlang laufen → kein globaler Timeout.

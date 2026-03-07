@@ -4,7 +4,7 @@ import time
 from datetime import datetime
 from helpers.logger import log, set_log_context, clear_log_context
 from helpers.notify import notify_ntfy
-from config import set_debug
+from helpers.debug import set_debug
 
 _running_jobs: set = set()
 
