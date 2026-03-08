@@ -50,7 +50,7 @@
   --mono: 'Adwaita Mono', 'JetBrains Mono', ui-monospace, monospace;
 
   --rad:    12px;   /* SVG card radius: 15px → 12px für Web   */
-  --rad-lg: 10px;   /* SVG button radius: 10px                  */
+  --rad-lg: 6px;    /* button radius                            */
   --rad-xl: 16px;   /* Dialog/Modal: etwas größer               */
   --t:    150ms;
   --ease: cubic-bezier(0.25,0,0.3,1);
