@@ -19,6 +19,9 @@ from pathlib import Path
 CORE_ROOT    = Path(__file__).resolve().parent           # core/ui/  (templates, static)
 CORE_MOD_DIR = Path(__file__).resolve().parents[1] / "modules"  # core/modules/
 
+# Globale Registry – wird von load_modules() befüllt; von FastAPI-Templates genutzt
+_mod_registry: dict = {}
+
 
 # ── Laden ─────────────────────────────────────────────────────────────────────
 
@@ -96,6 +99,7 @@ def load_modules(app_root: Path) -> list:
     for key in sorted({**ext_mods, **app_mods}):
         if key not in seen:
             ordered.append(merged[key]); seen.add(key)
+    _mod_registry.update({m.key: m for m in ordered})
     return ordered
 
 

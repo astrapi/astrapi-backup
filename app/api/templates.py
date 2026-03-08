@@ -31,3 +31,22 @@ if _modules_dir.is_dir():
             )
 
 templates.env.loader = ChoiceLoader(_prefix_loaders + _base_loaders)
+
+
+# ── Template-Globals: Funktionen die list_wrapper.html braucht ────────────────
+# (entsprechen den Flask-Context-Processor-Funktionen in core/ui/app.py)
+
+def _module_label(key: str) -> str:
+    from core.ui.module_registry import _mod_registry
+    m = _mod_registry.get(key)
+    return m.label if m else key.replace("_", " ").title()
+
+
+def _module_has_settings(key: str) -> bool:
+    from core.ui.module_registry import _mod_registry
+    m = _mod_registry.get(key)
+    return bool(m and m.settings_schema)
+
+
+templates.env.globals["module_label"]        = _module_label
+templates.env.globals["module_has_settings"] = _module_has_settings
