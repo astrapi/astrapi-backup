@@ -20,7 +20,7 @@ def _load_schema() -> dict:
 def _list_response(request: Request):
     from api.templates import templates
     return templates.TemplateResponse(
-        "partials/list_wrapper.html",
+        "partials/list_wrapper_inner.html",
         {
             "request":          request,
             "cfg":              load_config(KEY),

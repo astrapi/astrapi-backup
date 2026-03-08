@@ -66,7 +66,7 @@ def make_run_router(module: str) -> APIRouter:
     def module_status(request: Request):
         cfg = load_config(module)
         return _get_templates().TemplateResponse(
-            "partials/list_wrapper.html",
+            "partials/list_wrapper_inner.html",
             {
                 "request": request, "cfg": cfg, "module": module,
                 "container_id": f"tab-{module}", "loading_id": f"{module}-loading",
@@ -110,7 +110,7 @@ def make_run_router(module: str) -> APIRouter:
 
         cfg = load_config(module)
         list_html = _get_templates().TemplateResponse(
-            "partials/list_wrapper.html",
+            "partials/list_wrapper_inner.html",
             {
                 "request": request, "cfg": cfg, "module": module,
                 "container_id": f"tab-{module}", "loading_id": f"{module}-loading",
@@ -159,7 +159,7 @@ def make_run_router(module: str) -> APIRouter:
 
         cfg = load_config(module)
         list_html = _get_templates().TemplateResponse(
-            "partials/list_wrapper.html",
+            "partials/list_wrapper_inner.html",
             {
                 "request": request, "cfg": cfg, "module": module,
                 "container_id": f"tab-{module}", "loading_id": f"{module}-loading",

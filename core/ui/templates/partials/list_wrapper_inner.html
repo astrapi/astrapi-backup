@@ -1,0 +1,115 @@
+{#
+  core/ui/templates/partials/list_wrapper.html
+
+  Generisches Card-Listen-Template für runnable CRUD-Module.
+  Ersetzt das innerHTML von #{{ container_id }} via HTMX.
+
+  Variablen:
+    cfg              – dict {item_id: item_dict} aus load_config/storage
+    module           – Modulname (str)
+    container_id     – ID des Listen-Containers (z.B. "tab-borg")
+    loading_id       – ID des Lade-Indikators
+    content_template – Pfad zum modul-spezifischen Inhalt-Partial
+    running          – dict der laufenden Jobs {key: mode}
+    light_mode       – bool (optionaler schreibgeschützter Modus)
+#}
+{% import 'partials/components/ui_macros.html' as ui %}
+
+{# ── Page-Header: Titel + Bulk-Aktionen + Neu + Settings ─────────────────── #}
+<div class="page-header">
+  <div class="page-title">{{ module_label(module) }}</div>
+  <div style="display:flex; gap:6px; align-items:center;">
+    {% if not light_mode and cfg %}
+    {{ ui.run_all_button(module=module, container_id=container_id) }}
+    {{ ui.run_debug_all_button(module=module, container_id=container_id) }}
+    {{ ui.enable_all_button(module=module, container_id=container_id) }}
+    {{ ui.disable_all_button(module=module, container_id=container_id) }}
+    {% endif %}
+    {% if not light_mode %}
+    {{ ui.add_button(module=module, container_id=container_id, loading_id=loading_id) }}
+    {% endif %}
+    {% if module_has_settings(module) %}
+    {{ ui.settings_button(module=module) }}
+    {% endif %}
+  </div>
+</div>
+
+{% set _run_key  = module ~ ":__run__" %}
+{% set _dbg_key  = module ~ ":__debug__" %}
+{% set _run_all  = _run_key in (running or {}) %}
+{% set _dbg_all  = _dbg_key in (running or {}) %}
+
+<div class="ds-list-grid">
+{% if _run_all or _dbg_all %}
+  <div class="run-badge" style="grid-column:1/-1; width:fit-content; margin-bottom:4px; padding:4px 12px; font-size:12px;">
+    ● {{ 'Debug-Run' if _dbg_all else 'Gesamt-Run' }} läuft …
+  </div>
+{% endif %}
+
+{% if cfg %}
+  {% for name, item in cfg.items() %}
+    {% set item_name = name %}
+    {% set item_data = item %}
+    {% set is_running = (module ~ ":" ~ item_name) in (running or {}) %}
+    {% set run_mode = (running or {}).get(module ~ ":" ~ item_name, "") %}
+
+    <article class="ds-card {{ 'on' if item_data.enabled else 'off' }}">
+
+      <!-- Card Header -->
+      <div class="card-header">
+        <div class="card-title">
+          {{ item_data.description or item_name }}
+          {% if is_running %}
+            <span class="run-badge">{{ 'Debug' if run_mode == 'debug' else 'läuft' }}</span>
+          {% endif %}
+        </div>
+        {% if not light_mode %}
+        {{ ui.toggle_switch(module=module, item=item_name, container_id=container_id,
+                            loading_id=loading_id, enabled=item_data.enabled,
+                            description=item_data.description) }}
+        {% endif %}
+      </div>
+
+      <!-- Card Body -->
+      <div class="card-inner">
+        <div class="card-body">
+          <div class="card-meta">
+            {% include content_template %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Card Footer -->
+      <div class="card-footer">
+        {% if not light_mode %}
+        <div style="display:flex; gap:4px;">
+          {{ ui.run_button(module=module, item=item_name, container_id=container_id, enabled=item_data.enabled) }}
+          {{ ui.run_debug_button(module=module, item=item_name, container_id=container_id) }}
+          {{ ui.log_button(module=module, item=item_name) }}
+        </div>
+        <div style="display:flex; gap:4px;">
+          {{ ui.edit_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id) }}
+          {{ ui.delete_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id, description=item_data.description) }}
+        </div>
+        {% else %}
+        <div style="display:flex; gap:4px;">
+          {{ ui.log_button(module=module, item=item_name) }}
+        </div>
+        {% endif %}
+      </div>
+
+    </article>
+  {% endfor %}
+{% else %}
+  <div class="empty-state" style="grid-column:1/-1;">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+      <rect x="3" y="3" width="18" height="18" rx="2"/>
+      <line x1="9" y1="9" x2="15" y2="9"/>
+      <line x1="9" y1="12" x2="15" y2="12"/>
+      <line x1="9" y1="15" x2="12" y2="15"/>
+    </svg>
+    <div class="empty-state-title">Keine Einträge vorhanden</div>
+    <div class="empty-state-sub">Erstelle den ersten Eintrag mit „Neu"</div>
+  </div>
+{% endif %}
+</div>
