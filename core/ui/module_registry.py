@@ -65,16 +65,16 @@ def _load_from_dir(modules_dir: Path, pkg_prefix: str) -> dict:
 
 
 def load_modules(app_root: Path) -> list:
-    """Lädt Module aus core/modules/, app/extensions/ und app/modules/.
+    """Lädt Module aus core/modules/, app/overrides/ und app/modules/.
 
     Priorität (höher überschreibt niedrigere):
-      app/modules/    > app/extensions/ > core/modules/
-    app/extensions/   – Module die Core-Module überschreiben/ergänzen
+      app/modules/    > app/overrides/ > core/modules/
+    app/overrides/   – Module die Core-Module überschreiben/ergänzen
     app/modules/      – reine App-Module
     Reihenfolge im Ergebnis: core zuerst, dann app-exklusive.
     """
     core_mods = _load_from_dir(CORE_MOD_DIR,              "core.modules")
-    ext_mods  = _load_from_dir(app_root / "extensions",   "app.extensions")
+    ext_mods  = _load_from_dir(app_root / "overrides",   "app.overrides")
     app_mods  = _load_from_dir(app_root / "modules",      "app.modules")
 
     # module_root erben: Overrides ohne eigene Templates übernehmen Core-Pfad
