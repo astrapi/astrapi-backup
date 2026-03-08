@@ -1,4 +1,4 @@
-# scheduler/runner.py
+# app/runner.py
 import subprocess
 import time
 from datetime import datetime
@@ -121,5 +121,5 @@ def run_backup(job_id: str, modules: list, debug: bool = False) -> None:
         if not debug:
             notify_ntfy(f"Backup {status}: {job_id}\nDauer: {duration_str}",
                         priority="low" if status == "OK" else "high")
-        from scheduler.engine import update_job_result
-        update_job_result(job_id, status, duration_str)
+        from core.modules.scheduler.engine import update_result
+        update_result(status, duration_str)

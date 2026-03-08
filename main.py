@@ -30,8 +30,10 @@ from core.ui import create as create_ui
 from core.system.health import register_health
 from core.system.systemd import sd_notify, start_watchdog
 from core.modules.settings.engine import configure as configure_settings
+from core.modules.scheduler.engine import configure as configure_scheduler, init as init_scheduler
 from api.fastapi_app import create as create_api
-from scheduler.engine import init_scheduler
+from api.storage import get_setting, set_setting
+from app.runner import run_backup
 
 _START_TIME = time.time()
 
@@ -47,6 +49,15 @@ def _db_check() -> tuple[bool, dict]:
 
 def create_app() -> FastAPI:
     configure_settings(health_fn=_db_check)
+    configure_scheduler(
+        job_fn=run_backup,
+        get_setting=get_setting,
+        set_setting=set_setting,
+        job_id="backup",
+        job_name="Backup",
+        job_kwargs={"job_id": "backup", "modules": [], "debug": False},
+        timezone="Europe/Berlin",
+    )
 
     api = create_api()
     ui  = create_ui(app_root=APP_ROOT)

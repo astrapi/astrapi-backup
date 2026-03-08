@@ -28,10 +28,6 @@ def create() -> FastAPI:
     if _cfg_yaml.exists():
         with open(_cfg_yaml, encoding="utf-8") as _f:
             _light_mode = bool((_yaml.safe_load(_f) or {}).get("app", {}).get("light_mode", False))
-    if not _light_mode:
-        from scheduler.engine import init_scheduler
-        init_scheduler()
-
     # ── Custom Swagger UI ──────────────────────────────────────────────────────
     from api.custom_swagger import router as swagger_router
     app.include_router(swagger_router)

@@ -23,14 +23,14 @@ async def save_scheduler(request: Request):
     form    = await request.form()
     cron    = form.get("cron", "0 2 * * *").strip()
     enabled = form.get("enabled", "off") == "on"
-    import scheduler.engine as engine
+    from core.modules.scheduler import engine
     engine.update_config(cron=cron, enabled=enabled)
     return _ok()
 
 
 @router.post("/scheduler/run", response_class=HTMLResponse)
 def run_now(request: Request):
-    import scheduler.engine as engine
+    from core.modules.scheduler import engine
     engine.trigger_now(debug=False)
     return _ok("Gestartet")
 
