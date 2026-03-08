@@ -103,6 +103,31 @@
   </button>
 {% endmacro %}
 
+{% macro run_all_button(module=None, container_id=None) %}
+  <button
+    hx-post="/api/{{ module }}/run"
+    hx-target="#{{ container_id }}" hx-swap="innerHTML"
+    hx-headers='{"HX-Request": "true"}'
+    class="btn btn-ghost btn-sm btn-run" title="Alle ausführen">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+      <polygon points="5 3 19 12 5 21 5 3"/>
+    </svg>
+    Alle starten</button>
+{% endmacro %}
+
+{% macro run_debug_all_button(module=None, container_id=None) %}
+  <button
+    hx-post="/api/{{ module }}/run?debug=true"
+    hx-target="#{{ container_id }}" hx-swap="innerHTML"
+    hx-headers='{"HX-Request": "true"}'
+    class="btn btn-ghost btn-sm" title="Alle ausführen (Debug)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polygon points="5 3 19 12 5 21 5 3"/>
+      <line x1="1" y1="1" x2="23" y2="23"/>
+    </svg>
+    Debug</button>
+{% endmacro %}
+
 {% macro enable_all_button(module=None, container_id=None) %}
   <button
     hx-post="/api/{{ module }}/enable-all"
