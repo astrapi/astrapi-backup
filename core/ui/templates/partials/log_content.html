@@ -1,4 +1,8 @@
-{# templates/partials/log_content.html – wird statisch und als SSE-Fragment genutzt #}
+{#
+  core/ui/templates/partials/log_content.html
+  Wird statisch und als SSE-Fragment (ein <div> pro Zeile) genutzt.
+  Variablen: lines (list[str])
+#}
 {% if lines %}
   {% for line in lines %}
     <div class="log-line log-{% if 'WARNING:' in line %}warning{% elif 'ERROR:' in line %}error{% elif 'DEBUG:' in line %}debug{% else %}info{% endif %}">{{ line }}</div>

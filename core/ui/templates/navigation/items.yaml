@@ -1,2 +1,18 @@
-# Leer fuer backupctl – alle Nav-Eintraege kommen aus app/templates/navigation/items.yaml
-[]
+# core/templates/navigation/items.yaml
+#
+# Definiert die Framework-eigenen Navigationseinträge (erscheinen unten).
+# Wird von app/templates/navigation/items.yaml ergänzt, nicht ersetzt.
+#
+# settings muss hier explizit aufgeführt werden wenn es erscheinen soll.
+
+- key: scheduler
+  label: Scheduler
+  group: System
+
+- key: sysinfo
+  label: Info
+  group: System
+
+- key: settings
+  label: Einstellungen
+  group: System

@@ -1,4 +1,21 @@
-{# templates/partials/log_modal.html #}
+{#
+  core/ui/templates/partials/log_modal.html
+  Log-Modal mit Live-Streaming (SSE) und statischem Datum-Wähler.
+
+  Standard-URL-Konventionen:
+    Statisch:  GET /api/{module}/{item_id}/logs
+    Nach Datum: GET /api/{module}/{item_id}/logs/{date}
+    SSE-Stream: GET /api/{module}/{item_id}/logs/stream
+
+  Variablen:
+    module   – Modulname
+    item_id  – Item-ID
+    description – Anzeigename (für Titel)
+    live     – bool: SSE-Live-Modus
+    lines    – list[str]: Log-Zeilen (statischer Modus)
+    dates    – list[str]: verfügbare Datum-Dateien
+    selected – str: aktuell gewähltes Datum
+#}
 <div id="log-modal" class="ds-modal-backdrop" onclick="if(event.target===this) this.remove()">
   <div class="ds-modal log-modal-inner" onclick="event.stopPropagation()">
 
@@ -42,7 +59,6 @@
       const es        = new EventSource('/api/{{ module }}/{{ item_id }}/logs/stream');
       let autoScroll  = true;
 
-      // Auto-scroll nur wenn User ganz unten ist
       container.addEventListener('scroll', function() {
         autoScroll = (container.scrollHeight - container.scrollTop - container.clientHeight) < 40;
       });
@@ -66,9 +82,6 @@
         badge.style.color = 'var(--text-3)';
       };
 
-      // Stream schließen wenn Modal geschlossen wird
-      document.getElementById('log-modal').addEventListener('remove', function() { es.close(); });
-      // Cleanup via MutationObserver (modal removed from DOM)
       const observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(m) {
           m.removedNodes.forEach(function(n) {

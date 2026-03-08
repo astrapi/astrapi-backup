@@ -231,7 +231,21 @@ def build_nav_items(modules: list, app_root: Path) -> list[dict]:
         for mod in auto_mods:
             app_items.append(_auto_nav_item(mod))
 
-    items = app_items + core_items
+    # Core-Items deduplizieren: Keys die bereits in app_items stehen überspringen.
+    # Separatoren ohne nachfolgende sichtbare Items werden ebenfalls unterdrückt.
+    app_keys = {i["key"] for i in app_items if not i.get("separator")}
+    filtered_core: list[dict] = []
+    pending_sep = None
+    for item in core_items:
+        if item.get("separator"):
+            pending_sep = item
+        elif item["key"] not in app_keys:
+            if pending_sep:
+                filtered_core.append(pending_sep)
+                pending_sep = None
+            filtered_core.append(item)
+
+    items = app_items + filtered_core
 
     # Fallback wenn gar nichts da ist
     if not items:
