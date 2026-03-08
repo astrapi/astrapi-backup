@@ -210,7 +210,21 @@ def build_nav_items(modules: list, app_root: Path) -> list[dict]:
         import yaml as _yaml
         with open(config_yaml, encoding="utf-8") as _f:
             _raw = _yaml.safe_load(_f) or {}
-        app_items = _yaml_to_nav_items(None, mod_map, _raw.get("navigation", []))
+        nav_raw   = _raw.get("navigation", [])
+        app_items = _yaml_to_nav_items(None, mod_map, nav_raw)
+        # Modul-Instanzen mit den Werten aus config.yaml synchronisieren,
+        # damit module_label() / mod.label auch ohne modul.yaml stimmt.
+        for entry in nav_raw:
+            mod = mod_map.get(entry.get("key", ""))
+            if mod is None:
+                continue
+            if entry.get("label"):
+                mod.label = entry["label"]
+            if entry.get("icon"):
+                mod.icon  = entry["icon"]
+            if entry.get("group"):
+                mod.nav_group = entry["group"]
+            mod.nav_default = bool(entry.get("default", False))
     else:
         app_items = _yaml_to_nav_items(app_yaml, mod_map)
 
