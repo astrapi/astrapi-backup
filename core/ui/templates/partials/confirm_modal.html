@@ -35,7 +35,7 @@
               hx-{{ method }}="{{ confirm_url }}"
               hx-target="#{{ container_id }}"
               hx-swap="innerHTML"
-              hx-on::after-request="$el.closest('.ds-modal-backdrop').remove()">
+              hx-on::after-request="this.closest('.ds-modal-backdrop').remove()">
         {{ verb | capitalize }}
       </button>
     </div>
