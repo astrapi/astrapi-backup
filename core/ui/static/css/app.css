@@ -242,7 +242,7 @@ input,select,textarea { font-family:var(--font); }
 /* ═══════════════════════════ BUTTONS ════════════════════════════ */
 .btn {
   display:inline-flex; align-items:center; gap:6px;
-  padding:7px 14px; border-radius:var(--rad);
+  padding:7px 14px; border-radius:var(--rad-lg);
   font-size:13.5px; font-weight:500; font-family:var(--font);
   border:1px solid transparent; cursor:pointer;
   white-space:nowrap;
@@ -270,7 +270,7 @@ input,select,textarea { font-family:var(--font); }
 
 /* ── Icon-Buttons – immer monochrom ─────────────────────────── */
 .btn-icon {
-  width:30px; height:30px; padding:0; border-radius:var(--rad);
+  width:30px; height:30px; padding:0; border-radius:var(--rad-lg);
   background:transparent; border:none;
   display:inline-flex; align-items:center; justify-content:center;
   cursor:pointer; color:var(--text-2);
