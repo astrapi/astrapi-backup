@@ -46,7 +46,10 @@ def _load_from_dir(modules_dir: Path, pkg_prefix: str) -> dict:
             if instance is None or not isinstance(instance, AstrapiModule):
                 warnings.warn(f"Modul '{entry.name}' ({pkg_prefix}): keine AstrapiModule-Instanz gefunden")
                 continue
-            instance.module_root = entry
+            # module_root nur setzen wenn dieses Verzeichnis Templates hat
+            # oder noch kein module_root gesetzt ist (z.B. app re-exportiert Core-Instanz)
+            if instance.module_root is None or (entry / "templates").exists():
+                instance.module_root = entry
             # settings.yaml nachladen wenn das Modul es nicht selbst gesetzt hat
             if not instance.settings_schema:
                 settings_yaml = entry / "settings.yaml"
@@ -69,6 +72,15 @@ def load_modules(app_root: Path) -> list:
     """
     core_mods = _load_from_dir(CORE_MOD_DIR, "core.modules")
     app_mods  = _load_from_dir(app_root  / "modules", "app.modules")
+
+    # App-Module die Core-Module überschreiben aber keine eigenen Templates haben:
+    # module_root vom Core-Modul erben, damit der PrefixLoader korrekt greift.
+    for key in app_mods:
+        if key in core_mods:
+            app_m  = app_mods[key]
+            core_m = core_mods[key]
+            if app_m.module_root is None or not (app_m.module_root / "templates").exists():
+                app_m.module_root = core_m.module_root
 
     merged  = {**core_mods, **app_mods}
     ordered = []
