@@ -360,21 +360,20 @@ input,select,textarea { font-family:var(--font); }
 
 /* ════════════════════════ TOGGLE ════════════════════════════════ */
 .toggle-switch {
-  position:relative; display:inline-block;
-  width:34px; height:18px; border-radius:99px;
+  position:relative; display:inline-flex; align-items:center;
+  width:42px; height:24px; border-radius:99px;
   cursor:pointer; flex-shrink:0; padding:0; border:none;
   transition:background var(--t);
 }
 .toggle-on  { background:var(--g); }
 .toggle-off { background:var(--r); }
-.light-mode .toggle-off { background:var(--r); }
 .toggle-knob {
-  position:absolute; top:2px; left:2px;
-  width:14px; height:14px; border-radius:50%; background:#fff;
-  box-shadow:0 1px 3px rgba(0,0,0,0.35);
+  position:absolute; left:3px;
+  width:18px; height:18px; border-radius:50%; background:#fff;
+  box-shadow:0 1px 4px rgba(0,0,0,0.4);
   transition:transform var(--t); pointer-events:none;
 }
-.toggle-on .toggle-knob { transform:translateX(16px); }
+.toggle-on .toggle-knob { transform:translateX(18px); }
 
 /* ═════════════════════════ FORMS ════════════════════════════════ */
 .form-group { display:flex; flex-direction:column; gap:4px; }
@@ -611,34 +610,5 @@ input,select,textarea { font-family:var(--font); }
   padding: 1px 6px;
 }
 
-/* Toggle-Switch (Settings-Version) */
-.toggle-switch {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  width: 42px;
-  height: 24px;
-  border-radius: 99px;
-  cursor: pointer;
-  flex-shrink: 0;
-  padding: 0;
-  border: none;
-  transition: background var(--t);
-  background: rgba(255,255,255,0.15);
-}
-.light-mode .toggle-switch { background: rgba(0,0,0,0.18); }
-.toggle-switch input { position:absolute; opacity:0; width:0; height:0; }
-.toggle-switch .toggle-knob {
-  position: absolute;
-  left: 3px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
-  transition: transform var(--t);
-  pointer-events: none;
-}
-.toggle-switch input:checked ~ .toggle-knob { transform: translateX(18px); }
 
 @keyframes spin { to { transform:rotate(360deg); } }
