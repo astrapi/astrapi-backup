@@ -103,6 +103,22 @@
   </button>
 {% endmacro %}
 
+{% macro enable_all_button(module=None, container_id=None) %}
+  <button
+    hx-post="/api/{{ module }}/enable-all"
+    hx-target="#{{ container_id }}" hx-swap="innerHTML"
+    hx-headers='{"HX-Request": "true"}'
+    class="btn btn-ghost btn-sm" title="Alle aktivieren">Alle an</button>
+{% endmacro %}
+
+{% macro disable_all_button(module=None, container_id=None) %}
+  <button
+    hx-post="/api/{{ module }}/disable-all"
+    hx-target="#{{ container_id }}" hx-swap="innerHTML"
+    hx-headers='{"HX-Request": "true"}'
+    class="btn btn-ghost btn-sm" title="Alle deaktivieren">Alle aus</button>
+{% endmacro %}
+
 {% macro settings_button(module=None) %}
   <button
     hx-get="/ui/{{ module }}/settings"

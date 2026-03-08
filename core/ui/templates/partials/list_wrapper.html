@@ -15,17 +15,22 @@
 #}
 {% import 'partials/components/ui_macros.html' as ui %}
 
-{# ── Optionaler Aktions-Header (Neu + Settings) ──────────────────────────── #}
-{% if not light_mode or module_has_settings(module) %}
-<div style="display:flex; justify-content:flex-end; gap:6px; margin-bottom:10px;">
-  {% if not light_mode %}
-  {{ ui.add_button(module=module, container_id=container_id, loading_id=loading_id) }}
-  {% endif %}
-  {% if module_has_settings(module) %}
-  {{ ui.settings_button(module=module) }}
-  {% endif %}
+{# ── Page-Header: Titel + Bulk-Aktionen + Neu + Settings ─────────────────── #}
+<div class="page-header">
+  <div class="page-title">{{ module_label(module) }}</div>
+  <div style="display:flex; gap:6px; align-items:center;">
+    {% if not light_mode and cfg %}
+    {{ ui.enable_all_button(module=module, container_id=container_id) }}
+    {{ ui.disable_all_button(module=module, container_id=container_id) }}
+    {% endif %}
+    {% if not light_mode %}
+    {{ ui.add_button(module=module, container_id=container_id, loading_id=loading_id) }}
+    {% endif %}
+    {% if module_has_settings(module) %}
+    {{ ui.settings_button(module=module) }}
+    {% endif %}
+  </div>
 </div>
-{% endif %}
 
 {% set _run_key  = module ~ ":__run__" %}
 {% set _dbg_key  = module ~ ":__debug__" %}

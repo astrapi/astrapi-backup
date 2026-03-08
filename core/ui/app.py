@@ -130,6 +130,10 @@ def create(
             m = _mod_map.get(key)
             return bool(m and m.settings_schema)
 
+        def module_label(key: str) -> str:
+            m = _mod_map.get(key)
+            return m.label if m else key.replace("_", " ").title()
+
         return {
             "app_name":            app_cfg.get("APP_NAME",     "myapp"),
             "app_version":         app_cfg.get("APP_VERSION",  "0.1.0"),
@@ -138,6 +142,7 @@ def create(
             "light_mode":          light_mode,
             "modules":             modules,
             "module_has_settings": module_has_settings,
+            "module_label":        module_label,
         }
 
     # ── Navigation aus Modulen + optionaler items.yaml ────────────────────────
