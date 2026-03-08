@@ -364,6 +364,7 @@ input,select,textarea { font-family:var(--font); }
   width:36px; height:20px; border-radius:99px;
   cursor:pointer; flex-shrink:0; padding:0;
   background:transparent; border:2px solid;
+  appearance:none; -webkit-appearance:none;
   transition:border-color var(--t);
 }
 .toggle-on  { border-color:var(--g); }
