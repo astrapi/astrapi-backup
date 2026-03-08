@@ -1,6 +1,11 @@
 {#
   core/ui/templates/partials/components/ui_macros.html
   Generische UI-Makros – AstrapiFlaskUi V3
+
+  Standard-URL-Konventionen:
+    CRUD:    POST /api/{module}/{item}/run
+    Debug:   POST /api/{module}/{item}/run?debug=true
+    Logs:    GET  /api/{module}/{item}/logs
 #}
 
 {% macro edit_button(module=None, item=None, container_id=None, loading_id=None) %}
@@ -53,7 +58,7 @@
 {% macro refresh_button(endpoint="/", container_id=None, loading_id=None) %}
   <button
     hx-get="{{ endpoint }}/list"
-    hx-target="#{{ container_id }}-list" hx-swap="innerHTML"
+    hx-target="#{{ container_id }}" hx-swap="innerHTML"
     hx-indicator="#{{ loading_id }}"
     class="btn-icon" title="Aktualisieren"
   >
@@ -64,10 +69,14 @@
   </button>
 {% endmacro %}
 
+{# ── Runnable-Modul-Makros ────────────────────────────────────────────────── #}
+{# Standard-Konvention: POST /api/{module}/{item}/run[?debug=true]            #}
+{#                       GET  /api/{module}/{item}/logs                        #}
+
 {% macro run_button(module=None, item=None, container_id=None, enabled=True) %}
   <button
-    hx-post="/api/{{ module }}/{{ item }}/run?debug=false"
-    hx-target="#{{ container_id }}-list" hx-swap="innerHTML"
+    hx-post="/api/{{ module }}/{{ item }}/run"
+    hx-target="#{{ container_id }}" hx-swap="innerHTML"
     hx-headers='{"HX-Request": "true"}'
     class="btn-icon btn-icon-run"
     title="{{ 'Ausführen' if enabled else 'Deaktiviert – nur Debug-Run möglich' }}"
@@ -82,7 +91,7 @@
 {% macro run_debug_button(module=None, item=None, container_id=None) %}
   <button
     hx-post="/api/{{ module }}/{{ item }}/run?debug=true"
-    hx-target="#{{ container_id }}-list" hx-swap="innerHTML"
+    hx-target="#{{ container_id }}" hx-swap="innerHTML"
     hx-headers='{"HX-Request": "true"}'
     class="btn-icon btn-icon-debug"
     title="Ausführen (Debug)"
@@ -90,6 +99,19 @@
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <polygon points="5 3 19 12 5 21 5 3"/>
       <line x1="1" y1="1" x2="23" y2="23"/>
+    </svg>
+  </button>
+{% endmacro %}
+
+{% macro settings_button(module=None) %}
+  <button
+    hx-get="/ui/{{ module }}/settings"
+    hx-target="body" hx-swap="beforeend"
+    class="btn-icon" title="Einstellungen"
+  >
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
     </svg>
   </button>
 {% endmacro %}

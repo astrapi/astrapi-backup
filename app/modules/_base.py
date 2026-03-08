@@ -54,6 +54,7 @@ class AstrapiModule:
 
     settings_template: Optional[str] = None
     settings_defaults: dict          = field(default_factory=dict)
+    settings_schema:   list          = field(default_factory=list)
 
     module_root: Optional[Path] = field(default=None, repr=False)
 

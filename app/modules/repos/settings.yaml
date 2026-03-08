@@ -1,0 +1,9 @@
+# Repositories-Modul – globale Einstellungen
+
+- key: base_path
+  label: Standard-Pfad
+  type: text
+  placeholder: /mnt/borg
+  mono: true
+  description: Basis-Verzeichnis für neue Repositories
+  default: /mnt/borg

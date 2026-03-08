@@ -32,6 +32,12 @@ def load_modul(module_dir: Path, key: str, api_router, ui_blueprint) -> "Astrapi
     tpl = module_dir / "templates" / "partials" / "settings_section.html"
     settings_template = f"{key}/partials/settings_section.html" if tpl.exists() else None
 
+    settings_yaml = module_dir / "settings.yaml"
+    settings_schema: list = []
+    if settings_yaml.exists():
+        with open(settings_yaml, encoding="utf-8") as f:
+            settings_schema = yaml.safe_load(f) or []
+
     return AstrapiModule(
         key               = key,
         label             = cfg.get("label",       key.capitalize()),
@@ -42,4 +48,5 @@ def load_modul(module_dir: Path, key: str, api_router, ui_blueprint) -> "Astrapi
         nav_default       = bool(cfg.get("nav_default", False)),
         settings_template = settings_template,
         settings_defaults = cfg.get("settings_defaults", {}),
+        settings_schema   = settings_schema,
     )

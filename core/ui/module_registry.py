@@ -47,6 +47,13 @@ def _load_from_dir(modules_dir: Path, pkg_prefix: str) -> dict:
                 warnings.warn(f"Modul '{entry.name}' ({pkg_prefix}): keine AstrapiModule-Instanz gefunden")
                 continue
             instance.module_root = entry
+            # settings.yaml nachladen wenn das Modul es nicht selbst gesetzt hat
+            if not instance.settings_schema:
+                settings_yaml = entry / "settings.yaml"
+                if settings_yaml.exists():
+                    import yaml as _yaml
+                    with open(settings_yaml, encoding="utf-8") as _f:
+                        instance.settings_schema = _yaml.safe_load(_f) or []
             found[instance.key] = instance
         except Exception as e:
             warnings.warn(f"Modul '{entry.name}' ({pkg_prefix}) konnte nicht geladen werden: {e}")

@@ -11,17 +11,13 @@ def content():
     from helpers.secrets import get_secret_safe
     import json
 
-    scheduler_enabled = get_setting("scheduler_enabled", "off") == "on"
-    scheduler_cron    = get_setting("scheduler_cron", "0 2 * * 1,3,5")
-    ntfy_server       = get_setting("ntfy_url", "")
-    ntfy_topic        = get_setting("ntfy_topic", "")
-    repos_base_path   = get_setting("repos_base_path", "/mnt/borg")
-    wol_entries       = json.loads(get_setting("wol_entries", "[]"))
+    ntfy_server     = get_setting("ntfy_url", "")
+    ntfy_topic      = get_setting("ntfy_topic", "")
+    repos_base_path = get_setting("repos_base_path", "/mnt/borg")
+    wol_entries     = json.loads(get_setting("wol_entries", "[]"))
 
     return render_template(
         "settings/partials/tab.html",
-        scheduler_enabled=scheduler_enabled,
-        scheduler_cron=scheduler_cron,
         ntfy_server=ntfy_server,
         ntfy_topic=ntfy_topic,
         repos_base_path=repos_base_path,

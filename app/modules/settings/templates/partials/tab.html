@@ -8,107 +8,6 @@
   <div style="display:flex; flex-direction:column; gap:28px; max-width:720px;">
 
     {# ════════════════════════════════════════════════════════════════
-       BACKUP-ZEITPLAN
-       ════════════════════════════════════════════════════════════════ #}
-    {% if not light_mode %}
-    <section>
-      <div class="settings-section-label">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-        </svg>
-        Zeitplan
-      </div>
-
-      <div class="ds-card on">
-        {# Row: Aktiviert #}
-        <div class="settings-row">
-          <div class="settings-row-info">
-            <div class="settings-row-label">Automatischer Backup-Zeitplan</div>
-            <div class="settings-row-desc">Backups nach Cron-Zeitplan ausführen</div>
-          </div>
-          <label class="toggle-switch" title="Aktivieren/Deaktivieren">
-            <input type="checkbox" id="sched-enabled" style="display:none"
-                   {{ 'checked' if scheduler_enabled else '' }}
-                   onchange="document.getElementById('sched-enabled-hidden').value=this.checked?'on':'off'">
-            <span class="toggle-knob"></span>
-          </label>
-        </div>
-
-        {# Row: Cron-Builder #}
-        <div class="settings-row settings-row-block" style="border-bottom:none;">
-          <form id="sched-form"
-                hx-post="/api/settings/scheduler"
-                hx-target="#sched-status"
-                hx-swap="innerHTML"
-                style="display:flex; flex-direction:column; gap:16px; width:100%;">
-
-            {# Wochentage #}
-            <div class="form-group">
-              <label class="form-label">Wochentage</label>
-              <div style="display:flex; gap:5px;">
-                {% for label, val in [("Mo","1"),("Di","2"),("Mi","3"),("Do","4"),("Fr","5"),("Sa","6"),("So","0")] %}
-                <button type="button" id="sdow-{{ val }}" class="dow-btn" onclick="sToggleDow('{{ val }}')">{{ label }}</button>
-                {% endfor %}
-              </div>
-            </div>
-
-            {# Uhrzeit #}
-            <div style="display:grid; grid-template-columns:120px 120px 1fr; gap:12px; align-items:end;">
-              <div class="form-group" style="margin:0;">
-                <label class="form-label">Stunde</label>
-                <select id="s-hour" class="form-select" onchange="sUpdateCron()">
-                  <option value="*">Jede</option>
-                  {% for h in range(24) %}
-                  <option value="{{ h }}">{{ '%02d'|format(h) }}:xx</option>
-                  {% endfor %}
-                </select>
-              </div>
-              <div class="form-group" style="margin:0;">
-                <label class="form-label">Minute</label>
-                <select id="s-minute" class="form-select" onchange="sUpdateCron()">
-                  {% for m in [0,5,10,15,20,25,30,45] %}
-                  <option value="{{ m }}">:{{ '%02d'|format(m) }}</option>
-                  {% endfor %}
-                  <option value="*">Jede</option>
-                </select>
-              </div>
-              <div style="font-size:12px; color:var(--text-3); font-family:var(--mono);
-                          padding-bottom:9px;" id="s-preview"></div>
-            </div>
-
-            {# Cron direkt #}
-            <div class="form-group">
-              <label class="form-label">Cron-Ausdruck</label>
-              <input type="text" name="cron" id="s-cron-input" class="form-input"
-                     style="font-family:var(--mono);"
-                     value="{{ scheduler_cron }}" oninput="sParseCron(this.value)">
-            </div>
-
-            <input type="hidden" name="enabled" id="sched-enabled-hidden"
-                   value="{{ 'on' if scheduler_enabled else 'off' }}">
-
-            <div style="display:flex; gap:8px; align-items:center;">
-              <button type="button" onclick="sSubmit()" class="btn btn-primary btn-sm">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                Speichern
-              </button>
-              <button type="button"
-                      hx-post="/api/settings/scheduler/run"
-                      hx-target="#sched-status" hx-swap="innerHTML"
-                      class="btn btn-ghost btn-sm">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                Jetzt ausführen
-              </button>
-              <span id="sched-status" style="font-size:12px; color:var(--text-3);"></span>
-            </div>
-          </form>
-        </div>
-      </div>
-    </section>
-    {% endif %}
-
-
-    {# ════════════════════════════════════════════════════════════════
        BENACHRICHTIGUNGEN
        ════════════════════════════════════════════════════════════════ #}
     {% if not light_mode %}
@@ -370,17 +269,6 @@
 
 <script>
 (function() {
-  /* ── Toggle-Switch Styling ─────────────────────────────────── */
-  document.querySelectorAll('.toggle-switch').forEach(function(sw) {
-    var cb = sw.querySelector('input[type=checkbox]');
-    var kn = sw.querySelector('.toggle-knob');
-    function sync() {
-      sw.style.background   = cb.checked ? 'var(--b)' : 'rgba(255,255,255,0.15)';
-    }
-    sync();
-    cb.addEventListener('change', sync);
-  });
-
   /* ── WoL Zeilen ─────────────────────────────────────────────── */
   var WOL_ROW =
     '<div class="wol-row" style="display:grid;grid-template-columns:1fr 1fr 36px;' +
@@ -395,71 +283,5 @@
 
   window.wolAdd    = function() { document.getElementById('wol-rows').insertAdjacentHTML('beforeend', WOL_ROW); };
   window.wolRemove = function(btn) { var r=document.querySelectorAll('.wol-row'); if(r.length>1) btn.closest('.wol-row').remove(); };
-
-  /* ── Cron-Builder ────────────────────────────────────────────── */
-  var _dow = new Set();
-
-  function renderDow() {
-    ['0','1','2','3','4','5','6'].forEach(function(d) {
-      var b=document.getElementById('sdow-'+d); if(b) b.classList.toggle('active',_dow.has(d));
-    });
-  }
-
-  window.sToggleDow = function(v) {
-    if(_dow.has(v)){ if(_dow.size>1) _dow.delete(v); } else _dow.add(v);
-    renderDow(); sUpdateCron();
-  };
-
-  window.sUpdateCron = function() {
-    var h=document.getElementById('s-hour').value, m=document.getElementById('s-minute').value;
-    var dow=_dow.size<7?Array.from(_dow).sort().join(','):'*';
-    var cron=m+' '+h+' * * '+dow;
-    document.getElementById('s-cron-input').value=cron;
-    sPreview(cron);
-  };
-
-  window.sParseCron = function(cron) {
-    sPreview(cron);
-    var p=cron.trim().split(/\s+/); if(p.length!==5) return;
-    var hs=document.getElementById('s-hour'); if(hs&&Array.from(hs.options).find(function(o){return o.value===p[1];})) hs.value=p[1];
-    var ms=document.getElementById('s-minute'); if(ms&&Array.from(ms.options).find(function(o){return o.value===p[0];})) ms.value=p[0];
-    _dow.clear();
-    if(p[4]==='*'){['0','1','2','3','4','5','6'].forEach(function(d){_dow.add(d);})}
-    else{p[4].split(',').forEach(function(seg){var r=seg.match(/^(\d)-(\d)$/);if(r){for(var i=+r[1];i<=+r[2];i++)_dow.add(String(i));}else if(/^\d$/.test(seg))_dow.add(seg);});}
-    renderDow();
-  };
-
-  function sPreview(cron) {
-    var el=document.getElementById('s-preview'); if(!el) return;
-    try { var t=sNextRuns(cron,2); el.textContent=t.length?'Nächste: '+t.join(' · '):''; } catch(e){ el.textContent=''; }
-  }
-
-  function sNextRuns(cron,n) {
-    var p=cron.trim().split(/\s+/); if(p.length!==5) throw new Error();
-    var vM=sExp(p[0],0,59),vH=sExp(p[1],0,23),vD=sExp(p[4],0,6);
-    var res=[],d=new Date(); d.setMinutes(d.getMinutes()+1,0,0);
-    for(var t=0;t<60*24*14&&res.length<n;t++){
-      if(vD.indexOf(d.getDay())>=0&&vH.indexOf(d.getHours())>=0&&vM.indexOf(d.getMinutes())>=0)
-        res.push(String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'));
-      d.setMinutes(d.getMinutes()+1);
-    }
-    return res;
-  }
-
-  function sExp(f,mn,mx) {
-    if(f==='*'){var r=[];for(var i=mn;i<=mx;i++)r.push(i);return r;}
-    var s=new Set();
-    f.split(',').forEach(function(p){
-      var rm=p.match(/^(.+)\/(\d+)$/); if(rm){sExp(rm[1]==='*'?mn+'-'+mx:rm[1],mn,mx).filter(function(_,i){return i%+rm[2]===0;}).forEach(function(v){s.add(v);});return;}
-      var rr=p.match(/^(\d+)-(\d+)$/); if(rr){for(var i=+rr[1];i<=+rr[2];i++)s.add(i);return;}
-      if(/^\d+$/.test(p))s.add(+p);
-    });
-    return Array.from(s).sort(function(a,b){return a-b;});
-  }
-
-  window.sSubmit = function() { htmx.trigger(document.getElementById('sched-form'),'submit'); };
-
-  sParseCron('{{ scheduler_cron }}');
-  sPreview('{{ scheduler_cron }}');
 })();
 </script>

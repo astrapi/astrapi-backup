@@ -1,9 +1,9 @@
-# app/sysinfo.py
+# app/modules/sysinfo/__init__.py
 """Konfiguriert das Core-Sysinfo-Modul mit backupctl-spezifischen Infos."""
 import subprocess
-import sys
 from pathlib import Path
 
+from core.modules.sysinfo import module  # Core-Modul unverändert übernehmen
 from core.modules.sysinfo.engine import configure
 
 
@@ -27,7 +27,7 @@ def _borg_version() -> str:
 def _app_version() -> str:
     try:
         import yaml as _yaml
-        cfg = Path(__file__).parents[1] / "config.yaml"
+        cfg = Path(__file__).parents[2] / "config.yaml"
         if cfg.exists():
             with open(cfg, encoding="utf-8") as f:
                 return str((_yaml.safe_load(f) or {}).get("app", {}).get("version", "?"))
@@ -51,7 +51,7 @@ def _db_size() -> str:
     except Exception:
         pass
     for candidate in [
-        Path(__file__).parents[1] / "data" / "backupctl.db",
+        Path(__file__).parents[2] / "data" / "backupctl.db",
         Path("/var/lib/backupadm/backupctl.db"),
     ]:
         if candidate.exists():
@@ -71,9 +71,9 @@ def _fernet_key() -> str:
 
 def _extra_info() -> dict:
     return {
-        "backupctl": f"v{_app_version()}",
-        "Borg":      _borg_version(),
-        "DB":        _db_size(),
+        "backupctl":  f"v{_app_version()}",
+        "Borg":       _borg_version(),
+        "DB":         _db_size(),
         "Fernet-Key": _fernet_key(),
     }
 

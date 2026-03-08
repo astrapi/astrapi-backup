@@ -26,8 +26,6 @@ from fastapi.staticfiles import StaticFiles
 from a2wsgi import WSGIMiddleware
 import uvicorn
 
-import app.sysinfo  # konfiguriert core sysinfo-Modul mit backupctl-Extras
-
 from core.ui import create as create_ui
 from core.health import register_health
 from core.systemd import sd_notify, start_watchdog
