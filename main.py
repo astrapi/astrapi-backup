@@ -27,8 +27,8 @@ from a2wsgi import WSGIMiddleware
 import uvicorn
 
 from core.ui import create as create_ui
-from core.health import register_health
-from core.systemd import sd_notify, start_watchdog
+from core.system.health import register_health
+from core.system.systemd import sd_notify, start_watchdog
 from core.modules.settings.engine import configure as configure_settings
 from api.fastapi_app import create as create_api
 from scheduler.engine import init_scheduler
