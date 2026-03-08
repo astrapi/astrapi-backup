@@ -361,19 +361,20 @@ input,select,textarea { font-family:var(--font); }
 /* ════════════════════════ TOGGLE ════════════════════════════════ */
 .toggle-switch {
   position:relative; display:inline-flex; align-items:center;
-  width:42px; height:24px; border-radius:99px;
-  cursor:pointer; flex-shrink:0; padding:0; border:none;
-  transition:background var(--t);
+  width:36px; height:20px; border-radius:99px;
+  cursor:pointer; flex-shrink:0; padding:0;
+  background:transparent; border:2px solid;
+  transition:border-color var(--t);
 }
-.toggle-on  { background:var(--g); }
-.toggle-off { background:var(--r); }
+.toggle-on  { border-color:var(--g); }
+.toggle-off { border-color:var(--r); }
 .toggle-knob {
-  position:absolute; left:3px;
-  width:18px; height:18px; border-radius:50%; background:#fff;
-  box-shadow:0 1px 4px rgba(0,0,0,0.4);
-  transition:transform var(--t); pointer-events:none;
+  position:absolute; left:2px;
+  width:13px; height:13px; border-radius:50%;
+  transition:transform var(--t), background var(--t); pointer-events:none;
 }
-.toggle-on .toggle-knob { transform:translateX(18px); }
+.toggle-on  .toggle-knob { background:var(--g); transform:translateX(13px); }
+.toggle-off .toggle-knob { background:var(--r); }
 
 /* ═════════════════════════ FORMS ════════════════════════════════ */
 .form-group { display:flex; flex-direction:column; gap:4px; }
