@@ -20,7 +20,7 @@ from typing import Optional, Callable
 from .page_factory import register_pages
 from .swagger_utils import register_ui_docs
 from .module_registry import load_modules, register_flask_modules, build_nav_items
-from ..system.version import get_version
+from ..system.version import get_version, get_version_cached
 from .settings_registry import (
     init as settings_init, seed_defaults, set_many, all_settings,
 )
@@ -72,18 +72,20 @@ def create(
 
     # ── App-Konfiguration laden ───────────────────────────────────────────────
     app_cfg: dict = {}
+    _version_root:    Path = app_root.parent
+    _version_default: str  = "0.1.0"
     cfg_yaml = app_root / "config.yaml"
     if cfg_yaml.exists():
         import yaml as _yaml
         with open(cfg_yaml, encoding="utf-8") as _f:
             _raw = _yaml.safe_load(_f) or {}
         _app = _raw.get("app", {})
+        _version_default = _app.get("version", "0.1.0")
         app_cfg = {
-            "APP_NAME":    _app.get("name",       "myapp"),
-            "APP_VERSION": get_version(app_root.parent, _app.get("version", "0.1.0")),
-            "APP_LANG":    _app.get("lang",        "de"),
-            "LIGHT_MODE":  bool(_app.get("light_mode", False)),
-            "APP_LOGO_SVG": _app.get("logo_svg",  None),
+            "APP_NAME":     _app.get("name",       "myapp"),
+            "APP_LANG":     _app.get("lang",        "de"),
+            "LIGHT_MODE":   bool(_app.get("light_mode", False)),
+            "APP_LOGO_SVG": _app.get("logo_svg",   None),
         }
     else:
         for cfg_name in ("settings.py", "config.py"):
@@ -91,6 +93,7 @@ def create(
             if cfg_path.exists():
                 mod     = _load_module_file("app_settings", cfg_path)
                 app_cfg = {k: v for k, v in vars(mod).items() if not k.startswith("_")}
+                _version_default = app_cfg.get("APP_VERSION", _version_default)
                 break
 
     light_mode: bool = app_cfg.get("LIGHT_MODE", False)
@@ -137,7 +140,7 @@ def create(
 
         return {
             "app_name":            app_cfg.get("APP_NAME",     "myapp"),
-            "app_version":         app_cfg.get("APP_VERSION",  "0.1.0"),
+            "app_version":         get_version_cached(_version_root, _version_default),
             "app_logo_svg":        app_cfg.get("APP_LOGO_SVG", None),
             "app_lang":            app_cfg.get("APP_LANG",     "de"),
             "light_mode":          light_mode,
