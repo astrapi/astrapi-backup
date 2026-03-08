@@ -9,6 +9,7 @@ bp  = Blueprint(f"{KEY}_ui", __name__)
 def content():
     from api.storage import get_setting
     from helpers.secrets import get_secret_safe
+    from core.modules.settings.engine import get_status
     import json
 
     ntfy_server     = get_setting("ntfy_url", "")
@@ -18,6 +19,7 @@ def content():
 
     return render_template(
         "settings/partials/tab.html",
+        status=get_status(),
         ntfy_server=ntfy_server,
         ntfy_topic=ntfy_topic,
         repos_base_path=repos_base_path,

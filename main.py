@@ -29,6 +29,7 @@ import uvicorn
 from core.ui import create as create_ui
 from core.health import register_health
 from core.systemd import sd_notify, start_watchdog
+from core.modules.settings.engine import configure as configure_settings
 from api.fastapi_app import create as create_api
 from scheduler.engine import init_scheduler
 
@@ -45,6 +46,8 @@ def _db_check() -> tuple[bool, dict]:
 
 
 def create_app() -> FastAPI:
+    configure_settings(health_fn=_db_check)
+
     api = create_api()
     ui  = create_ui(app_root=APP_ROOT)
 
