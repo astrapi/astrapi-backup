@@ -20,6 +20,7 @@ from typing import Optional, Callable
 from .page_factory import register_pages
 from .swagger_utils import register_ui_docs
 from .module_registry import load_modules, register_flask_modules, build_nav_items
+from ..system.version import get_version
 from .settings_registry import (
     init as settings_init, seed_defaults, set_many, all_settings,
 )
@@ -79,7 +80,7 @@ def create(
         _app = _raw.get("app", {})
         app_cfg = {
             "APP_NAME":    _app.get("name",       "myapp"),
-            "APP_VERSION": _app.get("version",    "0.1.0"),
+            "APP_VERSION": get_version(app_root.parent, _app.get("version", "0.1.0")),
             "APP_LANG":    _app.get("lang",        "de"),
             "LIGHT_MODE":  bool(_app.get("light_mode", False)),
             "APP_LOGO_SVG": _app.get("logo_svg",  None),
