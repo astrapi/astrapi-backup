@@ -65,30 +65,37 @@ def _load_from_dir(modules_dir: Path, pkg_prefix: str) -> dict:
 
 
 def load_modules(app_root: Path) -> list:
-    """Lädt Module aus core/modules/ und app/modules/.
+    """Lädt Module aus core/modules/, app/extensions/ und app/modules/.
 
-    app/ überschreibt core/ bei gleichem Key.
-    Reihenfolge: core zuerst, dann app-exklusive.
+    Priorität (höher überschreibt niedrigere):
+      app/modules/    > app/extensions/ > core/modules/
+    app/extensions/   – Module die Core-Module überschreiben/ergänzen
+    app/modules/      – reine App-Module
+    Reihenfolge im Ergebnis: core zuerst, dann app-exklusive.
     """
-    core_mods = _load_from_dir(CORE_MOD_DIR, "core.modules")
-    app_mods  = _load_from_dir(app_root  / "modules", "app.modules")
+    core_mods = _load_from_dir(CORE_MOD_DIR,              "core.modules")
+    ext_mods  = _load_from_dir(app_root / "extensions",   "app.extensions")
+    app_mods  = _load_from_dir(app_root / "modules",      "app.modules")
 
-    # App-Module die Core-Module überschreiben aber keine eigenen Templates haben:
-    # module_root vom Core-Modul erben, damit der PrefixLoader korrekt greift.
-    for key in app_mods:
-        if key in core_mods:
-            app_m  = app_mods[key]
-            core_m = core_mods[key]
-            if app_m.module_root is None or not (app_m.module_root / "templates").exists():
-                app_m.module_root = core_m.module_root
+    # module_root erben: Overrides ohne eigene Templates übernehmen Core-Pfad
+    def _inherit_root(overrides: dict, base: dict) -> None:
+        for key, m in overrides.items():
+            if key in base:
+                ref = base[key]
+                if m.module_root is None or not (m.module_root / "templates").exists():
+                    m.module_root = ref.module_root
 
-    merged  = {**core_mods, **app_mods}
+    _inherit_root(ext_mods, core_mods)
+    _inherit_root(app_mods, {**core_mods, **ext_mods})
+
+    merged  = {**core_mods, **ext_mods, **app_mods}
     ordered = []
+    seen: set = set()
     for key in sorted(core_mods):
-        ordered.append(merged[key])
-    for key in sorted(app_mods):
-        if key not in core_mods:
-            ordered.append(merged[key])
+        ordered.append(merged[key]); seen.add(key)
+    for key in sorted({**ext_mods, **app_mods}):
+        if key not in seen:
+            ordered.append(merged[key]); seen.add(key)
     return ordered
 
 
