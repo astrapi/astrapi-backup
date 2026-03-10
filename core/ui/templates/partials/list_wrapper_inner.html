@@ -15,9 +15,14 @@
 #}
 {% import 'partials/components/ui_macros.html' as ui %}
 
-{# ── Page-Header: Titel + Bulk-Aktionen + Neu + Settings ─────────────────── #}
+{# ── Page-Header: Titel + Settings | Bulk-Aktionen + Neu ─────────────────── #}
 <div class="page-header">
-  <div class="page-title">{{ module_label(module) }}</div>
+  <div style="display:flex; gap:6px; align-items:center;">
+    <div class="page-title">{{ module_label(module) }}</div>
+    {% if module_has_settings(module) %}
+    {{ ui.settings_button(module=module) }}
+    {% endif %}
+  </div>
   <div style="display:flex; gap:6px; align-items:center;">
     {% if not light_mode and cfg %}
     {{ ui.run_all_button(module=module, container_id=container_id) }}
@@ -27,9 +32,6 @@
     {% endif %}
     {% if not light_mode %}
     {{ ui.add_button(module=module, container_id=container_id, loading_id=loading_id) }}
-    {% endif %}
-    {% if module_has_settings(module) %}
-    {{ ui.settings_button(module=module) }}
     {% endif %}
   </div>
 </div>

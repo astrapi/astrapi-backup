@@ -2,18 +2,16 @@
    backupctl – GNOME Adwaita Design
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
 /* ── GNOME Adwaita Dark ─────────────────────────────────────── */
 /* Pixel-gemessen am GNOME Einstellungen Screenshot             */
 :root {
   /* GNOME Adwaita Dark – aus pattern-templates.svg + libadwaita Quellen */
-  --bg:          #1e1e1e;   /* @view_bg_color – Scrollbereich        */
-  --sb:          #242424;   /* @window_bg_color – Sidebar = Fenster  */
-  --card:        #2f2f2f;   /* @card_bg_color (rgba(255,255,255,.05) über #242424) */
-  --card-hi:     #383838;   /* Hover auf Karten                      */
-  --sel:         #404040;   /* rgba(255,255,255,.15) über #242424    */
-  --input-bg:    #2f2f2f;   /* Inputs                                */
+  --bg:          #222226;   /* Content-Bereich (Karten-Hintergrund)  */
+  --sb:          #2e2e32;   /* Sidebar                               */
+  --card:        #343437;   /* Karte aktiv                           */
+  --card-hi:     #3c3c3f;   /* Hover auf Karten                      */
+  --sel:         #444447;   /* Selektion / Icon-Hover                */
+  --input-bg:    #343437;   /* Inputs                                */
 
   --border-s:    rgba(0,0,0,0.55);   /* Trennlinie: dunkler als BG   */
   --border-i:    rgba(255,255,255,0.10);
@@ -22,8 +20,8 @@
   --text-2:      rgba(239,238,243,0.65);
   --text-3:      rgba(239,238,243,0.35);
 
-  --card-off:    #2e2d32;
-  --card-off-hi: #333238;
+  --card-off:    #2c2c2f;   /* Karte inaktiv: --card leicht abgedunkelt */
+  --card-off-hi: #313134;
   --text-off:    rgba(239,238,243,0.28);
   --text-off-2:  rgba(239,238,243,0.16);
   --sh-off:      none;
@@ -127,31 +125,32 @@ input,select,textarea { font-family:var(--font); }
 
 /* ═══════════════════════════ SIDEBAR ═══════════════════════════ */
 #sidebar {
-  width:220px; flex-shrink:0;
+  width:240px; flex-shrink:0;
   background:var(--sb);
-  border-right:0px solid var(--border-s);
+  border-right:none;
   display:flex; flex-direction:column;
   overflow-y:auto; z-index:10;
 }
+.light-mode #sidebar { border-right:1px solid var(--border-s); }
 .sb-logo {
   display:flex; align-items:center; gap:10px;
-  padding:0 16px; height:40px; flex-shrink:0;
+  padding:0 14px; height:47px; flex-shrink:0;
   justify-content: center;
 }
 .sb-logo-text {
-  font-size:16px; 
-  font-weight:700; 
-  color:var(--text); 
+  font-size:14px;
+  font-weight:700;
+  color:var(--text);
   letter-spacing:-0.01em;
 }
 .nav-items {
   display:flex; flex-direction:column;
-  padding:0 8px 8px; gap:1px; flex:1;
+  padding:2px 8px; gap:0; flex:1;
 }
 .nav-item {
-  display:flex; align-items:center; gap:10px;
-  padding:12px 10px 12px 22px; border-radius:var(--rad-lg);
-  font-size:13.5px; color:var(--text); font-weight:400;
+  display:flex; align-items:center; gap:12px;
+  padding:9px 12px; border-radius:8px; margin:1px 0;
+  font-size:14px; color:var(--text); font-weight:400;
   border:none; background:transparent;
   width:100%; text-align:left; cursor:pointer;
   transition:background var(--t) var(--ease);
@@ -169,7 +168,7 @@ input,select,textarea { font-family:var(--font); }
   color: var(--text);
 }
 .light-mode .nav-item.active .nav-icon { color:var(--text); }
-.nav-icon { width:16px; height:16px; flex-shrink:0; opacity:1; transition:opacity var(--t); }
+.nav-icon { width:16px; height:16px; flex-shrink:0; opacity:0.85; transition:opacity var(--t); }
 .nav-item:hover .nav-icon { opacity:0.9; }
 .nav-item.active .nav-icon { opacity:1; }
 
@@ -177,12 +176,13 @@ input,select,textarea { font-family:var(--font); }
 .nav-separator {
   display: flex;
   align-items: center;
-  margin: 12px 4px 2px;
+  padding: 12px 8px 2px;
+  margin: 0;
   gap: 6px;
 }
 /* Erstes Separator-Item: kein Abstand oben */
 .nav-separator.nav-separator-first {
-  margin-top: 4px;
+  padding-top: 4px;
 }
 /* Trennlinie – nur wenn KEIN group-label vorhanden */
 .nav-separator:not(:has(.nav-group-label))::before {
@@ -205,7 +205,7 @@ input,select,textarea { font-family:var(--font); }
   color: #919191;
 }
 
-.sb-footer { padding:6px 8px 14px; flex-shrink:0; }
+.sb-footer { padding:4px 8px 10px; flex-shrink:0; }
 .sb-divider { border:none; border-top:1px solid var(--text-3); margin:0 12px 8px; }
 #sidebar > .sb-divider { margin-left:20px; margin-right:20px; }
 .sb-footer-bottom {
@@ -225,17 +225,17 @@ input,select,textarea { font-family:var(--font); }
 /* ════════════════════════ MAIN CONTENT ══════════════════════════ */
 .main-content {
   flex:1; overflow-y:auto;
-  padding:0 24px 24px;
+  padding:0 28px 28px;
   background:var(--bg);
 }
 
 /* ═══════════════════════════ PAGE HEADER ════════════════════════ */
 .page-header {
   display:flex; align-items:center; justify-content:space-between;
-  height:46px; margin-bottom:16px;
+  height:47px; margin-bottom:20px;
 }
 .page-title {
-  font-size:15px; font-weight:700; color:var(--text); letter-spacing:-0.02em;
+  font-size:14px; font-weight:700; color:var(--text); letter-spacing:-0.02em;
 }
 .page-subtitle { display:none; }
 
@@ -363,7 +363,7 @@ input,select,textarea { font-family:var(--font); }
   position:relative; display:inline-flex; align-items:center;
   width:36px; height:20px; border-radius:99px;
   cursor:pointer; flex-shrink:0; padding:0;
-  background:transparent; border:2px solid;
+  background:var(--card); border:2px solid;
   appearance:none; -webkit-appearance:none;
   transition:border-color var(--t);
 }
