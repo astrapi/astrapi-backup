@@ -1,0 +1,128 @@
+{#
+  core/ui/templates/partials/settings_modal.html
+  Generisches Modul-Settings-Modal.
+
+  Wird per HTMX in <body> eingefügt (hx-swap="beforeend").
+  Variablen:
+    mod    – AstrapiModule-Instanz
+    schema – list von field-dicts (key, label, type, options, default, description)
+    values – dict {field_key: current_value}
+    saved  – bool (True nach erfolgreichem POST)
+
+  Field-Typen: text, password, number, select, checkbox, textarea
+#}
+<div id="settings-modal-backdrop" class="ds-modal-backdrop"
+     onclick="if(event.target===this)this.remove()"
+     onkeydown="if(event.key==='Escape')this.remove()">
+
+  <div class="ds-modal" style="width:480px; max-width:95vw; padding:0;" tabindex="-1"
+       id="settings-modal">
+
+    <!-- Header -->
+    <div style="display:flex; justify-content:space-between; align-items:center;
+                padding:16px 20px; border-bottom:1px solid var(--border-s);">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+        </svg>
+        <span style="font-size:14px; font-weight:600; color:var(--text-1);">
+          {{ mod.label }} – Einstellungen
+        </span>
+      </div>
+      <button onclick="document.getElementById('settings-modal-backdrop').remove()"
+              class="btn-icon" title="Schließen" style="flex-shrink:0;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Flash -->
+    {% if saved %}
+    <div style="margin:12px 20px 0; padding:8px 12px; border-radius:var(--rad);
+                background:rgba(74,222,128,0.10); color:#4ade80; font-size:13px;">
+      ✔ Einstellungen gespeichert.
+    </div>
+    {% endif %}
+
+    <!-- Form -->
+    <form hx-post="/ui/{{ mod.key }}/settings"
+          hx-target="#settings-modal"
+          hx-swap="outerHTML"
+          style="padding:20px; display:flex; flex-direction:column; gap:14px;">
+
+      {% for field in schema %}
+      {% set fkey  = field.key %}
+      {% set ftype = field.get('type', 'text') %}
+      {% set fval  = values.get(fkey, field.get('default', '')) %}
+
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">{{ field.label }}</label>
+
+        {% if ftype == 'select' %}
+        <select name="{{ fkey }}" class="form-select">
+          {% for opt in field.options %}
+            {% if opt is mapping %}
+              <option value="{{ opt.value }}" {{ 'selected' if fval == opt.value }}>{{ opt.label }}</option>
+            {% else %}
+              <option value="{{ opt }}" {{ 'selected' if fval == opt }}>{{ opt }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+
+        {% elif ftype == 'checkbox' %}
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; padding-top:4px;">
+          <input type="hidden" name="{{ fkey }}" value="0">
+          <input type="checkbox" name="{{ fkey }}" value="1"
+                 style="width:16px; height:16px;"
+                 {{ 'checked' if fval in (True, '1', 'true', 'on') }}
+                 onchange="this.form.querySelector('[name={{ fkey }}][type=hidden]').disabled=this.checked">
+          <span style="font-size:13px; color:var(--text-2);">{{ field.get('checkbox_label', 'Aktiviert') }}</span>
+        </label>
+
+        {% elif ftype == 'textarea' %}
+        <textarea name="{{ fkey }}" class="form-input"
+                  rows="{{ field.get('rows', 3) }}"
+                  placeholder="{{ field.get('placeholder', '') }}"
+                  style="resize:vertical; font-family:{% if field.get('mono') %}var(--font-mono){% else %}inherit{% endif %};">{{ fval }}</textarea>
+
+        {% elif ftype == 'password' %}
+        <input type="password" name="{{ fkey }}" class="form-input"
+               placeholder="{{ field.get('placeholder', '••••••••') }}"
+               autocomplete="new-password">
+
+        {% else %}{# text, number, etc. #}
+        <input type="{{ ftype }}" name="{{ fkey }}" class="form-input"
+               value="{{ fval }}"
+               placeholder="{{ field.get('placeholder', '') }}"
+               style="{% if field.get('mono') %}font-family:var(--font-mono);{% endif %}">
+        {% endif %}
+
+        {% if field.get('description') %}
+        <span style="font-size:11px; color:var(--text-3); margin-top:3px; display:block;">
+          {{ field.description }}
+        </span>
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      <!-- Footer -->
+      <div style="display:flex; justify-content:flex-end; gap:8px; padding-top:6px;
+                  border-top:1px solid var(--border-s); margin-top:4px;">
+        <button type="button"
+                onclick="document.getElementById('settings-modal-backdrop').remove()"
+                class="btn btn-ghost btn-sm">Abbrechen</button>
+        <button type="submit" class="btn btn-primary btn-sm">Speichern</button>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+<script>
+(function() {
+  var modal = document.getElementById('settings-modal');
+  if (modal) modal.focus();
+})();
+</script>

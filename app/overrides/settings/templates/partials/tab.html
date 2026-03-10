@@ -1,0 +1,352 @@
+{# partials/settings/tab.html #}
+<div id="tab-settings" class="tab-content">
+
+  <div class="page-header">
+    <div class="page-title">Einstellungen</div>
+  </div>
+
+  {# ── Framework-Status ─────────────────────────────────────────────────── #}
+  {% if status is defined %}
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr));
+              gap:10px; margin-bottom:8px;">
+
+    <div class="ds-card on" style="padding:14px 16px;">
+      <div style="font-size:11px; font-weight:600; color:var(--text-3);
+                  text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;">
+        Laufzeit
+      </div>
+      <div style="font-size:18px; font-weight:700; color:var(--text-1);
+                  font-family:var(--font-mono);">
+        {{ status.uptime }}
+      </div>
+    </div>
+
+    <div class="ds-card on" style="padding:14px 16px;">
+      <div style="font-size:11px; font-weight:600; color:var(--text-3);
+                  text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;">
+        Systemd
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        {% if status.systemd_active %}
+        <span style="display:inline-block; width:7px; height:7px; border-radius:50%;
+                     background:#4ade80; flex-shrink:0;"></span>
+        <span style="font-size:13px; color:#4ade80;">Watchdog aktiv</span>
+        {% else %}
+        <span style="display:inline-block; width:7px; height:7px; border-radius:50%;
+                     background:var(--text-3); flex-shrink:0;"></span>
+        <span style="font-size:13px; color:var(--text-3);">Standalone</span>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if status.health_ok is not none %}
+    <div class="ds-card on" style="padding:14px 16px;">
+      <div style="font-size:11px; font-weight:600; color:var(--text-3);
+                  text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;">
+        Health
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        {% if status.health_ok %}
+        <span style="display:inline-block; width:7px; height:7px; border-radius:50%;
+                     background:#4ade80; flex-shrink:0;"></span>
+        <span style="font-size:13px; color:#4ade80;">OK</span>
+        {% else %}
+        <span style="display:inline-block; width:7px; height:7px; border-radius:50%;
+                     background:var(--err); flex-shrink:0;"></span>
+        <span style="font-size:13px; color:var(--err);">Degraded</span>
+        {% endif %}
+      </div>
+      {% if status.health_details %}
+      <div style="margin-top:6px; font-size:11px; color:var(--text-3);
+                  font-family:var(--font-mono); line-height:1.5;">
+        {% for k, v in status.health_details.items() %}
+        {{ k }}: {{ v }}<br>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  </div>
+  {% endif %}
+
+  <div style="display:flex; flex-direction:column; gap:28px; max-width:720px;">
+
+    {# ════════════════════════════════════════════════════════════════
+       BENACHRICHTIGUNGEN
+       ════════════════════════════════════════════════════════════════ #}
+    {% if not light_mode %}
+    <section>
+      <div class="settings-section-label">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 01-3.46 0"/>
+        </svg>
+        Benachrichtigungen
+      </div>
+
+      <div class="ds-card on">
+        <form hx-post="/api/settings/ntfy"
+              hx-target="#ntfy-status" hx-swap="innerHTML">
+
+          {# Row: Server #}
+          <div class="settings-row">
+            <div class="settings-row-info">
+              <div class="settings-row-label">ntfy Server-URL</div>
+              <div class="settings-row-desc">z.B. https://ntfy.example.com</div>
+            </div>
+            <input type="text" name="ntfy_url" class="form-input settings-row-input"
+                   placeholder="https://ntfy.example.com" value="{{ ntfy_server }}">
+          </div>
+
+          {# Row: Thema #}
+          <div class="settings-row">
+            <div class="settings-row-info">
+              <div class="settings-row-label">Thema</div>
+              <div class="settings-row-desc">Kanal für Benachrichtigungen</div>
+            </div>
+            <input type="text" name="ntfy_topic" class="form-input settings-row-input"
+                   placeholder="backup-alerts" value="{{ ntfy_topic }}">
+          </div>
+
+          <div class="settings-row-actions">
+            <button type="submit" class="btn btn-primary btn-sm">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Speichern
+            </button>
+            <span id="ntfy-status" class="settings-status"></span>
+          </div>
+        </form>
+      </div>
+    </section>
+    {% endif %}
+
+
+    {# ════════════════════════════════════════════════════════════════
+       REPOSITORIES
+       ════════════════════════════════════════════════════════════════ #}
+    <section>
+      <div class="settings-section-label">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="21 8 21 21 3 21 3 8"/>
+          <rect x="1" y="3" width="22" height="5"/>
+        </svg>
+        Repositories
+      </div>
+
+      <div class="ds-card on">
+        <form hx-post="/api/settings/repos-path"
+              hx-target="#repos-path-status" hx-swap="innerHTML">
+
+          <div class="settings-row">
+            <div class="settings-row-info">
+              <div class="settings-row-label">Standard-Pfad</div>
+              <div class="settings-row-desc">Basis-Verzeichnis für neue Repositories</div>
+            </div>
+            <input type="text" name="repos_base_path" class="form-input settings-row-input"
+                   style="font-family:var(--mono);"
+                   placeholder="/mnt/borg" value="{{ repos_base_path }}">
+          </div>
+
+          <div class="settings-row-actions">
+            <button type="submit" class="btn btn-primary btn-sm">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Speichern
+            </button>
+            <span id="repos-path-status" class="settings-status"></span>
+          </div>
+        </form>
+      </div>
+    </section>
+
+
+    {# ════════════════════════════════════════════════════════════════
+       WAKE ON LAN
+       ════════════════════════════════════════════════════════════════ #}
+    {% if not light_mode %}
+    <section>
+      <div class="settings-section-label">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="3" width="20" height="14" rx="2"/>
+          <line x1="8" y1="21" x2="16" y2="21"/>
+          <line x1="12" y1="17" x2="12" y2="21"/>
+        </svg>
+        Wake on LAN
+      </div>
+
+      <div class="ds-card on">
+        <form hx-post="/api/settings/wol"
+              hx-target="#wol-status" hx-swap="innerHTML">
+
+          {# Spalten-Header #}
+          <div style="display:grid; grid-template-columns:1fr 1fr 36px;
+                      gap:8px; padding:8px 14px 4px;
+                      font-size:11px; font-weight:600; color:var(--text-3);
+                      text-transform:uppercase; letter-spacing:0.06em;
+                      border-bottom:1px solid rgba(0,0,0,0.35);">
+            <span>MAC-Adresse</span>
+            <span>Hostname</span>
+            <span></span>
+          </div>
+
+          <div id="wol-rows" style="display:flex; flex-direction:column;">
+            {% for e in wol_entries %}
+            <div class="wol-row"
+                 style="display:grid; grid-template-columns:1fr 1fr 36px;
+                        gap:8px; padding:8px 14px; align-items:center;
+                        border-bottom:1px solid rgba(0,0,0,0.25);">
+              <input type="text" name="wol_mac" class="form-input"
+                     style="font-family:var(--mono); font-size:13px;"
+                     placeholder="aa:bb:cc:dd:ee:ff" value="{{ e.mac }}">
+              <input type="text" name="wol_host" class="form-input"
+                     placeholder="server.lan" value="{{ e.host }}">
+              <button type="button" class="btn-icon btn-icon-danger"
+                      onclick="wolRemove(this)" title="Entfernen"
+                      style="flex-shrink:0;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                  <path d="M10 11v6m4-6v6"/><path d="M9 6V4h6v2"/>
+                </svg>
+              </button>
+            </div>
+            {% endfor %}
+          </div>
+
+          <div class="settings-row-actions" style="justify-content:space-between;">
+            <button type="button" onclick="wolAdd()" class="btn btn-ghost btn-sm">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Gerät hinzufügen
+            </button>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <button type="submit" class="btn btn-primary btn-sm">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                Speichern
+              </button>
+              <span id="wol-status" class="settings-status"></span>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
+    {% endif %}
+
+
+    {# ════════════════════════════════════════════════════════════════
+       ZUGANGSDATEN
+       ════════════════════════════════════════════════════════════════ #}
+    <section>
+      <div class="settings-section-label">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2"/>
+          <path d="M7 11V7a5 5 0 0110 0v4"/>
+        </svg>
+        Zugangsdaten
+      </div>
+
+      <div class="ds-card on">
+        <form hx-post="/api/settings/secrets"
+              hx-target="#secrets-status" hx-swap="innerHTML">
+
+          {# Info-Hinweis #}
+          <div style="display:flex; align-items:center; gap:8px; padding:10px 14px;
+                      border-bottom:1px solid rgba(0,0,0,0.35);
+                      font-size:12px; color:var(--text-3);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" style="flex-shrink:0;">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            Felder leer lassen, um bestehende Werte nicht zu überschreiben
+          </div>
+
+          {# Borg Passphrase #}
+          <div class="settings-row">
+            <div class="settings-row-info">
+              <div class="settings-row-label">
+                Borg Passphrase
+                {% if borg_passphrase_set %}
+                <span class="settings-badge-ok">✔ gesetzt</span>
+                {% else %}
+                <span class="settings-badge-missing">nicht gesetzt</span>
+                {% endif %}
+              </div>
+              <div class="settings-row-desc">Globale Passphrase für alle Repositories</div>
+            </div>
+            <input type="password" name="borg_passphrase" class="form-input settings-row-input"
+                   placeholder="{{ '••••••••' if borg_passphrase_set else 'Passphrase eingeben' }}"
+                   autocomplete="new-password">
+          </div>
+
+          {# PBS Passwort #}
+          <div class="settings-row">
+            <div class="settings-row-info">
+              <div class="settings-row-label">
+                PBS Passwort
+                {% if pbs_password_set %}
+                <span class="settings-badge-ok">✔ gesetzt</span>
+                {% else %}
+                <span class="settings-badge-missing">nicht gesetzt</span>
+                {% endif %}
+              </div>
+              <div class="settings-row-desc">Proxmox Backup Server Passwort</div>
+            </div>
+            <input type="password" name="pbs_password" class="form-input settings-row-input"
+                   placeholder="{{ '••••••••' if pbs_password_set else 'Passwort eingeben' }}"
+                   autocomplete="new-password">
+          </div>
+
+          {# PBS Fingerprint #}
+          <div class="settings-row" style="border-bottom:none; align-items:flex-start; padding-top:14px;">
+            <div class="settings-row-info">
+              <div class="settings-row-label">
+                PBS Fingerprint
+                {% if pbs_fingerprint_set %}
+                <span class="settings-badge-ok">✔ gesetzt</span>
+                {% else %}
+                <span class="settings-badge-missing">nicht gesetzt</span>
+                {% endif %}
+              </div>
+              <div class="settings-row-desc">TLS-Fingerprint des PBS-Servers</div>
+            </div>
+            <input type="text" name="pbs_fingerprint" class="form-input settings-row-input"
+                   style="font-family:var(--mono); font-size:12px;"
+                   placeholder="{{ '••••••••' if pbs_fingerprint_set else 'xx:xx:xx:...' }}">
+          </div>
+
+          <div class="settings-row-actions">
+            <button type="submit" class="btn btn-primary btn-sm">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Speichern
+            </button>
+            <span id="secrets-status" class="settings-status"></span>
+          </div>
+        </form>
+      </div>
+    </section>
+
+  </div>{# /max-width #}
+</div>{# /tab-settings #}
+
+
+<script>
+(function() {
+  /* ── WoL Zeilen ─────────────────────────────────────────────── */
+  var WOL_ROW =
+    '<div class="wol-row" style="display:grid;grid-template-columns:1fr 1fr 36px;' +
+    'gap:8px;padding:8px 14px;align-items:center;border-bottom:1px solid rgba(0,0,0,0.25);">' +
+    '<input type="text" name="wol_mac" class="form-input"' +
+    ' style="font-family:var(--mono);font-size:13px;" placeholder="aa:bb:cc:dd:ee:ff">' +
+    '<input type="text" name="wol_host" class="form-input" placeholder="server.lan">' +
+    '<button type="button" class="btn-icon btn-icon-danger" onclick="wolRemove(this)" title="Entfernen">' +
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+    '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>' +
+    '<path d="M10 11v6m4-6v6"/><path d="M9 6V4h6v2"/></svg></button></div>';
+
+  window.wolAdd    = function() { document.getElementById('wol-rows').insertAdjacentHTML('beforeend', WOL_ROW); };
+  window.wolRemove = function(btn) { var r=document.querySelectorAll('.wol-row'); if(r.length>1) btn.closest('.wol-row').remove(); };
+})();
+</script>

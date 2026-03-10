@@ -1,0 +1,49 @@
+# Borg-Modul – globale Standardwerte für neue Backup-Jobs
+
+- key: compression
+  label: Komprimierung
+  type: select
+  options:
+    - value: lz4
+      label: LZ4 (schnell)
+    - value: zstd,3
+      label: ZSTD Level 3 (ausgewogen)
+    - value: zstd,9
+      label: ZSTD Level 9 (kompakt)
+    - value: none
+      label: Keine
+  default: lz4
+  description: Standard-Komprimierung für neue Backup-Jobs
+
+- key: encryption
+  label: Verschlüsselung
+  type: select
+  options:
+    - value: repokey
+      label: Repokey (empfohlen)
+    - value: keyfile
+      label: Keyfile
+    - value: repokey-blake2
+      label: Repokey BLAKE2
+    - value: none
+      label: Keine
+  default: repokey
+  description: Standard-Verschlüsselung für neue Repositories
+
+- key: keep_daily
+  label: Tägliche Aufbewahrung
+  type: number
+  default: "7"
+  description: Wie viele tägliche Backups behalten werden
+
+- key: keep_weekly
+  label: Wöchentliche Aufbewahrung
+  type: number
+  default: "4"
+  description: Wie viele wöchentliche Backups behalten werden
+
+- key: keep_monthly
+  label: Monatliche Aufbewahrung
+  type: number
+  default: "6"
+  description: Wie viele monatliche Backups behalten werden

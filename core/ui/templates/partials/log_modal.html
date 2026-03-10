@@ -1,0 +1,151 @@
+{#
+  core/ui/templates/partials/log_modal.html
+  Log-Modal mit Live-Streaming (SSE) und statischem Datum-Wähler.
+
+  Standard-URL-Konventionen:
+    Statisch:  GET /api/{module}/{item_id}/logs
+    Nach Datum: GET /api/{module}/{item_id}/logs/{date}
+    SSE-Stream: GET /api/{module}/{item_id}/logs/stream
+
+  Variablen:
+    module   – Modulname
+    item_id  – Item-ID
+    description – Anzeigename (für Titel)
+    live     – bool: SSE-Live-Modus
+    lines    – list[str]: Log-Zeilen (statischer Modus)
+    dates    – list[str]: verfügbare Datum-Dateien
+    selected – str: aktuell gewähltes Datum
+#}
+<div id="log-modal" class="ds-modal-backdrop" onclick="if(event.target===this) this.remove()">
+  <div class="ds-modal log-modal-inner" onclick="event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="ds-modal-title">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+      </svg>
+      Log – {{ description }}
+      <button onclick="document.getElementById('log-modal').remove()"
+              style="margin-left:auto; background:none; border:none;
+                     color:var(--text-3); cursor:pointer; font-size:20px; line-height:1;
+                     padding:0 2px;">✕</button>
+    </div>
+
+    {% if live %}
+    <!-- ── LIVE-MODUS ─────────────────────────────────────── -->
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+      <span id="log-live-badge" style="display:flex; align-items:center; gap:5px;
+             font-size:11px; padding:2px 8px; border-radius:99px;
+             background:rgba(37,99,235,0.18); color:#60a5fa;">
+        <span style="animation:pulse 1.2s infinite;">●</span> Live
+      </span>
+      <span style="font-size:12px; color:var(--text-3);">Wird aktualisiert…</span>
+    </div>
+
+    <div id="log-content"
+         style="background:#0d0d0d; border:1px solid var(--border-s); border-radius:var(--rad-lg);
+                font-family:var(--mono); font-size:12px; line-height:1.7;
+                padding:14px 16px; height:420px; overflow-y:auto;"
+    >
+      {% include "partials/log_content.html" %}
+    </div>
+
+    <script>
+    (function() {
+      const container = document.getElementById('log-content');
+      const badge     = document.getElementById('log-live-badge');
+      const es        = new EventSource('/api/{{ module }}/{{ item_id }}/logs/stream');
+      let autoScroll  = true;
+
+      container.addEventListener('scroll', function() {
+        autoScroll = (container.scrollHeight - container.scrollTop - container.clientHeight) < 40;
+      });
+
+      es.onmessage = function(e) {
+        container.insertAdjacentHTML('beforeend', e.data);
+        if (autoScroll) container.scrollTop = container.scrollHeight;
+      };
+
+      es.addEventListener('done', function() {
+        es.close();
+        badge.innerHTML = '<span style="color:#4ade80">✔</span> Abgeschlossen';
+        badge.style.background = 'rgba(74,222,128,0.12)';
+        badge.style.color = '#4ade80';
+        document.getElementById('log-modal').dispatchEvent(new Event('runDone'));
+      });
+
+      es.onerror = function() {
+        es.close();
+        badge.innerHTML = '— Verbindung getrennt';
+        badge.style.color = 'var(--text-3)';
+      };
+
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(m) {
+          m.removedNodes.forEach(function(n) {
+            if (n.id === 'log-modal') { es.close(); observer.disconnect(); }
+          });
+        });
+      });
+      observer.observe(document.body, { childList: true });
+    })();
+    </script>
+
+    {% else %}
+    <!-- ── STATISCHER MODUS ───────────────────────────────── -->
+    {% if dates %}
+      <div style="margin-bottom:10px; display:flex; align-items:center; gap:10px;">
+        <label style="font-size:13px; color:var(--text-2); font-weight:500;">Datum:</label>
+        <select class="form-select" style="width:auto; min-width:160px;"
+                id="log-date-select">
+          {% for date in dates %}
+            <option value="{{ date }}" {{ 'selected' if date == selected else '' }}>
+              {{ date }}{% if loop.first %} (aktuell){% endif %}
+            </option>
+          {% endfor %}
+        </select>
+        <span style="font-size:12px; color:var(--text-3);">
+          {{ dates|length }} Datei{{ 'en' if dates|length != 1 else '' }}
+        </span>
+      </div>
+    {% endif %}
+
+    <div id="log-content"
+         style="background:#0d0d0d; border:1px solid var(--border-s); border-radius:var(--rad-lg);
+                font-family:var(--mono); font-size:12px; line-height:1.7;
+                padding:14px 16px; height:420px; overflow-y:auto;">
+      {% include "partials/log_content.html" %}
+    </div>
+
+    {% if dates %}
+    <script>
+    (function() {
+      document.getElementById('log-date-select').addEventListener('change', function() {
+        htmx.ajax('GET',
+          '/api/{{ module }}/{{ item_id }}/logs/' + this.value,
+          { target: '#log-content', swap: 'innerHTML' }
+        );
+      });
+    })();
+    </script>
+    {% endif %}
+
+    {% if not dates %}
+      <div style="text-align:center; color:var(--text-3); font-size:13px; padding:20px 0;">
+        Noch keine Logs vorhanden – erscheinen nach dem ersten Ausführen.
+      </div>
+    {% endif %}
+    {% endif %}
+
+    <!-- Footer -->
+    <div style="display:flex; justify-content:center; padding-top:12px;
+                border-top:1px solid var(--border-s); margin-top:12px;">
+      <button onclick="document.getElementById('log-modal').remove()" class="btn btn-ghost">
+        Schließen
+      </button>
+    </div>
+
+  </div>
+</div>

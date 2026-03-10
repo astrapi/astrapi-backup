@@ -1,0 +1,141 @@
+{#
+  core/modules/scheduler/templates/partials/tab.html
+  Variablen:
+    config       – dict: cron, enabled, next_run, last_run, last_status, last_duration
+    configured   – bool: False wenn kein configure() aufgerufen wurde
+    flash_message – str: optionale Bestätigung nach Speichern/Trigger
+#}
+<div id="scheduler-content">
+
+  {% if not configured %}
+  <div class="empty-state">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </svg>
+    <div class="empty-state-title">Scheduler nicht konfiguriert</div>
+    <div class="empty-state-sub">
+      Rufe <code>configure(job_fn=…)</code> aus <code>core.modules.scheduler.engine</code> auf.
+    </div>
+  </div>
+  {% else %}
+
+  {% if flash_message %}
+  <div style="margin-bottom:12px; padding:8px 14px; border-radius:var(--rad-lg);
+              background:rgba(74,222,128,0.10); color:#4ade80; font-size:13px;">
+    ✔ {{ flash_message }}
+  </div>
+  {% endif %}
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start;">
+
+    <!-- ── Status-Karte ─────────────────────────────────────────────── -->
+    <div class="ds-card" style="padding:16px 20px;">
+      <div style="font-size:13px; font-weight:600; color:var(--text-1); margin-bottom:14px;">
+        Status
+      </div>
+
+      <div style="display:grid; gap:8px; font-size:13px;">
+
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="color:var(--text-3);">Aktiv</span>
+          <span style="padding:2px 10px; border-radius:99px; font-size:12px;
+                       {% if config.enabled %}background:rgba(74,222,128,0.12); color:#4ade80;
+                       {% else %}background:rgba(156,163,175,0.12); color:var(--text-3);{% endif %}">
+            {{ 'Ja' if config.enabled else 'Nein' }}
+          </span>
+        </div>
+
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--text-3);">Nächster Lauf</span>
+          <span>{{ config.next_run or '—' }}</span>
+        </div>
+
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--text-3);">Letzter Lauf</span>
+          <span>{{ config.last_run or '—' }}</span>
+        </div>
+
+        {% if config.last_status %}
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="color:var(--text-3);">Status</span>
+          <span style="padding:2px 10px; border-radius:99px; font-size:12px;
+                       {% if config.last_status == 'OK' %}background:rgba(74,222,128,0.12); color:#4ade80;
+                       {% else %}background:rgba(239,68,68,0.12); color:#f87171;{% endif %}">
+            {{ config.last_status }}
+          </span>
+        </div>
+        {% endif %}
+
+        {% if config.last_duration %}
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--text-3);">Dauer</span>
+          <span>{{ config.last_duration }}</span>
+        </div>
+        {% endif %}
+
+      </div>
+
+      <!-- Manuell ausführen -->
+      <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--border-s);
+                  display:flex; gap:8px;">
+        <form hx-post="/ui/scheduler/trigger"
+              hx-target="#scheduler-content" hx-swap="outerHTML"
+              hx-include="[name='debug']" style="display:flex; gap:8px;">
+          <input type="hidden" name="debug" value="0">
+          <button type="submit" class="btn btn-primary btn-sm">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            Jetzt ausführen
+          </button>
+          <button type="submit" class="btn btn-ghost btn-sm"
+                  onclick="this.form.querySelector('[name=debug]').value='1'">
+            Debug
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ── Konfigurations-Karte ─────────────────────────────────────── -->
+    <div class="ds-card" style="padding:16px 20px;">
+      <div style="font-size:13px; font-weight:600; color:var(--text-1); margin-bottom:14px;">
+        Konfiguration
+      </div>
+
+      <form hx-post="/ui/scheduler/save"
+            hx-target="#scheduler-content" hx-swap="outerHTML"
+            style="display:flex; flex-direction:column; gap:14px;">
+
+        <div class="form-group">
+          <label class="form-label">Cron-Ausdruck</label>
+          <input type="text" name="cron" class="form-input"
+                 value="{{ config.cron }}"
+                 placeholder="0 2 * * *"
+                 title="Minute Stunde Tag Monat Wochentag">
+          <span style="font-size:11px; color:var(--text-3); margin-top:4px; display:block;">
+            Format: Minute Stunde Tag Monat Wochentag
+            (z.B. <code>0 2 * * *</code> = täglich 02:00)
+          </span>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px;">
+          <label style="font-size:13px; color:var(--text-2);">Aktiviert</label>
+          <input type="hidden" name="enabled" value="0">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" name="enabled" value="1"
+                   {{ 'checked' if config.enabled else '' }}
+                   onchange="this.form.querySelector('[name=enabled][type=hidden]').disabled=this.checked"
+                   style="width:16px; height:16px; cursor:pointer;">
+          </label>
+        </div>
+
+        <div style="padding-top:4px;">
+          <button type="submit" class="btn btn-primary btn-sm">Speichern</button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+  {% endif %}
+
+</div>

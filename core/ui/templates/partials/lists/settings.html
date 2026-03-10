@@ -1,0 +1,82 @@
+{# Einstellungsseite – Globale Einstellungen + eine Sektion pro Modul #}
+
+<div class="page-header">
+  <span class="page-title">Einstellungen</span>
+</div>
+
+{% if flash_message %}
+<div style="margin-bottom:14px; padding:10px 14px; background:var(--b-dim);
+            border:1px solid var(--b); border-radius:var(--rad);
+            font-size:13px; color:var(--b);">
+  {{ flash_message }}
+</div>
+{% endif %}
+
+<div id="settings-container" style="display:flex; flex-direction:column; gap:20px;">
+
+  {# ── Globale Einstellungen ─────────────────────────────────────────────── #}
+  <div>
+    <div class="settings-section-label">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+      </svg>
+      Allgemein
+    </div>
+    <div class="ds-card on">
+      <div class="card-body" style="padding:16px;">
+        <form hx-post="/ui/settings/save/global"
+              hx-target="#settings-container"
+              hx-swap="innerHTML">
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;">
+            <div class="form-group">
+              <label class="form-label">App-Name</label>
+              <input class="form-input" type="text" name="APP_NAME"
+                     value="{{ settings.get('APP_NAME', app_cfg.get('APP_NAME', 'myapp')) }}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Version</label>
+              <input class="form-input" type="text" name="APP_VERSION"
+                     value="{{ settings.get('APP_VERSION', app_cfg.get('APP_VERSION', '0.1.0')) }}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Sprache</label>
+              <select class="form-select" name="APP_LANG">
+                {% for lang in ['de', 'en', 'fr', 'es'] %}
+                <option value="{{ lang }}"
+                  {{ 'selected' if settings.get('APP_LANG', app_cfg.get('APP_LANG', 'de')) == lang }}>
+                  {{ lang }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div style="display:flex; justify-content:flex-end; margin-top:14px;">
+            <button type="submit" class="btn btn-primary btn-sm">Speichern</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {# ── Modul-Einstellungen – eine Sektion pro Modul ─────────────────────── #}
+  {% for mod in modules %}
+  {% if mod.settings_template %}
+  <div>
+    <div class="settings-section-label">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+        <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+      </svg>
+      {{ mod.label }}
+    </div>
+    <div class="ds-card on">
+      <div class="card-body" style="padding:16px;">
+        {% include mod.settings_template %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  {% endfor %}
+
+</div>
