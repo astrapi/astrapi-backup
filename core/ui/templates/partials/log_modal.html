@@ -1,3 +1,4 @@
+{% from "partials/components/ui_macros.html" import modal_title, modal_footer_simple %}
 {#
   core/ui/templates/partials/log_modal.html
   Log-Modal mit Live-Streaming (SSE) und statischem Datum-Wähler.
@@ -16,22 +17,13 @@
     dates    – list[str]: verfügbare Datum-Dateien
     selected – str: aktuell gewähltes Datum
 #}
-<div id="log-modal" class="ds-modal-backdrop" onclick="if(event.target===this) this.remove()">
-  <div class="ds-modal log-modal-inner" onclick="event.stopPropagation()">
+<div id="log-modal" class="ds-modal-backdrop"
+     x-data
+     x-on:keydown.escape.window="$el.remove()"
+     x-on:click.self="$el.remove()">
+  <div class="ds-modal log-modal-inner">
 
-    <!-- Header -->
-    <div class="ds-modal-title">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-        <polyline points="14 2 14 8 20 8"/>
-        <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-      </svg>
-      Log – {{ description }}
-      <button onclick="document.getElementById('log-modal').remove()"
-              style="margin-left:auto; background:none; border:none;
-                     color:var(--text-3); cursor:pointer; font-size:20px; line-height:1;
-                     padding:0 2px;">✕</button>
-    </div>
+    {{ modal_title(title="Log – " + description, icon="log") }}
 
     {% if live %}
     <!-- ── LIVE-MODUS ─────────────────────────────────────── -->
@@ -139,13 +131,7 @@
     {% endif %}
     {% endif %}
 
-    <!-- Footer -->
-    <div style="display:flex; justify-content:center; padding-top:12px;
-                border-top:1px solid var(--border-s); margin-top:12px;">
-      <button onclick="document.getElementById('log-modal').remove()" class="btn btn-ghost">
-        Schließen
-      </button>
-    </div>
+    {{ modal_footer_simple(close_label="Schließen") }}
 
   </div>
 </div>

@@ -1,168 +1,327 @@
 # core/modules/scheduler/engine.py
-"""Scheduler-Singleton für das Core-Scheduler-Modul.
+"""Multi-Job Scheduler mit Action Registry.
 
-Projekte registrieren ihre Job-Funktion via configure() bevor init() aufgerufen wird:
+Module registrieren Aktionen einmalig beim Start:
 
-    from core.modules.scheduler.engine import configure, init
+    from core.modules.scheduler.engine import register_action
+    register_action("hosts.check", "Hosts prüfen", check_hosts)
 
-    configure(
-        job_fn=my_job,
-        get_setting=storage.get,
-        set_setting=storage.set,
-        job_name="Nightly Sync",
-    )
-    init()
+Jobs werden in YamlStorage("scheduler_jobs") gespeichert und können
+über die UI erstellt, bearbeitet und gelöscht werden.
 """
+import logging
 import threading
+import time
 from datetime import datetime
+from typing import Callable
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
+log = logging.getLogger(__name__)
 
-class Scheduler:
-    def __init__(
-        self,
-        job_fn,
-        get_setting,
-        set_setting,
-        job_id: str = "main",
-        job_name: str = "Job",
-        job_kwargs: dict = None,
-        timezone: str = "Europe/Berlin",
-        cron_key: str = "scheduler_cron",
-        enabled_key: str = "scheduler_enabled",
-        default_cron: str = "0 2 * * *",
-    ):
-        self._job_fn       = job_fn
-        self._get          = get_setting
-        self._set          = set_setting
-        self._job_id       = job_id
-        self._job_name     = job_name
-        self._job_kwargs   = job_kwargs or {}
-        self._timezone     = timezone
-        self._cron_key     = cron_key
-        self._enabled_key  = enabled_key
-        self._default_cron = default_cron
-        self._lock         = threading.Lock()
-        self._scheduler    = BackgroundScheduler(timezone=timezone)
+TIMEZONE = "Europe/Berlin"
 
-    def _register(self) -> None:
-        if self._scheduler.get_job(self._job_id):
-            self._scheduler.remove_job(self._job_id)
-        if self._get(self._enabled_key, "0") != "1":
-            return
-        cron = self._get(self._cron_key, self._default_cron).strip()
-        if not cron:
-            return
-        self._scheduler.add_job(
-            func=self._job_fn,
-            trigger=CronTrigger.from_crontab(cron, timezone=self._timezone),
-            id=self._job_id,
-            name=self._job_name,
-            kwargs=self._job_kwargs,
-            replace_existing=True,
-            misfire_grace_time=300,
-        )
+# ── Action Registry ────────────────────────────────────────────────────────────
 
-    def init(self) -> None:
-        if self._scheduler.running:
-            return
-        self._register()
-        self._scheduler.start()
-
-    def get_config(self) -> dict:
-        apjob = self._scheduler.get_job(self._job_id) if self._scheduler.running else None
-        next_run = (
-            apjob.next_run_time.strftime("%d.%m.%Y %H:%M")
-            if apjob and apjob.next_run_time else None
-        )
-        return {
-            "cron":          self._get(self._cron_key, self._default_cron),
-            "enabled":       self._get(self._enabled_key, "0") == "1",
-            "next_run":      next_run,
-            "last_run":      self._get("scheduler_last_run", ""),
-            "last_status":   self._get("scheduler_last_status", ""),
-            "last_duration": self._get("scheduler_last_duration", ""),
-        }
-
-    def update_config(self, cron: str | None = None, enabled: bool | None = None) -> dict:
-        with self._lock:
-            if cron is not None:
-                self._set(self._cron_key, cron)
-            if enabled is not None:
-                self._set(self._enabled_key, "1" if enabled else "0")
-            self._register()
-        return self.get_config()
-
-    def trigger_now(self, **kwargs) -> None:
-        merged = {**self._job_kwargs, **kwargs}
-        threading.Thread(target=self._job_fn, kwargs=merged, daemon=True).start()
-
-    def update_result(self, status: str, duration: str) -> None:
-        with self._lock:
-            self._set("scheduler_last_run", datetime.now().strftime("%d.%m.%Y %H:%M"))
-            self._set("scheduler_last_status", status)
-            self._set("scheduler_last_duration", duration)
+_actions: dict[str, dict] = {}
 
 
-# ── Singleton ─────────────────────────────────────────────────────────────────
-
-_scheduler: Scheduler | None = None
-
-
-def configure(
-    job_fn,
-    get_setting,
-    set_setting,
-    job_id: str = "main",
-    job_name: str = "Job",
-    job_kwargs: dict = None,
-    timezone: str = "Europe/Berlin",
-    cron_key: str = "scheduler_cron",
-    enabled_key: str = "scheduler_enabled",
-    default_cron: str = "0 2 * * *",
+def register_action(
+    key:          str,
+    label:        str,
+    fn:           Callable,
+    source:       str | None = None,
+    source_label: str | None = None,
 ) -> None:
-    global _scheduler
-    _scheduler = Scheduler(
-        job_fn=job_fn,
-        get_setting=get_setting,
-        set_setting=set_setting,
-        job_id=job_id,
-        job_name=job_name,
-        job_kwargs=job_kwargs or {},
-        timezone=timezone,
-        cron_key=cron_key,
-        enabled_key=enabled_key,
-        default_cron=default_cron,
-    )
+    """Registriert eine Scheduler-Aktion.
+
+    Registriert das Modul gleichzeitig als Benachrichtigungsquelle in der
+    Notify-Engine, wenn ``source`` angegeben wird.
+
+    Args:
+        key:          Eindeutiger Schlüssel, z.B. "hosts.check".
+        label:        Anzeigename der Aktion in der UI, z.B. "Hosts prüfen".
+        fn:           Callable ohne Argumente.
+        source:       Quellen-Key für das Notify-System, z.B. "hosts".
+                      Wenn angegeben, wird ``register_source`` automatisch aufgerufen.
+        source_label: Anzeigename der Quelle in der Kanal-Konfiguration.
+                      Fehlt er, wird ``source`` mit großem Anfangsbuchstaben genutzt.
+    """
+    _actions[key] = {"label": label, "fn": fn}
+    if source:
+        try:
+            from core.modules.notify.engine import register_source as _rs
+            _rs(source, source_label or source.capitalize())
+        except Exception as e:
+            log.debug("register_action: Notify-Quelle '%s' nicht registriert: %s", source, e)
+
+
+def get_registered_actions() -> dict[str, str]:
+    """Gibt {key: label} aller registrierten Aktionen zurück."""
+    return {k: v["label"] for k, v in _actions.items()}
+
+
+# ── Storage (lazy) ─────────────────────────────────────────────────────────────
+
+def _jobs_store():
+    from core.ui.storage import YamlStorage
+    return YamlStorage("scheduler_jobs")
+
+
+def _status_store():
+    from core.ui.storage import YamlStorage
+    return YamlStorage("scheduler_status")
+
+
+# ── Scheduler Singleton ────────────────────────────────────────────────────────
+
+_sch: BackgroundScheduler | None = None
+_lock = threading.Lock()
+
+
+def _get_sch() -> BackgroundScheduler:
+    global _sch
+    if _sch is None:
+        _sch = BackgroundScheduler(timezone=TIMEZONE)
+    return _sch
+
+
+def _register_job_notify_source(job_id: str, label: str) -> None:
+    """Registriert einen Scheduler-Job als Notify-Quelle."""
+    try:
+        from core.modules.notify.engine import register_source as _rs
+        _rs(job_id, label)
+    except Exception as e:
+        log.debug("scheduler: Notify-Quelle '%s' nicht registriert: %s", job_id, e)
+
+
+def _unregister_job_notify_source(job_id: str) -> None:
+    """Entfernt einen Scheduler-Job als Notify-Quelle."""
+    try:
+        from core.modules.notify.engine import unregister_source as _us
+        _us(job_id)
+    except Exception as e:
+        log.debug("scheduler: Notify-Quelle '%s' nicht abgemeldet: %s", job_id, e)
 
 
 def init() -> None:
-    if _scheduler:
-        _scheduler.init()
+    """Startet den APScheduler und registriert alle konfigurierten Jobs."""
+    sch = _get_sch()
+    if sch.running:
+        return
+    # Alle gespeicherten Jobs als Notify-Quellen registrieren
+    try:
+        for job_id, cfg in _jobs_store().list().items():
+            _register_job_notify_source(job_id, cfg.get("label", job_id))
+    except Exception as e:
+        log.debug("scheduler: Notify-Quellen beim Start nicht geladen: %s", e)
+    _sync_jobs()
+    sch.start()
 
 
-def get_config() -> dict:
-    return _scheduler.get_config() if _scheduler else {
-        "cron": "", "enabled": False, "next_run": None,
-        "last_run": "", "last_status": "", "last_duration": "",
+def _sync_jobs() -> None:
+    """Synchronisiert APScheduler-Jobs mit der Job-Storage."""
+    sch = _get_sch()
+    for apjob in sch.get_jobs():
+        sch.remove_job(apjob.id)
+
+    try:
+        jobs = _jobs_store().list()
+    except Exception as e:
+        log.warning("scheduler_jobs Storage nicht verfügbar: %s", e)
+        return
+
+    for job_id, cfg in jobs.items():
+        if not cfg.get("enabled", False):
+            continue
+        cron = cfg.get("cron", "").strip()
+        if not cron:
+            continue
+        try:
+            sch.add_job(
+                func=_run_job,
+                trigger=CronTrigger.from_crontab(cron, timezone=TIMEZONE),
+                id=job_id,
+                name=cfg.get("label", job_id),
+                kwargs={"job_id": job_id},
+                replace_existing=True,
+                misfire_grace_time=300,
+            )
+        except Exception as e:
+            log.error("Fehler beim Registrieren von Job '%s': %s", job_id, e)
+
+
+# ── Job Execution ──────────────────────────────────────────────────────────────
+
+def _run_job(job_id: str) -> None:
+    """Führt alle Steps eines Jobs sequenziell aus."""
+    cfg = _jobs_store().get(job_id)
+    if not cfg:
+        log.warning("Job '%s' nicht gefunden", job_id)
+        return
+
+    label        = cfg.get("label", job_id)
+    steps        = cfg.get("steps", [])
+    notify_start = cfg.get("notify_start", False)
+    notify_end   = cfg.get("notify_end",   True)
+    start        = time.time()
+    errors: list[str] = []
+
+    # ── Start-Benachrichtigung ─────────────────────────────────────────────────
+    if notify_start:
+        try:
+            from core.modules.notify import engine as _notify
+            _notify.send(
+                title   = f"Job gestartet: {label}",
+                message = f"{len(steps)} Schritt(e) werden ausgeführt.",
+                event   = _notify.INFO,
+                source  = job_id,
+                tags    = ["scheduler"],
+            )
+        except Exception as _e:
+            log.debug("Notify nicht verfügbar: %s", _e)
+
+    for step_key in steps:
+        action = _actions.get(step_key)
+        if action is None:
+            errors.append(f"Unbekannte Aktion: {step_key}")
+            log.warning("Unbekannte Aktion '%s' in Job '%s'", step_key, job_id)
+            continue
+        try:
+            log.info("Job '%s': Schritt '%s' startet", job_id, step_key)
+            action["fn"]()
+            log.info("Job '%s': Schritt '%s' abgeschlossen", job_id, step_key)
+        except Exception as e:
+            errors.append(f"{step_key}: {e}")
+            log.error("Job '%s': Schritt '%s' fehlgeschlagen: %s", job_id, step_key, e)
+
+    duration = f"{time.time() - start:.1f}s"
+    status = "OK" if not errors else ("Fehler: " + "; ".join(errors))
+
+    _status_store().upsert(job_id, {
+        "last_run":      datetime.now().strftime("%d.%m.%Y %H:%M"),
+        "last_status":   status,
+        "last_duration": duration,
+    })
+
+    # ── Ende-Benachrichtigung ──────────────────────────────────────────────────
+    if notify_end or errors:
+        try:
+            from core.modules.notify import engine as _notify
+            if errors:
+                _notify.send(
+                    title   = f"Job fehlgeschlagen: {label}",
+                    message = f"Dauer: {duration}\n" + "\n".join(errors),
+                    event   = _notify.ERROR,
+                    source  = job_id,
+                    tags    = ["scheduler"],
+                )
+            elif notify_end:
+                _notify.send(
+                    title   = f"Job abgeschlossen: {label}",
+                    message = f"Alle Schritte erfolgreich. Dauer: {duration}",
+                    event   = _notify.SUCCESS,
+                    source  = job_id,
+                    tags    = ["scheduler"],
+                )
+        except Exception as _e:
+            log.debug("Notify nicht verfügbar: %s", _e)
+
+
+def trigger_job(job_id: str) -> None:
+    """Führt einen Job sofort in einem Hintergrundthread aus."""
+    threading.Thread(target=_run_job, kwargs={"job_id": job_id}, daemon=True).start()
+
+
+# ── Job CRUD ───────────────────────────────────────────────────────────────────
+
+def _enrich(job_id: str, cfg: dict) -> dict:
+    """Reichert Job-Config mit APScheduler-Status und letztem Laufstatus an."""
+    sch = _get_sch()
+    apjob = sch.get_job(job_id) if sch.running else None
+    next_run = (
+        apjob.next_run_time.strftime("%d.%m.%Y %H:%M")
+        if apjob and apjob.next_run_time else None
+    )
+    try:
+        status = _status_store().get(job_id) or {}
+    except Exception:
+        status = {}
+    return {
+        "id":            job_id,
+        "label":         cfg.get("label", job_id),
+        "cron":          cfg.get("cron", ""),
+        "enabled":       cfg.get("enabled", False),
+        "steps":         cfg.get("steps", []),
+        "notify_start":  cfg.get("notify_start", False),
+        "notify_end":    cfg.get("notify_end",   True),
+        "next_run":      next_run,
+        "last_run":      status.get("last_run", ""),
+        "last_status":   status.get("last_status", ""),
+        "last_duration": status.get("last_duration", ""),
     }
 
 
-def update_config(cron: str | None = None, enabled: bool | None = None) -> dict:
-    return _scheduler.update_config(cron=cron, enabled=enabled) if _scheduler else get_config()
+def list_jobs() -> list[dict]:
+    """Gibt alle Jobs mit Status zurück."""
+    try:
+        return [_enrich(jid, cfg) for jid, cfg in _jobs_store().list().items()]
+    except Exception:
+        return []
 
 
-def trigger_now(**kwargs) -> None:
-    if _scheduler:
-        _scheduler.trigger_now(**kwargs)
+def get_job(job_id: str) -> dict | None:
+    cfg = _jobs_store().get(job_id)
+    return _enrich(job_id, cfg) if cfg else None
 
 
-def update_result(status: str, duration: str) -> None:
-    if _scheduler:
-        _scheduler.update_result(status, duration)
+def create_job(job_id: str, label: str, cron: str, enabled: bool, steps: list[str],
+               notify_start: bool = False, notify_end: bool = True) -> dict:
+    _jobs_store().create(job_id, {
+        "label":        label,
+        "cron":         cron,
+        "enabled":      enabled,
+        "steps":        steps,
+        "notify_start": notify_start,
+        "notify_end":   notify_end,
+    })
+    _register_job_notify_source(job_id, label)
+    if _get_sch().running:
+        _sync_jobs()
+    return _enrich(job_id, _jobs_store().get(job_id))
 
 
-def is_configured() -> bool:
-    return _scheduler is not None
+def update_job(job_id: str, label: str, cron: str, enabled: bool, steps: list[str],
+               notify_start: bool = False, notify_end: bool = True) -> dict:
+    _jobs_store().update(job_id, {
+        "label":        label,
+        "cron":         cron,
+        "enabled":      enabled,
+        "steps":        steps,
+        "notify_start": notify_start,
+        "notify_end":   notify_end,
+    })
+    _register_job_notify_source(job_id, label)  # Label ggf. aktualisiert
+    if _get_sch().running:
+        _sync_jobs()
+    return _enrich(job_id, _jobs_store().get(job_id))
+
+
+def delete_job(job_id: str) -> None:
+    _jobs_store().delete(job_id)
+    _unregister_job_notify_source(job_id)
+    try:
+        _status_store().delete(job_id)
+    except KeyError:
+        pass
+    sch = _get_sch()
+    if sch.running and sch.get_job(job_id):
+        sch.remove_job(job_id)
+
+
+def toggle_job(job_id: str) -> None:
+    current = _jobs_store().get(job_id) or {}
+    _jobs_store().update(job_id, {"enabled": not current.get("enabled", False)})
+    if _get_sch().running:
+        _sync_jobs()

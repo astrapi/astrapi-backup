@@ -73,56 +73,6 @@
   <div style="display:flex; flex-direction:column; gap:28px; max-width:720px;">
 
     {# ════════════════════════════════════════════════════════════════
-       BENACHRICHTIGUNGEN
-       ════════════════════════════════════════════════════════════════ #}
-    {% if not light_mode %}
-    <section>
-      <div class="settings-section-label">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-          <path d="M13.73 21a2 2 0 01-3.46 0"/>
-        </svg>
-        Benachrichtigungen
-      </div>
-
-      <div class="ds-card on">
-        <form hx-post="/api/settings/ntfy"
-              hx-target="#ntfy-status" hx-swap="innerHTML">
-
-          {# Row: Server #}
-          <div class="settings-row">
-            <div class="settings-row-info">
-              <div class="settings-row-label">ntfy Server-URL</div>
-              <div class="settings-row-desc">z.B. https://ntfy.example.com</div>
-            </div>
-            <input type="text" name="ntfy_url" class="form-input settings-row-input"
-                   placeholder="https://ntfy.example.com" value="{{ ntfy_server }}">
-          </div>
-
-          {# Row: Thema #}
-          <div class="settings-row">
-            <div class="settings-row-info">
-              <div class="settings-row-label">Thema</div>
-              <div class="settings-row-desc">Kanal für Benachrichtigungen</div>
-            </div>
-            <input type="text" name="ntfy_topic" class="form-input settings-row-input"
-                   placeholder="backup-alerts" value="{{ ntfy_topic }}">
-          </div>
-
-          <div class="settings-row-actions">
-            <button type="submit" class="btn btn-primary btn-sm">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              Speichern
-            </button>
-            <span id="ntfy-status" class="settings-status"></span>
-          </div>
-        </form>
-      </div>
-    </section>
-    {% endif %}
-
-
-    {# ════════════════════════════════════════════════════════════════
        REPOSITORIES
        ════════════════════════════════════════════════════════════════ #}
     <section>
@@ -135,7 +85,7 @@
       </div>
 
       <div class="ds-card on">
-        <form hx-post="/api/settings/repos-path"
+        <form hx-post="/api/repos/settings/base-path"
               hx-target="#repos-path-status" hx-swap="innerHTML">
 
           <div class="settings-row">
@@ -161,81 +111,7 @@
 
 
     {# ════════════════════════════════════════════════════════════════
-       WAKE ON LAN
-       ════════════════════════════════════════════════════════════════ #}
-    {% if not light_mode %}
-    <section>
-      <div class="settings-section-label">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="2" y="3" width="20" height="14" rx="2"/>
-          <line x1="8" y1="21" x2="16" y2="21"/>
-          <line x1="12" y1="17" x2="12" y2="21"/>
-        </svg>
-        Wake on LAN
-      </div>
-
-      <div class="ds-card on">
-        <form hx-post="/api/settings/wol"
-              hx-target="#wol-status" hx-swap="innerHTML">
-
-          {# Spalten-Header #}
-          <div style="display:grid; grid-template-columns:1fr 1fr 36px;
-                      gap:8px; padding:8px 14px 4px;
-                      font-size:11px; font-weight:600; color:var(--text-3);
-                      text-transform:uppercase; letter-spacing:0.06em;
-                      border-bottom:1px solid rgba(0,0,0,0.35);">
-            <span>MAC-Adresse</span>
-            <span>Hostname</span>
-            <span></span>
-          </div>
-
-          <div id="wol-rows" style="display:flex; flex-direction:column;">
-            {% for e in wol_entries %}
-            <div class="wol-row"
-                 style="display:grid; grid-template-columns:1fr 1fr 36px;
-                        gap:8px; padding:8px 14px; align-items:center;
-                        border-bottom:1px solid rgba(0,0,0,0.25);">
-              <input type="text" name="wol_mac" class="form-input"
-                     style="font-family:var(--mono); font-size:13px;"
-                     placeholder="aa:bb:cc:dd:ee:ff" value="{{ e.mac }}">
-              <input type="text" name="wol_host" class="form-input"
-                     placeholder="server.lan" value="{{ e.host }}">
-              <button type="button" class="btn-icon btn-icon-danger"
-                      onclick="wolRemove(this)" title="Entfernen"
-                      style="flex-shrink:0;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3 6 5 6 21 6"/>
-                  <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
-                  <path d="M10 11v6m4-6v6"/><path d="M9 6V4h6v2"/>
-                </svg>
-              </button>
-            </div>
-            {% endfor %}
-          </div>
-
-          <div class="settings-row-actions" style="justify-content:space-between;">
-            <button type="button" onclick="wolAdd()" class="btn btn-ghost btn-sm">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-              Gerät hinzufügen
-            </button>
-            <div style="display:flex; gap:8px; align-items:center;">
-              <button type="submit" class="btn btn-primary btn-sm">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                Speichern
-              </button>
-              <span id="wol-status" class="settings-status"></span>
-            </div>
-          </div>
-        </form>
-      </div>
-    </section>
-    {% endif %}
-
-
-    {# ════════════════════════════════════════════════════════════════
-       ZUGANGSDATEN
+       ZUGANGSDATEN – BORG
        ════════════════════════════════════════════════════════════════ #}
     <section>
       <div class="settings-section-label">
@@ -243,14 +119,13 @@
           <rect x="3" y="11" width="18" height="11" rx="2"/>
           <path d="M7 11V7a5 5 0 0110 0v4"/>
         </svg>
-        Zugangsdaten
+        Borg-Zugangsdaten
       </div>
 
       <div class="ds-card on">
-        <form hx-post="/api/settings/secrets"
-              hx-target="#secrets-status" hx-swap="innerHTML">
+        <form hx-post="/api/repos/settings/passphrase"
+              hx-target="#borg-secrets-status" hx-swap="innerHTML">
 
-          {# Info-Hinweis #}
           <div style="display:flex; align-items:center; gap:8px; padding:10px 14px;
                       border-bottom:1px solid rgba(0,0,0,0.35);
                       font-size:12px; color:var(--text-3);">
@@ -260,11 +135,10 @@
               <line x1="12" y1="8" x2="12" y2="12"/>
               <line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
-            Felder leer lassen, um bestehende Werte nicht zu überschreiben
+            Feld leer lassen, um bestehenden Wert nicht zu überschreiben
           </div>
 
-          {# Borg Passphrase #}
-          <div class="settings-row">
+          <div class="settings-row" style="border-bottom:none;">
             <div class="settings-row-info">
               <div class="settings-row-label">
                 Borg Passphrase
@@ -279,6 +153,46 @@
             <input type="password" name="borg_passphrase" class="form-input settings-row-input"
                    placeholder="{{ '••••••••' if borg_passphrase_set else 'Passphrase eingeben' }}"
                    autocomplete="new-password">
+          </div>
+
+          <div class="settings-row-actions">
+            <button type="submit" class="btn btn-primary btn-sm">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Speichern
+            </button>
+            <span id="borg-secrets-status" class="settings-status"></span>
+          </div>
+        </form>
+      </div>
+    </section>
+
+
+    {# ════════════════════════════════════════════════════════════════
+       ZUGANGSDATEN – PROXMOX BACKUP SERVER
+       ════════════════════════════════════════════════════════════════ #}
+    <section>
+      <div class="settings-section-label">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2"/>
+          <path d="M7 11V7a5 5 0 0110 0v4"/>
+        </svg>
+        PBS-Zugangsdaten
+      </div>
+
+      <div class="ds-card on">
+        <form hx-post="/api/proxmox_hosts/settings/secrets"
+              hx-target="#pbs-secrets-status" hx-swap="innerHTML">
+
+          <div style="display:flex; align-items:center; gap:8px; padding:10px 14px;
+                      border-bottom:1px solid rgba(0,0,0,0.35);
+                      font-size:12px; color:var(--text-3);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" style="flex-shrink:0;">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            Felder leer lassen, um bestehende Werte nicht zu überschreiben
           </div>
 
           {# PBS Passwort #}
@@ -322,7 +236,7 @@
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
               Speichern
             </button>
-            <span id="secrets-status" class="settings-status"></span>
+            <span id="pbs-secrets-status" class="settings-status"></span>
           </div>
         </form>
       </div>
@@ -330,23 +244,3 @@
 
   </div>{# /max-width #}
 </div>{# /tab-settings #}
-
-
-<script>
-(function() {
-  /* ── WoL Zeilen ─────────────────────────────────────────────── */
-  var WOL_ROW =
-    '<div class="wol-row" style="display:grid;grid-template-columns:1fr 1fr 36px;' +
-    'gap:8px;padding:8px 14px;align-items:center;border-bottom:1px solid rgba(0,0,0,0.25);">' +
-    '<input type="text" name="wol_mac" class="form-input"' +
-    ' style="font-family:var(--mono);font-size:13px;" placeholder="aa:bb:cc:dd:ee:ff">' +
-    '<input type="text" name="wol_host" class="form-input" placeholder="server.lan">' +
-    '<button type="button" class="btn-icon btn-icon-danger" onclick="wolRemove(this)" title="Entfernen">' +
-    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
-    '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>' +
-    '<path d="M10 11v6m4-6v6"/><path d="M9 6V4h6v2"/></svg></button></div>';
-
-  window.wolAdd    = function() { document.getElementById('wol-rows').insertAdjacentHTML('beforeend', WOL_ROW); };
-  window.wolRemove = function(btn) { var r=document.querySelectorAll('.wol-row'); if(r.length>1) btn.closest('.wol-row').remove(); };
-})();
-</script>

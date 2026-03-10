@@ -171,3 +171,153 @@
     </svg>
   </button>
 {% endmacro %}
+
+{# ── Modal-Standard-Komponenten ──────────────────────────────────────────── #}
+{#                                                                            #}
+{# Jedes Modal soll denselben Aufbau haben:                                   #}
+{#   1. modal_wrapper  – Backdrop + innere Box (Außenstruktur)                #}
+{#   2. modal_title    – Icon + Überschrift (Header)                          #}
+{#   3. Inhalt         – Formular, Text, Karten …                             #}
+{#   4. modal_footer   – Toggle + Abbrechen/Speichern (Standard)              #}
+{#      oder modal_footer_simple – nur ein Schließen-Button                   #}
+{#                                                                            #}
+{# Verwendung mit modal_wrapper:                                              #}
+{#   {% call modal_wrapper("mein-modal", max_width="580px") %}               #}
+{#     {{ modal_title(title="Titel", icon="edit") }}                          #}
+{#     <!-- Inhalt -->                                                        #}
+{#     {{ modal_footer(save_label="Speichern") }}                             #}
+{#   {% endcall %}                                                            #}
+
+{#
+  modal_wrapper(id, max_width, padding)
+  Rendert Backdrop + innere Modal-Box.  Inhalt via {% call %}-Block.
+    id        – HTML-ID des Backdrop-Elements (ganzer Modal)
+    max_width – CSS max-width der inneren Box   (default: "620px")
+    padding   – CSS padding der inneren Box     (default: "28px 32px")
+#}
+{% macro modal_wrapper(id, max_width="620px", padding="28px 32px") %}
+<div id="{{ id }}" class="ds-modal-backdrop"
+     x-data
+     x-on:keydown.escape.window="$el.remove()"
+     x-on:click.self="$el.remove()">
+  <div class="ds-modal" style="max-width:{{ max_width }}; padding:{{ padding }};">
+    {{ caller() }}
+  </div>
+</div>
+{% endmacro %}
+
+{#
+  modal_title(title, icon, is_edit)
+  Rendert den Header eines Modals.
+    title   – Anzeigetext
+    icon    – 'edit' | 'create' | 'settings' | 'log' | 'bell' | 'warning' | 'info' | 'none'
+    is_edit – veraltet: Kurzform für icon='edit' (True) / icon='create' (False)
+#}
+{% macro modal_title(title='', icon=None, is_edit=False) %}
+{% if icon is none %}{% set icon = 'edit' if is_edit else 'create' %}{% endif %}
+<div class="ds-modal-title">
+  {% if icon == 'edit' %}
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+    </svg>
+  {% elif icon == 'create' %}
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+  {% elif icon == 'settings' %}
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+    </svg>
+  {% elif icon == 'log' %}
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+    </svg>
+  {% elif icon == 'bell' %}
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+      <path d="M13.73 21a2 2 0 01-3.46 0"/>
+    </svg>
+  {% elif icon == 'warning' %}
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/>
+      <circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/>
+    </svg>
+  {% elif icon == 'info' %}
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="8" x2="12" y2="12"/>
+      <line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+  {% endif %}
+  {{ title }}
+</div>
+{% endmacro %}
+
+{#
+  modal_footer(enabled, enabled_id, save_label, save_disabled, has_toggle, save_id, save_type)
+  Rendert den Standard-Footer eines Modals (Toggle + Abbrechen + Speichern).
+    enabled       – bool: aktueller Toggle-Zustand
+    enabled_id    – HTML-ID der versteckten Checkbox
+    save_label    – Text für den Speichern-Button
+    save_disabled – bool: Speichern-Button deaktivieren
+    has_toggle    – bool: Toggle anzeigen (default True)
+    save_id       – optionale HTML-ID für den Speichern-Button
+    save_type     – "submit" (default) oder "button" (bei JS-Validierung)
+#}
+{% macro modal_footer(enabled=True, enabled_id='modal-enabled', save_label='Speichern',
+                      save_disabled=False, has_toggle=True, save_id=None, save_type='submit') %}
+<div class="ds-modal-footer"
+     style="display:flex; align-items:center; justify-content:{% if has_toggle %}space-between{% else %}flex-end{% endif %}; gap:10px;
+            padding-top:14px; margin-top:6px; border-top:1px solid var(--border-s);">
+  {% if has_toggle %}
+  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+    <input type="hidden" name="enabled" value="0">
+    <input type="checkbox" name="enabled" value="1" id="{{ enabled_id }}"
+           style="display:none;" {{ 'checked' if enabled else '' }}>
+    <button type="button"
+            class="toggle-switch {{ 'toggle-on' if enabled else 'toggle-off' }}"
+            onclick="
+              var cb = document.getElementById('{{ enabled_id }}');
+              cb.checked = !cb.checked;
+              this.classList.toggle('toggle-on', cb.checked);
+              this.classList.toggle('toggle-off', !cb.checked);
+              this.nextElementSibling.textContent = cb.checked ? 'Aktiviert' : 'Deaktiviert';
+            "
+    ><span class="toggle-knob"></span></button>
+    <span style="font-size:13px; color:var(--text-2);">{{ 'Aktiviert' if enabled else 'Deaktiviert' }}</span>
+  </label>
+  {% endif %}
+  <div style="display:flex; gap:10px;">
+    <button type="button" class="btn btn-ghost btn-sm"
+            x-on:click="$el.closest('.ds-modal-backdrop').remove()">
+      Abbrechen
+    </button>
+    <button type="{{ save_type }}" class="btn btn-primary btn-sm"
+            {% if save_id %}id="{{ save_id }}"{% endif %}
+            {% if save_disabled %}disabled style="opacity:.4; cursor:not-allowed;"{% endif %}>
+      {{ save_label }}
+    </button>
+  </div>
+</div>
+{% endmacro %}
+
+{#
+  modal_footer_simple(close_label)
+  Rendert einen einfachen Footer mit nur einem Schließen-Button (z. B. Log-Modal).
+    close_label – Beschriftung des Schließen-Buttons (default: "Schließen")
+#}
+{% macro modal_footer_simple(close_label="Schließen") %}
+<div class="ds-modal-footer-simple"
+     style="display:flex; justify-content:center;
+            padding-top:12px; margin-top:12px; border-top:1px solid var(--border-s);">
+  <button type="button" class="btn btn-ghost btn-sm"
+          x-on:click="$el.closest('.ds-modal-backdrop').remove()">
+    {{ close_label }}
+  </button>
+</div>
+{% endmacro %}

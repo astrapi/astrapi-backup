@@ -1,8 +1,8 @@
-# core/modules/settings/ui.py
+"""core/modules/settings/ui.py – Flask-Blueprint für Settings UI-Routen."""
 from flask import Blueprint, render_template, current_app
 
 KEY = "settings"
-bp  = Blueprint(f"{KEY}_core_ui", __name__)
+bp  = Blueprint(f"{KEY}_ui", __name__)
 
 
 def _ctx(flash: str = "") -> dict:

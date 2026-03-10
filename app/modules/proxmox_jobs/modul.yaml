@@ -1,0 +1,6 @@
+# app/modules/proxmox_jobs/modul.yaml – Modul-Konfiguration
+
+label:       Proxmox Jobs
+icon:        play-circle
+nav_group:   Proxmox
+nav_default: false

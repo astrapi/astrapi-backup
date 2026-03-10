@@ -6,8 +6,14 @@ from fastapi import FastAPI
 from fastapi.responses import Response
 
 
-def register_health(app: FastAPI, check_fn=None, start_time: float = None) -> None:
-    """Registriert GET /health auf der FastAPI-App.
+def register_health(
+    app: FastAPI,
+    check_fn=None,
+    start_time: float = None,
+    path: str = "/health",
+    tags: list[str] | None = None,
+) -> None:
+    """Registriert einen Health-Check-Endpunkt auf der FastAPI-App.
 
     Args:
         app:        FastAPI-Instanz
@@ -15,10 +21,13 @@ def register_health(app: FastAPI, check_fn=None, start_time: float = None) -> No
                     Wird für erweiterte Health-Checks genutzt (z.B. DB-Verbindung).
         start_time: Startzeitpunkt (time.time()), für uptime_s im Response.
                     Standardmäßig der Zeitpunkt des Aufrufs von register_health.
+        path:       URL-Pfad des Endpunkts (Standard: "/health").
+        tags:       OpenAPI-Tags (Standard: kein Schema-Eintrag).
     """
     _start = start_time if start_time is not None else time.time()
+    _include = tags is not None
 
-    @app.get("/health", include_in_schema=False)
+    @app.get(path, include_in_schema=_include, tags=tags or [])
     def health():
         ok = True
         details: dict = {}

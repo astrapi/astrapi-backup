@@ -13,6 +13,7 @@ und werden in app/data/settings.yaml unter dem Modul-Key gespeichert.
 
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 from typing import Any
 import yaml
@@ -30,6 +31,7 @@ _SafeLoader.add_multi_constructor(
 
 _SETTINGS_FILE: Path | None = None
 _cache: dict = {}
+_lock = threading.Lock()
 
 
 def init(app_root: Path) -> None:
@@ -38,10 +40,12 @@ def init(app_root: Path) -> None:
     data_dir = app_root / "data"
     data_dir.mkdir(exist_ok=True)
     _SETTINGS_FILE = data_dir / "settings.yaml"
-    _cache = _load()
+    with _lock:
+        _cache = _load()
 
 
 def _load() -> dict:
+    """Liest settings.yaml – muss unter _lock aufgerufen werden."""
     if _SETTINGS_FILE and _SETTINGS_FILE.exists():
         with open(_SETTINGS_FILE, encoding="utf-8") as f:
             return yaml.load(f, Loader=_SafeLoader) or {}
@@ -49,6 +53,7 @@ def _load() -> dict:
 
 
 def _save() -> None:
+    """Schreibt _cache auf Disk – muss unter _lock aufgerufen werden."""
     if _SETTINGS_FILE:
         with open(_SETTINGS_FILE, "w", encoding="utf-8") as f:
             yaml.dump(_cache, f, allow_unicode=True, default_flow_style=False)
@@ -56,49 +61,56 @@ def _save() -> None:
 
 def get(key: str, default: Any = None) -> Any:
     """Liest einen globalen Einstellungswert."""
-    return _cache.get(key, default)
+    with _lock:
+        return _cache.get(key, default)
 
 
 def get_module(module_key: str, key: str, default: Any = None) -> Any:
     """Liest einen Modul-Einstellungswert."""
-    return _cache.get(f"module.{module_key}.{key}", default)
+    with _lock:
+        return _cache.get(f"module.{module_key}.{key}", default)
 
 
 def set(key: str, value: Any) -> None:
     """Setzt einen globalen Einstellungswert und speichert."""
-    _cache[key] = value
-    _save()
+    with _lock:
+        _cache[key] = value
+        _save()
 
 
 def set_module(module_key: str, key: str, value: Any) -> None:
     """Setzt einen Modul-Einstellungswert und speichert."""
-    _cache[f"module.{module_key}.{key}"] = value
-    _save()
+    with _lock:
+        _cache[f"module.{module_key}.{key}"] = value
+        _save()
 
 
 def set_many(values: dict) -> None:
     """Setzt mehrere Werte auf einmal und speichert einmalig."""
-    _cache.update(values)
-    _save()
+    with _lock:
+        _cache.update(values)
+        _save()
 
 
 def all_settings() -> dict:
-    """Gibt alle gespeicherten Einstellungen zurück."""
-    return dict(_cache)
+    """Gibt eine Kopie aller gespeicherten Einstellungen zurück."""
+    with _lock:
+        return dict(_cache)
 
 
 def seed_defaults(global_defaults: dict, modules: list) -> None:
     """Füllt fehlende Werte mit Defaults auf (beim Start einmalig aufrufen)."""
-    changed = False
-    for k, v in global_defaults.items():
-        if k not in _cache:
-            _cache[k] = v
-            changed = True
-    for mod in modules:
-        for k, v in mod.settings_defaults.items():
-            full_key = f"module.{mod.key}.{k}"
-            if full_key not in _cache:
-                _cache[full_key] = v
+    with _lock:
+        changed = False
+        for k, v in global_defaults.items():
+            if k not in _cache:
+                _cache[k] = v
                 changed = True
-    if changed:
-        _save()
+        for mod in modules:
+            for k, v in mod.settings_defaults.items():
+                full_key = f"module.{mod.key}.{k}"
+                if full_key not in _cache:
+                    _cache[full_key] = v
+                    changed = True
+        if changed:
+            _save()

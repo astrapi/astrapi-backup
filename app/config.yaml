@@ -64,6 +64,11 @@ navigation:
     icon:  alert
     group: System
 
+  - key:   wol
+    label: Wake on LAN
+    icon:  monitor
+    group: System
+
   - key:   sysinfo
     label: Systeminfo
     icon:  monitor

@@ -10,10 +10,9 @@ _running_jobs: set = set()
 
 
 def _wol_entries() -> list:
-    import json as _j
-    from api.storage import get_setting
     try:
-        return _j.loads(get_setting("wol_entries", "[]"))
+        from core.ui.settings_registry import get_module
+        return get_module("wol", "entries", []) or []
     except Exception:
         return []
 
@@ -98,9 +97,17 @@ def run_backup(job_id: str, modules: list, debug: bool = False) -> None:
             from modules import rsync
             rsync.run()
 
-        if run_all or "proxmox" in modules:
-            from modules import proxmox
-            proxmox.run()
+        if run_all or "proxmox_lxc" in modules:
+            from modules import proxmox_lxc
+            proxmox_lxc.run()
+
+        if run_all or "proxmox_hosts" in modules:
+            from modules import proxmox_hosts
+            proxmox_hosts.run()
+
+        if run_all or "proxmox_jobs" in modules:
+            from modules import proxmox_jobs
+            proxmox_jobs.run()
 
         if not debug:
             _power_off_backup02()
@@ -121,5 +128,4 @@ def run_backup(job_id: str, modules: list, debug: bool = False) -> None:
         if not debug:
             notify_ntfy(f"Backup {status}: {job_id}\nDauer: {duration_str}",
                         priority="low" if status == "OK" else "high")
-        from core.modules.scheduler.engine import update_result
-        update_result(status, duration_str)
+

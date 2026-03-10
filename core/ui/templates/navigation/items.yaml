@@ -5,6 +5,10 @@
 #
 # settings muss hier explizit aufgeführt werden wenn es erscheinen soll.
 
+- key: notify
+  label: Benachrichtigungen
+  group: System
+
 - key: scheduler
   label: Scheduler
   group: System

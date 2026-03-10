@@ -1,0 +1,6 @@
+# app/modules/proxmox_lxc/modul.yaml – Modul-Konfiguration
+
+label:       Proxmox LXC
+icon:        box
+nav_group:   Proxmox
+nav_default: false

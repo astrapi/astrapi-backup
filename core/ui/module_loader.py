@@ -1,5 +1,5 @@
 """
-core/ui/module_loader.py  –  Lädt modul.yaml und erstellt AstrapiModule-Instanz
+core/ui/module_loader.py  –  Lädt modul.yaml und erstellt Module-Instanz
 
 modul.yaml liegt im Root jedes Moduls neben __init__.py:
 
@@ -19,8 +19,8 @@ import yaml
 from pathlib import Path
 
 
-def load_modul(module_dir: Path, key: str, api_router, ui_blueprint) -> "AstrapiModule":
-    from app.modules._base import AstrapiModule
+def load_modul(module_dir: Path, key: str, api_router, ui_blueprint) -> "Module":
+    from core.ui._base import Module
 
     yaml_path = module_dir / "modul.yaml"
     cfg = {}
@@ -38,7 +38,15 @@ def load_modul(module_dir: Path, key: str, api_router, ui_blueprint) -> "Astrapi
         with open(settings_yaml, encoding="utf-8") as f:
             settings_schema = yaml.safe_load(f) or []
 
-    return AstrapiModule(
+    # Defaults aus settings.yaml extrahieren; modul.yaml settings_defaults haben Vorrang
+    schema_defaults = {
+        field["key"]: field["default"]
+        for field in settings_schema
+        if "key" in field and "default" in field
+    }
+    merged_defaults = {**schema_defaults, **cfg.get("settings_defaults", {})}
+
+    return Module(
         key               = key,
         label             = cfg.get("label",       key.capitalize()),
         icon              = cfg.get("icon",         "list"),
@@ -47,6 +55,6 @@ def load_modul(module_dir: Path, key: str, api_router, ui_blueprint) -> "Astrapi
         nav_group         = cfg.get("nav_group",    "Module"),
         nav_default       = bool(cfg.get("nav_default", False)),
         settings_template = settings_template,
-        settings_defaults = cfg.get("settings_defaults", {}),
+        settings_defaults = merged_defaults,
         settings_schema   = settings_schema,
     )

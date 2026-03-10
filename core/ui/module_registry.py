@@ -7,12 +7,13 @@ Navigation:
   3. Alle geladenen App-Module die in keiner YAML stehen → automatisch angehängt
 
 Ein neues Modul erscheint also automatisch in der Nav, sobald sein Ordner
-existiert und eine AstrapiModule-Instanz exportiert. Die YAML ist optional.
+existiert und eine Module-Instanz exportiert. Die YAML ist optional.
 """
 
 from __future__ import annotations
 
 import importlib.util
+import sys
 import warnings
 from pathlib import Path
 
@@ -26,10 +27,10 @@ _mod_registry: dict = {}
 # ── Laden ─────────────────────────────────────────────────────────────────────
 
 def _load_from_dir(modules_dir: Path, pkg_prefix: str) -> dict:
-    """Lädt alle AstrapiModule-Instanzen aus einem Verzeichnis → {key: instance}."""
-    from app.modules._base import AstrapiModule
+    """Lädt alle Module-Instanzen aus einem Verzeichnis → {key: instance}."""
+    from core.ui._base import Module
 
-    found: dict[str, AstrapiModule] = {}
+    found: dict[str, Module] = {}
     if not modules_dir.exists():
         return found
 
@@ -44,10 +45,12 @@ def _load_from_dir(modules_dir: Path, pkg_prefix: str) -> dict:
                 f"{pkg_prefix}.{entry.name}", init_file
             )
             mod = importlib.util.module_from_spec(spec)
+            pkg_name = f"{pkg_prefix}.{entry.name}"
+            sys.modules[pkg_name] = mod
             spec.loader.exec_module(mod)
             instance = getattr(mod, "module", None)
-            if instance is None or not isinstance(instance, AstrapiModule):
-                warnings.warn(f"Modul '{entry.name}' ({pkg_prefix}): keine AstrapiModule-Instanz gefunden")
+            if instance is None or not isinstance(instance, Module):
+                warnings.warn(f"Modul '{entry.name}' ({pkg_prefix}): keine Module-Instanz gefunden")
                 continue
             # module_root nur setzen wenn dieses Verzeichnis Templates hat
             # oder noch kein module_root gesetzt ist (z.B. app re-exportiert Core-Instanz)
@@ -181,14 +184,7 @@ def _yaml_to_nav_items(yaml_path: "Path | None", modules: dict, raw: list = None
 
 def _auto_nav_item(mod) -> dict:
     """Erzeugt einen Nav-Eintrag direkt aus der Modul-Instanz."""
-    return {
-        "key":       mod.key,
-        "label":     mod.label,
-        "url":       mod.nav_url,
-        "icon":      mod.icon or "box",
-        "default":   bool(getattr(mod, "nav_default", False)),
-        "separator": False,
-    }
+    return mod.to_nav_item()
 
 
 def build_nav_items(modules: list, app_root: Path) -> list[dict]:

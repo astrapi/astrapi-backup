@@ -211,6 +211,7 @@ input,select,textarea { font-family:var(--font); }
 .sb-footer-bottom {
   display:flex; align-items:center; justify-content:space-between; padding:2px 4px 0;
 }
+.sb-versions { display:flex; flex-direction:column; align-items:flex-end; gap:1px; }
 .sb-version { font-size:11px; color:var(--text-3); font-family:var(--mono); }
 .btn-theme {
   width:28px; height:28px; border-radius:var(--rad);
@@ -232,7 +233,7 @@ input,select,textarea { font-family:var(--font); }
 /* ═══════════════════════════ PAGE HEADER ════════════════════════ */
 .page-header {
   display:flex; align-items:center; justify-content:space-between;
-  height:47px; margin-bottom:20px;
+  height:47px; 
 }
 .page-title {
   font-size:14px; font-weight:700; color:var(--text); letter-spacing:-0.02em;
@@ -361,21 +362,23 @@ input,select,textarea { font-family:var(--font); }
 /* ════════════════════════ TOGGLE ════════════════════════════════ */
 .toggle-switch {
   position:relative; display:inline-flex; align-items:center;
-  width:36px; height:20px; border-radius:99px;
+  width:36px; height:18px; border-radius:99px;
   cursor:pointer; flex-shrink:0; padding:0;
   background:var(--card); border:2px solid;
   appearance:none; -webkit-appearance:none;
   transition:border-color var(--t);
 }
-.toggle-on  { border-color:var(--g); }
-.toggle-off { border-color:var(--r); }
+
+.toggle-on  { border:2px solid #6db88a; }
+.toggle-off { border:2px solid rgba(248,113,113,0.4); }
 .toggle-knob {
-  position:absolute; left:2px;
-  width:13px; height:13px; border-radius:50%;
-  transition:transform var(--t), background var(--t); pointer-events:none;
+  position:absolute; top:1.5px; left:1.5px;
+  width:10px; height:10px; border-radius:50%;
+  transition:transform var(--t), background var(--t);
+  pointer-events:none; display:block;
 }
-.toggle-on  .toggle-knob { background:var(--g); transform:translateX(13px); }
-.toggle-off .toggle-knob { background:var(--r); }
+.toggle-on  .toggle-knob { transform:translateX(15px); background:#6db88a; }
+.toggle-off .toggle-knob { background:rgba(248,113,113,0.4); }
 
 /* ═════════════════════════ FORMS ════════════════════════════════ */
 .form-group { display:flex; flex-direction:column; gap:4px; }
@@ -414,14 +417,25 @@ input,select,textarea { font-family:var(--font); }
   background:var(--card); border:1px solid var(--border-s);
   border-radius:var(--rad-xl); box-shadow:var(--sh-m);
   width:100%; max-width:620px; max-height:88vh; overflow-y:auto;
-  padding:20px 24px;
+  padding:28px 32px;
 }
 .ds-modal-title {
   font-size:15px; font-weight:700; color:var(--text);
   letter-spacing:-0.01em; text-align:center;
-  margin-bottom:20px; padding-bottom:14px;
-  border-bottom:1px solid var(--border-s);
+  margin-bottom:22px;
   display:flex; align-items:center; justify-content:center; gap:8px;
+}
+/* Modal Footer – Standard (Toggle links + Buttons rechts) */
+.ds-modal-footer {
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding-top:14px; margin-top:6px; border-top:1px solid var(--border-s);
+}
+/* Variante ohne Toggle: Buttons rechtsbündig */
+.ds-modal-footer--end { justify-content:flex-end; }
+/* Variante mit nur einem Schließen-Button: zentriert */
+.ds-modal-footer-simple {
+  display:flex; justify-content:center;
+  padding-top:12px; margin-top:12px; border-top:1px solid var(--border-s);
 }
 .confirm-dialog {
   background:var(--card); border:1px solid var(--border-s);

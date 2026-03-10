@@ -1,47 +1,26 @@
-# core/system/version.py
-"""Liest die aktuelle App-Version aus dem nächsten Git-Tag.
+"""core/system/version.py – Liest Versionsnummern aus version.yaml-Dateien.
 
-Format: JAHR.MONAT.RELEASE  (z.B. 26.3.1)
-Fallback: übergebener Default-Wert.
+Format: JAHR.MONAT.NUMMER  (z.B. 26.3.2)
 """
-import subprocess
-import time
 from pathlib import Path
 
-_cache: dict = {"val": None, "ts": 0.0, "root": None, "default": "—"}
-_TTL = 30.0
 
-
-def get_version(project_root: Path | None = None, default: str = "—") -> str:
-    """Gibt den letzten Git-Tag zurück (z.B. '26.3.1').
-
-    project_root: Verzeichnis innerhalb des Git-Repos (None → CWD).
-    """
+def _read_yaml_version(yaml_path: Path, default: str = "—") -> str:
+    """Liest 'version' aus einer version.yaml. Gibt default zurück wenn nicht vorhanden."""
     try:
-        result = subprocess.run(
-            ["git", "describe", "--tags", "--abbrev=0"],
-            capture_output=True,
-            text=True,
-            cwd=str(project_root) if project_root else None,
-        )
-        if result.returncode == 0:
-            return result.stdout.strip()
+        import yaml
+        with open(yaml_path, encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        return str(data.get("version", default))
     except Exception:
-        pass
-    return default
+        return default
 
 
-def get_version_cached(project_root: Path | None = None, default: str = "—") -> str:
-    """Wie get_version(), aber mit 30-Sekunden-Cache (kein Subprocess pro Request)."""
-    now = time.monotonic()
-    if (
-        _cache["val"] is None
-        or now - _cache["ts"] > _TTL
-        or _cache["root"] != project_root
-        or _cache["default"] != default
-    ):
-        _cache["val"]     = get_version(project_root, default)
-        _cache["ts"]      = now
-        _cache["root"]    = project_root
-        _cache["default"] = default
-    return _cache["val"]
+def get_app_version(app_root: Path, default: str = "—") -> str:
+    """Liest die App-Version aus <app_root>/version.yaml."""
+    return _read_yaml_version(app_root / "version.yaml", default)
+
+
+def get_core_version(core_root: Path, default: str = "—") -> str:
+    """Liest die Core-Version aus <core_root>/version.yaml."""
+    return _read_yaml_version(core_root / "version.yaml", default)

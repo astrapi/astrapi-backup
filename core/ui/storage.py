@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import threading
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 import yaml
 
 _DATA_DIR: Path | None = None
@@ -73,14 +73,40 @@ class YamlStorage:
 
     # ── Lesen ─────────────────────────────────────────────────────────────────
 
-    def list(self) -> dict:
-        """Gibt alle Einträge zurück."""
+    def list(
+        self,
+        filter_fn: "Callable[[str, dict], bool] | None" = None,
+        offset: int = 0,
+        limit: int | None = None,
+    ) -> dict:
+        """Gibt Einträge zurück, optional gefiltert und paginiert.
+
+        Args:
+            filter_fn: Optionale Funktion (key, value) -> bool.
+                       Nur Einträge für die True zurückgegeben wird erscheinen im Ergebnis.
+            offset:    Anzahl Einträge die übersprungen werden (Standard: 0).
+            limit:     Maximale Anzahl zurückgegebener Einträge (Standard: alle).
+
+        Beispiele:
+            store.list()                                        # alle
+            store.list(filter_fn=lambda k, v: v.get("enabled"))  # nur aktive
+            store.list(offset=20, limit=10)                    # Seite 3 à 10
+        """
         with self._lock:
             if not self._path.exists():
                 if self._seed:
                     self._write(self._seed)
-                return dict(self._seed)
-            return self._read()
+                data = dict(self._seed)
+            else:
+                data = self._read()
+
+        if filter_fn is not None:
+            data = {k: v for k, v in data.items() if filter_fn(k, v)}
+        if offset:
+            data = dict(list(data.items())[offset:])
+        if limit is not None:
+            data = dict(list(data.items())[:limit])
+        return data
 
     def get(self, key: str) -> dict | None:
         """Gibt einen einzelnen Eintrag zurück, oder None wenn nicht gefunden."""

@@ -133,11 +133,11 @@ def repo_info(request: Request, repo_id: int):
 
 @router.get("/create-modal", response_class=HTMLResponse)
 def repo_create_modal(request: Request):
-    from api.storage import get_setting
+    from core.ui.settings_registry import get_module
     from helpers.secrets import get_secret_safe
     return templates.TemplateResponse("repos/partials/create_modal.html", {
         "request":              request,
-        "base_path":            get_setting("repos_base_path", ""),
+        "base_path":            get_module("repos", "base_path", ""),
         "global_passphrase_set": bool(get_secret_safe("BORG_PASSPHRASE")),
         "mode":                 "init",
         "errors":               [],
@@ -157,10 +157,11 @@ async def repo_create(
     encryption:  str = Form("repokey-blake2"),
     passphrase:  str = Form(""),
 ):
-    from api.storage import get_setting, get_repo_by_path
+    from core.ui.settings_registry import get_module
+    from api.storage import get_repo_by_path
     from helpers.secrets import get_secret_safe
 
-    base_path = get_setting("repos_base_path", "")
+    base_path = get_module("repos", "base_path", "")
     global_passphrase_set = bool(get_secret_safe("BORG_PASSPHRASE"))
 
     def _err(errors):
@@ -307,3 +308,21 @@ async def repo_test(repo_id: int):
     if info:
         return JSONResponse({"ok": True, "msg": "Verbindung erfolgreich."})
     return JSONResponse({"ok": False, "msg": "Repo nicht erreichbar oder Passphrase falsch."})
+
+
+# ── Modul-Einstellungen ───────────────────────────────────────────────────────
+
+@router.post("/settings/base-path", response_class=HTMLResponse)
+async def save_base_path(request: Request, repos_base_path: str = Form("")):
+    from core.ui.settings_registry import set_module
+    set_module("repos", "base_path", repos_base_path.strip())
+    return HTMLResponse('<span style="color:var(--g);">✔ Gespeichert</span>')
+
+
+@router.post("/settings/passphrase", response_class=HTMLResponse)
+async def save_borg_passphrase(request: Request):
+    form = await request.form()
+    val  = form.get("borg_passphrase", "").strip()
+    if val:
+        set_secret("BORG_PASSPHRASE", val)
+    return HTMLResponse('<span style="color:var(--g);">✔ Gespeichert</span>')
