@@ -10,9 +10,6 @@ modul.yaml liegt im Root jedes Moduls neben __init__.py:
 
   settings_defaults:
     default_port: "22"
-
-settings_template wird automatisch gesetzt wenn
-templates/partials/settings_section.html existiert.
 """
 
 import yaml
@@ -29,9 +26,6 @@ def load_modul(module_dir: Path, key: str, api_router, ui_blueprint) -> "Module"
             cfg = yaml.safe_load(f) or {}
 
     # settings_template automatisch setzen wenn Datei vorhanden
-    tpl = module_dir / "templates" / "partials" / "settings_section.html"
-    settings_template = f"{key}/partials/settings_section.html" if tpl.exists() else None
-
     settings_yaml = module_dir / "settings.yaml"
     settings_schema: list = []
     if settings_yaml.exists():
@@ -54,7 +48,6 @@ def load_modul(module_dir: Path, key: str, api_router, ui_blueprint) -> "Module"
         ui_blueprint      = ui_blueprint,
         nav_group         = cfg.get("nav_group",    "Module"),
         nav_default       = bool(cfg.get("nav_default", False)),
-        settings_template = settings_template,
         settings_defaults = merged_defaults,
         settings_schema   = settings_schema,
     )

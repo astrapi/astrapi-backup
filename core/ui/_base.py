@@ -42,7 +42,6 @@ class Module:
         nav_url           – URL für hx-push-url (sichtbare Browser-URL, default: /<key>)
         nav_default       – ob dieser Eintrag die Startseite ist
         nav_group         – Gruppenbezeichnung in der Navigation
-        settings_template – Pfad zum Einstellungs-Partial (relativ zu templates/)
         settings_defaults – Default-Werte für Modul-Einstellungen
         settings_schema   – Felder-Schema aus settings.yaml
         module_root       – Pfad zum Modul-Verzeichnis (wird automatisch gesetzt)
@@ -59,7 +58,6 @@ class Module:
     nav_default: bool           = False
     nav_group:   Optional[str]  = None
 
-    settings_template: Optional[str] = None
     settings_defaults: dict          = field(default_factory=dict)
     settings_schema:   list          = field(default_factory=list)
 
