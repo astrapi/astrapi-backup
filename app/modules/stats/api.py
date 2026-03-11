@@ -171,7 +171,7 @@ def stats_tab(request: Request):
     repos = list_repos()
     # Ersten erreichbaren Repo als Default
     default_id = repos[0]["id"] if repos else None
-    return templates.TemplateResponse("stats/partials/tab.html", {
+    return templates.TemplateResponse("stats/partials/list.html", {
         "request":    request,
         "repos":      repos,
         "default_id": default_id,

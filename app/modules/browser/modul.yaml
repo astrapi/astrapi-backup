@@ -1,0 +1,6 @@
+# app/modules/browser/modul.yaml – Modul-Konfiguration
+
+label:       Archiv-Browser
+icon:        search
+nav_group:   Borg
+nav_default: false

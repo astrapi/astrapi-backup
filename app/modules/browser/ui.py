@@ -8,4 +8,4 @@ bp  = Blueprint(f"{KEY}_ui", __name__)
 @bp.route("/ui/browser/content")
 def content():
     from api.storage import list_repos
-    return render_template("browser/partials/tab.html", repos=list_repos())
+    return render_template("browser/partials/list.html", repos=list_repos())

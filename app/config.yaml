@@ -64,8 +64,8 @@ navigation:
     icon:  alert
     group: System
 
-  - key:   wol
-    label: Wake on LAN
+  - key:   remotes
+    label: Remote-Geräte
     icon:  monitor
     group: System
 

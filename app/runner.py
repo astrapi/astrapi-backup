@@ -9,18 +9,18 @@ from helpers.debug import set_debug
 _running_jobs: set = set()
 
 
-def _wol_entries() -> list:
+def _remotes_entries() -> list:
     try:
-        from core.ui.settings_registry import get_module
-        return get_module("wol", "entries", []) or []
+        from api.storage import load_config
+        return list(load_config("remotes").values())
     except Exception:
         return []
 
 
 def _power_on_backup02():
-    entries = _wol_entries()
+    entries = _remotes_entries()
     if not entries:
-        log("WARNING", "WOL_ENTRIES nicht konfiguriert – Wake-on-LAN übersprungen")
+        log("WARNING", "Keine Remote-Geräte konfiguriert – Wake-on-LAN übersprungen")
         return
     for e in entries:
         mac = e.get("mac", "")
@@ -30,15 +30,16 @@ def _power_on_backup02():
 
 
 def _wait_for_backup02():
-    for e in _wol_entries():
-        host = e.get("host", "")
+    for e in _remotes_entries():
+        host     = e.get("host", "")
+        ssh_user = e.get("ssh_user") or "root"
         if not host:
             continue
         log("INFO", f"→ Warte bis {host} erreichbar ist …")
         while True:
             result = subprocess.run(
                 ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5",
-                 f"backupadm@{host}", "echo ok"],
+                 f"{ssh_user}@{host}", "echo ok"],
                 capture_output=True, text=True,
             )
             if result.returncode == 0 and "ok" in result.stdout:
@@ -48,11 +49,12 @@ def _wait_for_backup02():
 
 
 def _power_off_backup02():
-    for e in _wol_entries():
-        host = e.get("host", "")
+    for e in _remotes_entries():
+        host     = e.get("host", "")
+        ssh_user = e.get("ssh_user") or "root"
         if host:
             try:
-                subprocess.run(["ssh", f"backupadm@{host}", "sudo shutdown -h now"], check=True)
+                subprocess.run(["ssh", f"{ssh_user}@{host}", "sudo shutdown -h now"], check=True)
                 log("INFO", f"→ {host} heruntergefahren")
             except Exception as ex:
                 log("WARNING", f"Shutdown {host} fehlgeschlagen: {ex}")

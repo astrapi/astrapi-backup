@@ -133,7 +133,7 @@ def _crumbs(cur: str) -> list[dict]:
 
 @router.get("/tab", response_class=HTMLResponse)
 def browser_tab(request: Request):
-    return templates.TemplateResponse("browser/partials/tab.html", {
+    return templates.TemplateResponse("browser/partials/list.html", {
         "request": request,
         "repos":   list_repos(),
     })

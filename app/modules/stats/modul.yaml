@@ -1,0 +1,6 @@
+# app/modules/stats/modul.yaml – Modul-Konfiguration
+
+label:       Statistiken
+icon:        bar-chart
+nav_group:   Borg
+nav_default: false

@@ -10,4 +10,4 @@ def content():
     from api.storage import list_repos
     repos = list_repos()
     default_id = repos[0]["id"] if repos else None
-    return render_template("stats/partials/tab.html", repos=repos, default_id=default_id)
+    return render_template("stats/partials/list.html", repos=repos, default_id=default_id)

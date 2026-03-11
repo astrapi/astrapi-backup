@@ -25,7 +25,7 @@ def content():
     for e in entries:
         e["duration_fmt"] = _fmt_duration(e.get("duration_s"))
     return render_template(
-        "history/partials/tab.html",
+        "history/partials/list.html",
         entries=entries,
         filter_module=module,
         modules=["borg", "rsync", "proxmox_lxc", "proxmox_hosts", "proxmox_jobs"],

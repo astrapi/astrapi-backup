@@ -24,7 +24,7 @@ def history_tab(request: Request, module: str = ""):
     entries = list_history(limit=200, module=module or None)
     for e in entries:
         e["duration_fmt"] = _fmt_duration(e.get("duration_s"))
-    return templates.TemplateResponse("history/partials/tab.html", {
+    return templates.TemplateResponse("history/partials/list.html", {
         "request": request,
         "entries": entries,
         "filter_module": module,

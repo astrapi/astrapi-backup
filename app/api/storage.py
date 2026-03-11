@@ -87,6 +87,16 @@ _DDL = {
             type        TEXT    NOT NULL DEFAULT '',
             enabled     INTEGER NOT NULL DEFAULT 1
         )""",
+
+    "remotes": """
+        CREATE TABLE IF NOT EXISTS remotes (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            mac         TEXT    NOT NULL DEFAULT '',
+            host        TEXT    NOT NULL DEFAULT '',
+            description TEXT    NOT NULL DEFAULT '',
+            ssh_user    TEXT    NOT NULL DEFAULT 'root',
+            enabled     INTEGER NOT NULL DEFAULT 1
+        )""",
 }
 
 # Felder die Listen sind (newline-getrennt in DB, list in Python)
@@ -96,11 +106,28 @@ _LIST_FIELDS = {
 }
 
 
+def _migrate_remotes_columns() -> None:
+    """Fügt fehlende Spalten zur remotes-Tabelle hinzu (Schema-Migration)."""
+    con  = _conn()
+    # Tabelle existiert evtl. noch als 'wol' → umbenennen
+    tables = {row[0] for row in con.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+    if "wol" in tables and "remotes" not in tables:
+        con.execute("ALTER TABLE wol RENAME TO remotes")
+        con.commit()
+        print("[storage] Migration: Tabelle wol → remotes umbenannt")
+    cols = {row[1] for row in con.execute("PRAGMA table_info(remotes)").fetchall()}
+    if "ssh_user" not in cols:
+        con.execute("ALTER TABLE remotes ADD COLUMN ssh_user TEXT NOT NULL DEFAULT 'root'")
+        con.commit()
+        print("[storage] Migration: remotes.ssh_user hinzugefügt")
+
+
 def init_db() -> None:
     con = _conn()
     for ddl in _DDL.values():
         con.execute(ddl)
     con.commit()
+    _migrate_remotes_columns()
     _migrate_all_yaml()
 
 
