@@ -7,5 +7,8 @@ nav_default: false
 
 card_actions:
   - type: run
+    url:  /api/proxmox_jobs/{item}/run
   - type: run_debug
+    url:  /api/proxmox_jobs/{item}/run?debug=true
   - type: log
+    url:  /api/proxmox_jobs/{item}/logs
