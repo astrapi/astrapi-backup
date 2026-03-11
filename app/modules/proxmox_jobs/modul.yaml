@@ -4,3 +4,26 @@ label:       Proxmox Jobs
 icon:        play-circle
 nav_group:   Proxmox
 nav_default: false
+
+card_actions:
+  - title:           Ausführen
+    icon:            play
+    style:           run
+    hx_post:         /api/proxmox_jobs/{item}/run
+    hx_target:       "#{container_id}"
+    hx_swap:         innerHTML
+    hx_headers:      '{"HX-Request": "true"}'
+    disabled_if_off: true
+  - title:           Ausführen (Debug)
+    icon:            play-debug
+    style:           debug
+    hx_post:         /api/proxmox_jobs/{item}/run?debug=true
+    hx_target:       "#{container_id}"
+    hx_swap:         innerHTML
+    hx_headers:      '{"HX-Request": "true"}'
+  - title:           Log anzeigen
+    icon:            file-text
+    style:           log
+    hx_get:          /api/proxmox_jobs/{item}/logs
+    hx_target:       body
+    hx_swap:         beforeend

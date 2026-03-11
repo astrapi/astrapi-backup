@@ -341,6 +341,7 @@
   {%- elif name == 'refresh' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
   {%- elif name == 'power-on' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
   {%- elif name == 'power-off' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64A9 9 0 1 1 5.64 5.64"/><line x1="12" y1="2" x2="12" y2="12"/><line x1="4" y1="4" x2="20" y2="20"/></svg>
+  {%- elif name == 'play-debug' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
   {%- else -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg>
   {%- endif -%}
 {% endmacro %}
@@ -351,26 +352,37 @@
   action – Dict aus modul.yaml card_actions:
     title           – Tooltip
     icon            – Icon-Name (siehe icon()-Makro)
-    style           – optional: 'run', 'log', 'danger' → btn-icon-{style}
-    hx_get          – HTMX GET-URL; Platzhalter: {item}, {description},
-                      {container_id}, {loading_id}
+    style           – optional: 'run', 'debug', 'log', 'danger' → btn-icon-{style}
+    hx_get          – HTMX GET-URL  (alternativ zu hx_post)
+    hx_post         – HTMX POST-URL (alternativ zu hx_get)
+    hx_headers      – HTMX-Headers als JSON-String
     hx_target       – HTMX-Target (default: #main-content)
     hx_swap         – HTMX-Swap (default: innerHTML)
-    hx_push_url     – HTMX push-url; {item} wird durch item ersetzt
+    hx_push_url     – HTMX push-url
     disabled_if_off – bool: Button deaktivieren wenn item_data.enabled=false
+  Platzhalter in URLs und hx_target: {item}, {description},
+                                     {container_id}, {loading_id}
 #}
 {% macro card_action_button(action, item, item_data={}, container_id='', loading_id='') %}
-{%- set _url = action.hx_get
-    | replace('{item}',         item | string)
-    | replace('{description}',  item_data.description | default(item | string))
-    | replace('{container_id}', container_id | default(''))
-    | replace('{loading_id}',   loading_id   | default('')) -%}
+{%- set _subs = [
+    ('{item}',         item | string),
+    ('{description}',  item_data.description | default(item | string)),
+    ('{container_id}', container_id | string),
+    ('{loading_id}',   loading_id   | string),
+] -%}
+{%- macro _sub(s) -%}
+  {%- set ns = namespace(v=s) -%}
+  {%- for k, v in _subs %}{%- set ns.v = ns.v | replace(k, v) -%}{%- endfor -%}
+  {{- ns.v -}}
+{%- endmacro -%}
 <button class="btn-icon{% if action.style %} btn-icon-{{ action.style }}{% endif %}"
         title="{{ action.title }}"
-        {% if action.hx_get %}hx-get="{{ _url }}"{% endif %}
-        hx-target="{{ action.hx_target | default('#main-content') }}"
+        {% if action.hx_get  %}hx-get="{{  _sub(action.hx_get)  }}"{% endif %}
+        {% if action.hx_post %}hx-post="{{ _sub(action.hx_post) }}"{% endif %}
+        {% if action.hx_headers %}hx-headers='{{ action.hx_headers }}'{% endif %}
+        hx-target="{{ _sub(action.hx_target | default('#main-content')) }}"
         hx-swap="{{ action.hx_swap | default('innerHTML') }}"
-        {% if action.hx_push_url %}hx-push-url="{{ action.hx_push_url | replace('{item}', item | string) }}"{% endif %}
+        {% if action.hx_push_url %}hx-push-url="{{ _sub(action.hx_push_url) }}"{% endif %}
         {% if action.disabled_if_off and not item_data.enabled %}disabled style="opacity:.3; cursor:not-allowed;"{% endif %}>
   {{ icon(action.icon) }}
 </button>
