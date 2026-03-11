@@ -38,6 +38,7 @@
       {% if field.required %}data-required="true"{% endif %}
       {% if field.placeholder %}placeholder="{{ field.placeholder }}"{% endif %}
       class="form-input"
+      {% if field.mono %}style="font-family:var(--mono);"{% endif %}
     >
     <span class="form-error"></span>
 
@@ -63,12 +64,27 @@
         <option value="" style="color:var(--text-muted);">– bitte wählen –</option>
       {% endif %}
       {% for opt in field.options %}
-        <option value="{{ opt }}"
-          {% if values and values[field.name] == opt %}selected{% endif %}
-        >{{ opt }}</option>
+        {% if opt is mapping %}
+          <option value="{{ opt.value }}"
+            {% if values and values[field.name] == opt.value %}selected{% endif %}
+          >{{ opt.label }}</option>
+        {% else %}
+          <option value="{{ opt }}"
+            {% if values and values[field.name] == opt %}selected{% endif %}
+          >{{ opt }}</option>
+        {% endif %}
       {% endfor %}
     </select>
     <span class="form-error"></span>
+
+  {% elif field.type == "password" %}
+    <input
+      type="password"
+      name="{{ field.name }}"
+      class="form-input"
+      placeholder="{{ field.placeholder if field.placeholder else '••••••••' }}"
+      autocomplete="new-password"
+    >
 
   {% elif field.type == "list" %}
     {% include "partials/create_edit/list_field.html" %}

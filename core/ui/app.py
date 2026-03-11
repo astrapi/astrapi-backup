@@ -297,8 +297,14 @@ def _register_module_settings_routes(app: Flask, modules: list) -> None:
             return "", 404
 
         if request.method == "POST":
-            prefixed = {f"module.{module_key}.{k}": v
-                        for k, v in request.form.to_dict().items()}
+            password_keys = {
+                f["key"] for f in mod.settings_schema if f.get("type") == "password"
+            }
+            prefixed = {}
+            for k, v in request.form.to_dict().items():
+                if k in password_keys and not v.strip():
+                    continue  # Leeres Passwort-Feld nicht speichern
+                prefixed[f"module.{module_key}.{k}"] = v
             _set_many(prefixed)
 
         current_values = {

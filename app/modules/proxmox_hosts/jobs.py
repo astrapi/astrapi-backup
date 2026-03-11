@@ -4,9 +4,9 @@ import subprocess
 
 from helpers.logger import log, set_log_context, clear_log_context
 from helpers.reachability import require_hosts
-from helpers.secrets import get_secret
 from helpers.cmd import run_cmd, build_connection_string, is_local
 from helpers.debug import is_debug
+from core.ui.settings_registry import get_module as _get_module_setting
 
 from api.storage import load_config as _load_config
 def _get_config(): return _load_config("proxmox_hosts")
@@ -47,8 +47,8 @@ def _backup(host, entry):
 
     env = dict(os.environ)
     env["PBS_REPOSITORY"] = "backup@pbs!backup-host@172.19.18.5:storage"
-    env["PBS_PASSWORD"] = get_secret("PBS_PASSWORD")
-    env["PBS_FINGERPRINT"] = get_secret("PBS_FINGERPRINT")
+    env["PBS_PASSWORD"]    = _get_module_setting("proxmox_hosts", "pbs_password", "")
+    env["PBS_FINGERPRINT"] = _get_module_setting("proxmox_hosts", "pbs_fingerprint", "")
 
     base_cmd = [
         "sudo", "--preserve-env=PBS_REPOSITORY,PBS_PASSWORD,PBS_FINGERPRINT",

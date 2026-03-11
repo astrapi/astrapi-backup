@@ -139,18 +139,4 @@ def disable_all(request: Request):
     return _list_response(request)
 
 
-# ── Modul-Einstellungen: PBS-Secrets ──────────────────────────────────────────
-
-@router.post("/settings/secrets", response_class=HTMLResponse)
-async def save_pbs_secrets(request: Request):
-    from fastapi.responses import HTMLResponse as _HR
-    from helpers.secrets import set_secret
-    form = await request.form()
-    for form_key, env_key in [
-        ("pbs_password",    "PBS_PASSWORD"),
-        ("pbs_fingerprint", "PBS_FINGERPRINT"),
-    ]:
-        val = form.get(form_key, "").strip()
-        if val:
-            set_secret(env_key, val)
-    return _HR('<span style="color:var(--g);">✔ Gespeichert</span>')
+# ── Ende proxmox_hosts/api.py ─────────────────────────────────────────────────

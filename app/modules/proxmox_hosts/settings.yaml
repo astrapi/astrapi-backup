@@ -1,5 +1,3 @@
-# Proxmox-Hosts-Modul – PBS-Verbindungseinstellungen
-
 - key: pbs_url
   label: PBS Server-URL
   type: text
@@ -26,4 +24,19 @@
   type: text
   placeholder: "backup-token"
   description: Name des PBS API-Tokens (ohne Benutzerpräfix)
+  default: ""
+
+- key: pbs_password
+  label: PBS Passwort / Token-Secret
+  type: password
+  placeholder: "••••••••"
+  description: Passwort oder API-Token-Secret für die PBS-Authentifizierung
+  default: ""
+
+- key: pbs_fingerprint
+  label: PBS Fingerprint
+  type: text
+  placeholder: "AB:CD:EF:..."
+  description: TLS-Fingerprint des PBS-Servers
+  mono: true
   default: ""
