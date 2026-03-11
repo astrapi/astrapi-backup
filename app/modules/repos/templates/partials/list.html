@@ -1,0 +1,24 @@
+{#
+  repos/partials/list.html
+  Card-Meta-Inhalt für ein einzelnes Repository (wird per content_template
+  in list_wrapper_inner.html eingebunden).
+  Variablen: item_name, item_data (aus list_wrapper_inner.html)
+#}
+<div class="meta-grid">
+  <span class="meta-label">Verschlüsselung</span>
+  <span class="meta-value" style="font-family:var(--mono); font-size:10px;">{{ item_data.encryption }}</span>
+  <span class="meta-label">Pfad</span>
+  <span class="meta-value" style="font-family:var(--mono); font-size:11px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ item_data.path }}</span>
+  {% if item_data.reachable %}
+  <span class="meta-label">Archive</span>
+  <span class="meta-value">{{ item_data.archive_count }} · zuletzt {{ item_data.last_archive }}</span>
+  <span class="meta-label">Größe</span>
+  <span class="meta-value">{{ item_data.total_size }}
+    <span style="color:var(--text-3);">(kp. {{ item_data.total_csize }})</span>
+  </span>
+  {% else %}
+  <span class="meta-label" style="color:var(--err);">Status</span>
+  <span class="meta-value" style="color:var(--err);">nicht erreichbar</span>
+  {% endif %}
+</div>

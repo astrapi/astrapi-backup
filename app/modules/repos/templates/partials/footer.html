@@ -1,0 +1,43 @@
+{#
+  repos/partials/footer.html
+  Individuelle Card-Footer-Zeile für jedes Repository.
+  Variablen aus list_wrapper_inner.html: item_name, item_data, container_id, loading_id
+#}
+{% import 'partials/components/ui_macros.html' as ui %}
+<div style="display:flex; gap:4px;">
+  {# Archiv-Browser #}
+  <button class="btn-icon btn-icon-run"
+          title="Archive durchsuchen"
+          hx-get="/api/browser/{{ item_name }}/archives"
+          hx-target="#main-content"
+          hx-swap="innerHTML"
+          hx-push-url="/browser/{{ item_name }}">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+  </button>
+  {# Statistiken #}
+  <button class="btn-icon btn-icon-log"
+          title="Statistiken"
+          hx-get="/api/stats/{{ item_name }}"
+          hx-target="#main-content"
+          hx-swap="innerHTML"
+          hx-push-url="/stats/{{ item_name }}">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="18" y1="20" x2="18" y2="10"/>
+      <line x1="12" y1="20" x2="12" y2="4"/>
+      <line x1="6"  y1="20" x2="6"  y2="14"/>
+      <line x1="2"  y1="20" x2="22" y2="20"/>
+    </svg>
+  </button>
+</div>
+<div style="display:flex; gap:4px;">
+  {{ ui.edit_button(
+      module='repos', item=item_name,
+      container_id=container_id, loading_id=loading_id) }}
+  {{ ui.delete_button(
+      module='repos', item=item_name,
+      description=item_data.description,
+      container_id=container_id, loading_id=loading_id) }}
+</div>

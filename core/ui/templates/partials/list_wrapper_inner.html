@@ -1,5 +1,5 @@
 {#
-  core/ui/templates/partials/list_wrapper.html
+  core/ui/templates/partials/list_wrapper_inner.html
 
   Generisches Card-Listen-Template für runnable CRUD-Module.
   Ersetzt das innerHTML von #{{ container_id }} via HTMX.
@@ -10,8 +10,11 @@
     container_id     – ID des Listen-Containers (z.B. "tab-borg")
     loading_id       – ID des Lade-Indikators
     content_template – Pfad zum modul-spezifischen Inhalt-Partial
+    footer_template  – (optional) Pfad zum modul-eigenen Card-Footer-Partial
     running          – dict der laufenden Jobs {key: mode}
     light_mode       – bool (optionaler schreibgeschützter Modus)
+    has_toggle       – bool (default True)  Toggle-Schalter im Card-Header
+    has_run_buttons  – bool (default True)  Bulk-Run/Enable-Buttons im Page-Header
 #}
 {% import 'partials/components/ui_macros.html' as ui %}
 
@@ -24,7 +27,7 @@
     {% endif %}
   </div>
   <div style="display:flex; gap:6px; align-items:center;">
-    {% if not light_mode and cfg %}
+    {% if not light_mode and cfg and has_run_buttons | default(True) %}
     {{ ui.run_all_button(module=module, container_id=container_id) }}
     {{ ui.run_debug_all_button(module=module, container_id=container_id) }}
     {{ ui.enable_all_button(module=module, container_id=container_id) }}
@@ -65,7 +68,7 @@
             <span class="run-badge">{{ 'Debug' if run_mode == 'debug' else 'läuft' }}</span>
           {% endif %}
         </div>
-        {% if not light_mode %}
+        {% if not light_mode and has_toggle | default(True) %}
         {{ ui.toggle_switch(module=module, item=item_name, container_id=container_id,
                             loading_id=loading_id, enabled=item_data.enabled,
                             description=item_data.description) }}
@@ -83,7 +86,9 @@
 
       <!-- Card Footer -->
       <div class="card-footer">
-        {% if not light_mode %}
+        {% if footer_template is defined and footer_template %}
+          {% include footer_template %}
+        {% elif not light_mode %}
         <div style="display:flex; gap:4px;">
           {{ ui.run_button(module=module, item=item_name, container_id=container_id, enabled=item_data.enabled) }}
           {{ ui.run_debug_button(module=module, item=item_name, container_id=container_id) }}
