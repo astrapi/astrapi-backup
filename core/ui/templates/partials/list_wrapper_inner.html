@@ -10,7 +10,9 @@
     container_id     – ID des Listen-Containers (z.B. "tab-borg")
     loading_id       – ID des Lade-Indikators
     content_template – Pfad zum modul-spezifischen Inhalt-Partial
-    footer_template  – (optional) Pfad zum modul-eigenen Card-Footer-Partial
+    extra_actions_template – (optional) Pfad zum Partial mit modul-eigenen
+                             linken Aktions-Buttons im Card-Footer.
+                             Edit/Delete werden immer generisch ergänzt.
     running          – dict der laufenden Jobs {key: mode}
     light_mode       – bool (optionaler schreibgeschützter Modus)
     has_toggle       – bool (default True)  Toggle-Schalter im Card-Header
@@ -86,13 +88,15 @@
 
       <!-- Card Footer -->
       <div class="card-footer">
-        {% if footer_template is defined and footer_template %}
-          {% include footer_template %}
-        {% elif not light_mode %}
+        {% if not light_mode %}
         <div style="display:flex; gap:4px;">
-          {{ ui.run_button(module=module, item=item_name, container_id=container_id, enabled=item_data.enabled) }}
-          {{ ui.run_debug_button(module=module, item=item_name, container_id=container_id) }}
-          {{ ui.log_button(module=module, item=item_name) }}
+          {% if extra_actions_template is defined and extra_actions_template %}
+            {% include extra_actions_template %}
+          {% else %}
+            {{ ui.run_button(module=module, item=item_name, container_id=container_id, enabled=item_data.enabled) }}
+            {{ ui.run_debug_button(module=module, item=item_name, container_id=container_id) }}
+            {{ ui.log_button(module=module, item=item_name) }}
+          {% endif %}
         </div>
         <div style="display:flex; gap:4px;">
           {{ ui.edit_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id) }}

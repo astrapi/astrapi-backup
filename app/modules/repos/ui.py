@@ -90,7 +90,7 @@ def content():
         container_id=f"tab-{KEY}",
         loading_id=f"{KEY}-loading",
         content_template=f"{KEY}/partials/list.html",
-        footer_template=f"{KEY}/partials/footer.html",
+        extra_actions_template=f"{KEY}/partials/extra_actions.html",
         has_toggle=False,
         has_run_buttons=False,
         running={},

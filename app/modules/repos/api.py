@@ -124,7 +124,7 @@ def _repos_response(request: Request):
         "container_id":     "tab-repos",
         "loading_id":       "repos-loading",
         "content_template": "repos/partials/list.html",
-        "footer_template":  "repos/partials/footer.html",
+        "extra_actions_template": "repos/partials/extra_actions.html",
         "has_toggle":       False,
         "has_run_buttons":  False,
         "running":          {},
