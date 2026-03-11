@@ -44,6 +44,7 @@ class Module:
         nav_group         – Gruppenbezeichnung in der Navigation
         settings_defaults – Default-Werte für Modul-Einstellungen
         settings_schema   – Felder-Schema aus settings.yaml
+        card_actions      – Liste modul-eigener Card-Footer-Buttons (aus modul.yaml)
         module_root       – Pfad zum Modul-Verzeichnis (wird automatisch gesetzt)
     """
 
@@ -60,6 +61,7 @@ class Module:
 
     settings_defaults: dict          = field(default_factory=dict)
     settings_schema:   list          = field(default_factory=list)
+    card_actions:      list          = field(default_factory=list)
 
     module_root: Optional[Path] = field(default=None, repr=False)
 

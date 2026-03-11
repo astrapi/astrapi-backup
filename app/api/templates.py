@@ -48,5 +48,12 @@ def _module_has_settings(key: str) -> bool:
     return bool(m and m.settings_schema)
 
 
+def _module_card_actions(key: str) -> list:
+    from core.ui.module_registry import _mod_registry
+    m = _mod_registry.get(key)
+    return m.card_actions if m else []
+
+
 templates.env.globals["module_label"]        = _module_label
 templates.env.globals["module_has_settings"] = _module_has_settings
+templates.env.globals["module_card_actions"] = _module_card_actions

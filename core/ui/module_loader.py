@@ -50,4 +50,5 @@ def load_modul(module_dir: Path, key: str, api_router, ui_blueprint) -> "Module"
         nav_default       = bool(cfg.get("nav_default", False)),
         settings_defaults = merged_defaults,
         settings_schema   = settings_schema,
+        card_actions      = cfg.get("card_actions", []),
     )

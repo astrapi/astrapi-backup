@@ -143,16 +143,21 @@ def create(
             m = _mod_map.get(key)
             return m.label if m else key.replace("_", " ").title()
 
+        def module_card_actions(key: str) -> list:
+            m = _mod_map.get(key)
+            return m.card_actions if m else []
+
         return {
-            "app_name":            app_cfg.get("APP_NAME",     "myapp"),
-            "app_version":         _app_version,
-            "core_version":        _core_version,
-            "app_logo_svg":        app_cfg.get("APP_LOGO_SVG", None),
-            "app_lang":            app_cfg.get("APP_LANG",     "de"),
-            "light_mode":          light_mode,
-            "modules":             modules,
-            "module_has_settings": module_has_settings,
-            "module_label":        module_label,
+            "app_name":             app_cfg.get("APP_NAME",     "myapp"),
+            "app_version":          _app_version,
+            "core_version":         _core_version,
+            "app_logo_svg":         app_cfg.get("APP_LOGO_SVG", None),
+            "app_lang":             app_cfg.get("APP_LANG",     "de"),
+            "light_mode":           light_mode,
+            "modules":              modules,
+            "module_has_settings":  module_has_settings,
+            "module_label":         module_label,
+            "module_card_actions":  module_card_actions,
         }
 
     # ── Navigation aus Modulen + optionaler items.yaml ────────────────────────

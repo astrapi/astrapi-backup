@@ -1,0 +1,24 @@
+# app/modules/repos/modul.yaml – Modul-Konfiguration
+
+label:       Repositories
+icon:        archive
+nav_group:   Borg
+nav_default: false
+
+# Modul-spezifische Card-Footer-Buttons (linke Seite).
+# Edit/Delete werden generisch ergänzt. {item} wird durch die Item-ID ersetzt.
+card_actions:
+  - title:       Archive durchsuchen
+    icon:        search
+    style:       run
+    hx_get:      /api/browser/{item}/archives
+    hx_target:   "#main-content"
+    hx_swap:     innerHTML
+    hx_push_url: /browser/{item}
+  - title:       Statistiken
+    icon:        bar-chart
+    style:       log
+    hx_get:      /api/stats/{item}
+    hx_target:   "#main-content"
+    hx_swap:     innerHTML
+    hx_push_url: /stats/{item}
