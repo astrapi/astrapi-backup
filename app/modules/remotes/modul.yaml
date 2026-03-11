@@ -5,21 +5,8 @@ icon:        monitor
 nav_group:   System
 nav_default: false
 
-# Modul-spezifische Card-Footer-Buttons (linke Seite).
-# Edit/Delete werden generisch ergänzt. Platzhalter: {item}, {description},
-# {container_id}, {loading_id}
 card_actions:
-  - title:           Aufwecken (Wake on LAN)
-    icon:            power-on
-    style:           run
-    hx_get:          /ui/remotes/{item}/wake?container_id={container_id}&loading_id={loading_id}&description={description}
-    hx_target:       body
-    hx_swap:         beforeend
-    disabled_if_off: true
-  - title:           Herunterfahren (SSH Poweroff)
-    icon:            power-off
-    style:           danger
-    hx_get:          /ui/remotes/{item}/shutdown?container_id={container_id}&loading_id={loading_id}&description={description}
-    hx_target:       body
-    hx_swap:         beforeend
-    disabled_if_off: true
+  - type: power-on
+    url:  /ui/remotes/{item}/wake?container_id={container_id}&loading_id={loading_id}&description={description}
+  - type: power-off
+    url:  /ui/remotes/{item}/shutdown?container_id={container_id}&loading_id={loading_id}&description={description}

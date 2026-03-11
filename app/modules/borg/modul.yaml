@@ -6,24 +6,6 @@ nav_group:   Backup
 nav_default: true
 
 card_actions:
-  - title:           Ausführen
-    icon:            play
-    style:           run
-    hx_post:         /api/borg/{item}/run
-    hx_target:       "#{container_id}"
-    hx_swap:         innerHTML
-    hx_headers:      '{"HX-Request": "true"}'
-    disabled_if_off: true
-  - title:           Ausführen (Debug)
-    icon:            play-debug
-    style:           debug
-    hx_post:         /api/borg/{item}/run?debug=true
-    hx_target:       "#{container_id}"
-    hx_swap:         innerHTML
-    hx_headers:      '{"HX-Request": "true"}'
-  - title:           Log anzeigen
-    icon:            file-text
-    style:           log
-    hx_get:          /api/borg/{item}/logs
-    hx_target:       body
-    hx_swap:         beforeend
+  - type: run
+  - type: run_debug
+  - type: log
