@@ -89,7 +89,7 @@
         <div style="display:flex; gap:4px;">
           {% set _card_actions = module_card_actions(module) %}
           {% if _card_actions %}
-            {% for action in _card_actions %}{{ ui.card_action_button(action, item_name) }}{% endfor %}
+            {% for action in _card_actions %}{{ ui.card_action_button(action, item_name, item_data, container_id, loading_id) }}{% endfor %}
           {% else %}
             {{ ui.run_button(module=module, item=item_name, container_id=container_id, enabled=item_data.enabled) }}
             {{ ui.run_debug_button(module=module, item=item_name, container_id=container_id) }}

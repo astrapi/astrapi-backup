@@ -339,29 +339,39 @@
   {%- elif name == 'external-link' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
   {%- elif name == 'info' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
   {%- elif name == 'refresh' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+  {%- elif name == 'power-on' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+  {%- elif name == 'power-off' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64A9 9 0 1 1 5.64 5.64"/><line x1="12" y1="2" x2="12" y2="12"/><line x1="4" y1="4" x2="20" y2="20"/></svg>
   {%- else -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg>
   {%- endif -%}
 {% endmacro %}
 
 {#
-  card_action_button(action, item)
+  card_action_button(action, item, item_data, container_id, loading_id)
   Rendert einen Card-Footer-Button aus einer card_actions-Eintragsdefinition.
   action – Dict aus modul.yaml card_actions:
-    title       – Tooltip
-    icon        – Icon-Name (siehe icon()-Makro)
-    style       – optional: 'run', 'log', 'danger' → btn-icon-{style}
-    hx_get      – HTMX GET-URL; {item} wird durch item ersetzt
-    hx_target   – HTMX-Target (default: #main-content)
-    hx_swap     – HTMX-Swap (default: innerHTML)
-    hx_push_url – HTMX push-url; {item} wird durch item ersetzt
+    title           – Tooltip
+    icon            – Icon-Name (siehe icon()-Makro)
+    style           – optional: 'run', 'log', 'danger' → btn-icon-{style}
+    hx_get          – HTMX GET-URL; Platzhalter: {item}, {description},
+                      {container_id}, {loading_id}
+    hx_target       – HTMX-Target (default: #main-content)
+    hx_swap         – HTMX-Swap (default: innerHTML)
+    hx_push_url     – HTMX push-url; {item} wird durch item ersetzt
+    disabled_if_off – bool: Button deaktivieren wenn item_data.enabled=false
 #}
-{% macro card_action_button(action, item) %}
+{% macro card_action_button(action, item, item_data={}, container_id='', loading_id='') %}
+{%- set _url = action.hx_get
+    | replace('{item}',         item | string)
+    | replace('{description}',  item_data.description | default(item | string))
+    | replace('{container_id}', container_id | default(''))
+    | replace('{loading_id}',   loading_id   | default('')) -%}
 <button class="btn-icon{% if action.style %} btn-icon-{{ action.style }}{% endif %}"
         title="{{ action.title }}"
-        {% if action.hx_get %}hx-get="{{ action.hx_get | replace('{item}', item | string) }}"{% endif %}
+        {% if action.hx_get %}hx-get="{{ _url }}"{% endif %}
         hx-target="{{ action.hx_target | default('#main-content') }}"
         hx-swap="{{ action.hx_swap | default('innerHTML') }}"
-        {% if action.hx_push_url %}hx-push-url="{{ action.hx_push_url | replace('{item}', item | string) }}"{% endif %}>
+        {% if action.hx_push_url %}hx-push-url="{{ action.hx_push_url | replace('{item}', item | string) }}"{% endif %}
+        {% if action.disabled_if_off and not item_data.enabled %}disabled style="opacity:.3; cursor:not-allowed;"{% endif %}>
   {{ icon(action.icon) }}
 </button>
 {% endmacro %}
