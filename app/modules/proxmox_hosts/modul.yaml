@@ -12,3 +12,9 @@ card_actions:
     url:  /api/proxmox_hosts/{item}/run?debug=true
   - type: log
     url:  /api/proxmox_hosts/{item}/logs
+  - title: Befehlsvorschau
+    icon:  terminal-box
+    style: log
+    hx_get:    /api/proxmox_hosts/{item}/preview
+    hx_target: body
+    hx_swap:   beforeend

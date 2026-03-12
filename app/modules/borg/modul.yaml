@@ -12,3 +12,9 @@ card_actions:
     url:  /api/borg/{item}/run?debug=true
   - type: log
     url:  /api/borg/{item}/logs
+  - title: Befehlsvorschau
+    icon:  terminal-box
+    style: log
+    hx_get:    /api/borg/{item}/preview
+    hx_target: body
+    hx_swap:   beforeend

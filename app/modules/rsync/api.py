@@ -137,3 +137,17 @@ def disable_all(request: Request):
             item["enabled"] = False
             save_item(KEY, iid, item)
     return _list_response(request)
+
+
+@router.get("/{item_id}/preview")
+def preview_item(item_id: str, request: Request):
+    from modules.rsync import jobs
+    entry = get_item(KEY, item_id) or get_item(KEY, int(item_id) if item_id.isdigit() else item_id)
+    if entry is None:
+        raise HTTPException(404, "Item not found")
+    from api.templates import templates
+    return templates.TemplateResponse("partials/preview_modal.html", {
+        "request":     request,
+        "description": entry.get("description", item_id),
+        "commands":    jobs.preview(item_id),
+    })

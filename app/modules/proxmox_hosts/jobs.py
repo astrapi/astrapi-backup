@@ -12,6 +12,39 @@ from api.storage import load_config as _load_config
 def _get_config(): return _load_config("proxmox_hosts")
 
 
+def preview(item_id) -> list[dict]:
+    """Gibt den Befehl zurück, der bei run_single ausgeführt würde."""
+    entry = _get_config().get(item_id) or _get_config().get(
+        int(item_id) if str(item_id).isdigit() else item_id) or {}
+
+    host       = entry.get("host", item_id)
+    connection = build_connection_string(host)
+
+    pxar_sources = [
+        "etc.pxar:/etc", "home.pxar:/home", "opt.pxar:/opt",
+        "root.pxar:/root", "local.pxar:/usr/local",
+    ]
+    pxar_sources += entry.get("source", [])
+
+    pbs_repo = "backup@pbs!backup-host@172.19.18.5:storage"
+
+    cmd_parts = [
+        f"PBS_REPOSITORY={pbs_repo}", "PBS_PASSWORD=***", "PBS_FINGERPRINT=***",
+        "sudo", "--preserve-env=PBS_REPOSITORY,PBS_PASSWORD,PBS_FINGERPRINT",
+        "/usr/bin/proxmox-backup-client", "backup", *pxar_sources,
+        "--backup-type", "host", "--backup-id", "$(hostname)",
+        "--ns", "host", "--backup-time", "$(date +%s)",
+    ]
+    cmd_str = " ".join(cmd_parts)
+
+    if connection == "local":
+        full_cmd = cmd_str
+    else:
+        full_cmd = f"ssh -o BatchMode=yes -o ConnectTimeout=10 {connection} '{cmd_str}'"
+
+    return [{"label": "proxmox-backup-client", "cmd": full_cmd}]
+
+
 def run():
     for item_id, entry in _get_config().items():
         if not entry.get("enabled", True):

@@ -12,6 +12,35 @@ from api.storage import load_config as _load_config
 def _get_config(): return _load_config("proxmox_lxc")
 
 
+def preview(item_id) -> list[dict]:
+    """Gibt den Befehl zurück, der bei run_single ausgeführt würde."""
+    entry = _get_config().get(item_id) or _get_config().get(
+        int(item_id) if str(item_id).isdigit() else item_id)
+    if entry is None:
+        return []
+
+    node       = entry["node"]
+    vmid       = entry["vmid"]
+    connection = build_connection_string(node)
+
+    cmd_parts = [
+        "sudo", "/usr/bin/vzdump", str(vmid),
+        "--fleecing", "0", "--node", node,
+        "--mode", "snapshot",
+        "--notification-mode", "notification-system",
+        "--notes-template", "{{guestname}}",
+        "--storage", "backup01", "--all", "0",
+    ]
+    cmd_str = " ".join(cmd_parts)
+
+    if connection == "local":
+        full_cmd = cmd_str
+    else:
+        full_cmd = f"ssh -o BatchMode=yes -o ConnectTimeout=10 {connection} '{cmd_str}'"
+
+    return [{"label": "vzdump", "cmd": full_cmd}]
+
+
 def run():
     grouped = group_by_node(_get_config())
     with ThreadPoolExecutor(max_workers=max(len(grouped), 1)) as executor:

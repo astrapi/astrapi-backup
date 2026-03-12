@@ -13,6 +13,73 @@ from api.storage import load_config as _load_config
 def _get_config(): return _load_config("borg")
 
 
+def preview(job_id) -> list[dict]:
+    """Gibt die Befehle zurück, die bei run_single ausgeführt würden."""
+    entry = _get_config().get(job_id) or _get_config().get(
+        int(job_id) if str(job_id).isdigit() else job_id)
+    if entry is None:
+        return []
+
+    source_host = entry.get("source_host")
+    target_host = entry.get("target_host")
+    archive_name = datetime.now().strftime("%Y%m%d_%H%M%S")
+    repo    = _repo(source_host, target_host, entry.get("target_path"))
+    archive = f"{repo}::{archive_name}"
+    src     = f"{entry.get('source_path')}/./"
+
+    def _fmt(parts, connection):
+        cmd_str = " ".join(parts) if isinstance(parts, list) else parts
+        if connection == "local":
+            return cmd_str
+        return f"ssh -o BatchMode=yes -o ConnectTimeout=10 {connection} '{cmd_str}'"
+
+    commands = []
+
+    # Pre-Hook
+    if entry.get("pre"):
+        hooks = entry["pre"]
+        if isinstance(hooks, str):
+            hooks = [l for l in hooks.split("\n") if l]
+        cmd = "; ".join(hooks)
+        if cmd:
+            conn = build_connection_string(source_host, entry.get("ssh_user") or "backupadm")
+            commands.append({"label": "Pre-Hook", "cmd": _fmt(cmd, conn)})
+
+    # Borg Backup
+    conn = build_connection_string(source_host, "backupadm")
+    base_cmd = [
+        "BORG_PASSPHRASE=***",
+        "/var/lib/backupadm/.venv/bin/borg", "create",
+        "--verbose", "--stats", "--compression", "auto,zstd",
+        "--exclude-caches",
+    ]
+    for pattern in entry.get("exclude", []):
+        safe = f"'{pattern}'" if any(c in pattern for c in "*?[") else pattern
+        base_cmd.extend(["--exclude", safe])
+    commands.append({"label": "Borg Backup", "cmd": _fmt([*base_cmd, archive, src], conn)})
+
+    # Post-Hook
+    if entry.get("post"):
+        hooks = entry["post"]
+        if isinstance(hooks, str):
+            hooks = [l for l in hooks.split("\n") if l]
+        cmd = "; ".join(hooks)
+        if cmd:
+            conn2 = build_connection_string(source_host, entry.get("ssh_user") or "backupadm")
+            commands.append({"label": "Post-Hook", "cmd": _fmt(cmd, conn2)})
+
+    # Borg Prune
+    prune_cmd = [
+        "BORG_PASSPHRASE=***",
+        "/var/lib/backupadm/.venv/bin/borg", "prune",
+        "--keep-daily=7", "--keep-weekly=4", "--keep-monthly=12", "--keep-yearly=5",
+        repo,
+    ]
+    commands.append({"label": "Borg Prune", "cmd": _fmt(prune_cmd, conn)})
+
+    return commands
+
+
 def run():
     for job_id, entry in _get_config().items():
         if not entry.get("enabled", False):

@@ -10,6 +10,30 @@ from api.storage import load_config as _load_config
 def _get_config(): return _load_config("proxmox_jobs")
 
 
+def preview(item_id) -> list[dict]:
+    """Gibt den Befehl zurück, der bei run_single ausgeführt würde."""
+    job = _get_config().get(item_id) or _get_config().get(
+        int(item_id) if str(item_id).isdigit() else item_id)
+    if job is None:
+        return []
+
+    job_name   = job["job"]
+    job_type   = job["type"]
+    host       = job["host"]
+    connection = build_connection_string(host)
+
+    cmd_parts = ["sudo", "/usr/sbin/proxmox-backup-manager",
+                 f"{job_type}-job", "run", job_name]
+    cmd_str   = " ".join(cmd_parts)
+
+    if connection == "local":
+        full_cmd = cmd_str
+    else:
+        full_cmd = f"ssh -o BatchMode=yes -o ConnectTimeout=10 {connection} '{cmd_str}'"
+
+    return [{"label": f"{job_type}-job", "cmd": full_cmd}]
+
+
 def run():
     for item_id, job in _get_config().items():
         if not job.get("enabled", True):
