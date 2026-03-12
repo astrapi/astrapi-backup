@@ -1,5 +1,4 @@
 # helpers/cmd.py
-import os
 import socket
 import subprocess
 from functools import lru_cache
@@ -18,25 +17,35 @@ TIMEOUT_BACKUP  = None  # Backup selbst: kein Timeout (kann Stunden dauern)
 @lru_cache(maxsize=1)
 def _local_hostnames() -> frozenset:
     names = set()
-    names.add(socket.gethostname())
-    names.add(socket.getfqdn())
+    hostname = socket.gethostname()
+    fqdn = socket.getfqdn()
+    names.add(hostname)
+    names.add(fqdn)
+    names.add(hostname.split('.')[0])   # Kurzname ohne Domain
+    names.add(fqdn.split('.')[0])       # Kurzname ohne Domain
     try:
-        names.add(socket.gethostbyname(socket.gethostname()))
+        names.add(socket.gethostbyname(hostname))
     except OSError:
         pass
     return frozenset(names)
 
 
 def is_local(host: str) -> bool:
-    if host == "local":
+    if not host or host == "local":
         return True
-    return host in _local_hostnames()
+    local = _local_hostnames()
+    if host in local:
+        return True
+    # Kurzname des übergebenen Hosts prüfen ("bart.simpsons.lan" → "bart")
+    if host.split('.')[0] in local:
+        return True
+    return False
 
 
 def build_connection_string(host: str, ssh_user: str = "backupadm") -> str:
     if is_local(host):
         return "local"
-    return f"{ssh_user}@{host}"
+    return f"{ssh_user or 'backupadm'}@{host}"
 
 
 def run_cmd(cmd, connection: str, env=None, timeout=TIMEOUT_BACKUP):

@@ -31,7 +31,7 @@
     <input
       type="text"
       name="{{ field.name }}"
-      value="{{ values[field.name] if values else '' }}"
+      value="{{ values[field.name] if values else field.get('default', '') }}"
       {% if field.max %}maxlength="{{ field.max }}"{% endif %}
       {% if field.min_length %}minlength="{{ field.min_length }}"{% endif %}
       {% if field.pattern %}pattern="{{ field.pattern }}"{% endif %}

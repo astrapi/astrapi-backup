@@ -23,7 +23,7 @@
 >
   <div class="ds-modal" style="max-width:620px; padding:20px 24px;">
 
-    {{ modal_title(is_edit=item is not none, title=title) }}
+    {{ modal_title(title=title, icon='') }}
 
     <form id="create-edit-form"
       hx-{{ method }}="{{ submit_url }}"

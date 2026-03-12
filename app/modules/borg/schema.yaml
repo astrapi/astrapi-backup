@@ -21,7 +21,7 @@ fields:
   - name: source_path
     type: text
     label: Source Path
-    max: 50
+    max: 200
     column: 2
     row: 2
   - name: target_host
@@ -33,13 +33,14 @@ fields:
   - name: target_path
     type: text
     label: Target Path
-    max: 50
+    max: 200
     column: 2
     row: 3
   - name: ssh_user
     type: text
     label: SSH User
     max: 50
+    default: backupadm
     column: 1
     row: 4
   - name: pre
