@@ -49,34 +49,39 @@
   label: Aufbewahrung (Prune)
 
 - key: keep_daily
-  label: Tägliche Aufbewahrung
+  label: Täglich
   type: number
   default: "7"
   description: Anzahl täglicher Backups die behalten werden
+  inline: true
 
 - key: keep_weekly
-  label: Wöchentliche Aufbewahrung
+  label: Wöchentlich
   type: number
   default: "4"
   description: Anzahl wöchentlicher Backups die behalten werden
+  inline: true
 
 - key: keep_monthly
-  label: Monatliche Aufbewahrung
+  label: Monatlich
   type: number
   default: "12"
   description: Anzahl monatlicher Backups die behalten werden
+  inline: true
 
 - key: keep_yearly
-  label: Jährliche Aufbewahrung
+  label: Jährlich
   type: number
   default: "5"
   description: Anzahl jährlicher Backups die behalten werden
+  inline: true
 
 - key: keep_within
-  label: Vollständige Aufbewahrung (Tage)
+  label: Keep-Within (Tage)
   type: number
   default: "7"
   description: Alle Archive innerhalb dieser Tage vollständig behalten (--keep-within=Nd), 0 = deaktiviert
+  inline: true
 
 - type: section
   label: Wartung

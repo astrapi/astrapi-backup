@@ -34,21 +34,50 @@
     <form hx-post="/ui/{{ mod.key }}/settings"
           hx-target="#settings-modal"
           hx-swap="outerHTML"
-          style="display:flex; flex-direction:column; gap:14px;">
+          style="display:flex; flex-direction:column; gap:8px;">
+
+      {# Track inline-group state with a namespace so assignments inside loops work #}
+      {% set ns = namespace(in_inline=false) %}
 
       {% for field in schema %}
       {% set fkey  = field.get('key', '') %}
       {% set ftype = field.get('type', 'text') %}
       {% set fval  = values.get(fkey, field.get('default', '')) %}
+      {% set is_inline = field.get('inline', false) %}
+
+      {# Close open inline-group when a non-inline field (or section) arrives #}
+      {% if ns.in_inline and not is_inline %}
+      </div>{# /inline-grid #}
+      {% set ns.in_inline = false %}
+      {% endif %}
 
       {% if ftype == 'section' %}
-      <div style="margin:10px 0 2px; padding-top:10px; border-top:1px solid var(--border-s);">
+      <div style="margin:4px 0 0; padding-top:8px; border-top:1px solid var(--border-s);">
         <span style="font-size:11px; font-weight:700; letter-spacing:.07em;
                      text-transform:uppercase; color:var(--text-3);">{{ field.label }}</span>
       </div>
       {% else %}
-      <div class="form-group" style="margin:0;">
-        <label class="form-label">{{ field.label }}</label>
+
+      {# Open inline-group if needed #}
+      {% if is_inline and not ns.in_inline %}
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(90px, 1fr)); gap:6px;">
+      {% set ns.in_inline = true %}
+      {% endif %}
+
+      <div class="form-group" style="margin:0; {% if is_inline %}min-width:0;{% endif %}">
+        <label class="form-label" style="display:flex; align-items:center; gap:4px; margin-bottom:3px;">
+          {{ field.label }}
+          {% if field.get('description') %}
+          <span title="{{ field.description }}"
+                style="display:inline-flex; align-items:center; cursor:help; color:var(--text-3); flex-shrink:0;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+          </span>
+          {% endif %}
+        </label>
 
         {% if ftype == 'select' %}
         <select name="{{ fkey }}" class="form-select">
@@ -89,14 +118,14 @@
                style="{% if field.get('mono') %}font-family:var(--font-mono);{% endif %}">
         {% endif %}
 
-        {% if field.get('description') %}
-        <span style="font-size:11px; color:var(--text-3); margin-top:3px; display:block;">
-          {{ field.description }}
-        </span>
-        {% endif %}
       </div>
       {% endif %}
       {% endfor %}
+
+      {# Close any still-open inline-group at end of fields #}
+      {% if ns.in_inline %}
+      </div>{# /inline-grid #}
+      {% endif %}
 
       {{ modal_footer(has_toggle=False, save_label="Speichern", save_type="submit") }}
     </form>
