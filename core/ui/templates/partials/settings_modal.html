@@ -37,10 +37,16 @@
           style="display:flex; flex-direction:column; gap:14px;">
 
       {% for field in schema %}
-      {% set fkey  = field.key %}
+      {% set fkey  = field.get('key', '') %}
       {% set ftype = field.get('type', 'text') %}
       {% set fval  = values.get(fkey, field.get('default', '')) %}
 
+      {% if ftype == 'section' %}
+      <div style="margin:10px 0 2px; padding-top:10px; border-top:1px solid var(--border-s);">
+        <span style="font-size:11px; font-weight:700; letter-spacing:.07em;
+                     text-transform:uppercase; color:var(--text-3);">{{ field.label }}</span>
+      </div>
+      {% else %}
       <div class="form-group" style="margin:0;">
         <label class="form-label">{{ field.label }}</label>
 
@@ -89,6 +95,7 @@
         </span>
         {% endif %}
       </div>
+      {% endif %}
       {% endfor %}
 
       {{ modal_footer(has_toggle=False, save_label="Speichern", save_type="submit") }}

@@ -9,8 +9,11 @@ from helpers.secrets import get_secret
 from helpers.cmd import run_cmd, build_connection_string, is_local
 from helpers.debug import is_debug
 
+from core.ui.settings_registry import get_module as _get_module_setting
 from api.storage import load_config as _load_config
+
 def _get_config(): return _load_config("borg")
+def _s(key, default): return _get_module_setting("borg", key, default)
 
 
 def preview(job_id) -> list[dict]:
@@ -46,11 +49,12 @@ def preview(job_id) -> list[dict]:
             commands.append({"label": "Pre-Hook", "cmd": _fmt(cmd, conn)})
 
     # Borg Backup
-    conn = build_connection_string(source_host, "backupadm")
+    conn        = build_connection_string(source_host, "backupadm")
+    compression = _s("compression", "auto,zstd")
     base_cmd = [
         "BORG_PASSPHRASE=***",
         "/var/lib/backupadm/.venv/bin/borg", "create",
-        "--verbose", "--stats", "--compression", "auto,zstd",
+        "--verbose", "--stats", "--compression", compression,
         "--exclude-caches",
     ]
     for pattern in entry.get("exclude", []):
@@ -69,13 +73,26 @@ def preview(job_id) -> list[dict]:
             commands.append({"label": "Post-Hook", "cmd": _fmt(cmd, conn2)})
 
     # Borg Prune
+    keep_daily   = _s("keep_daily",   "7")
+    keep_weekly  = _s("keep_weekly",  "4")
+    keep_monthly = _s("keep_monthly", "12")
+    keep_yearly  = _s("keep_yearly",  "5")
+    keep_within  = _s("keep_within",  "7")
     prune_cmd = [
         "BORG_PASSPHRASE=***",
         "/var/lib/backupadm/.venv/bin/borg", "prune",
-        "--keep-daily=7", "--keep-weekly=4", "--keep-monthly=12", "--keep-yearly=5",
-        repo,
+        f"--keep-daily={keep_daily}", f"--keep-weekly={keep_weekly}",
+        f"--keep-monthly={keep_monthly}", f"--keep-yearly={keep_yearly}",
     ]
+    if keep_within and str(keep_within) != "0":
+        prune_cmd.append(f"--keep-within={keep_within}d")
+    prune_cmd.append(repo)
     commands.append({"label": "Borg Prune", "cmd": _fmt(prune_cmd, conn)})
+
+    # Borg Compact
+    if _s("compact_after_prune", "1") in ("1", "true", True):
+        compact_cmd = ["BORG_PASSPHRASE=***", "/var/lib/backupadm/.venv/bin/borg", "compact", repo]
+        commands.append({"label": "Borg Compact", "cmd": _fmt(compact_cmd, conn)})
 
     return commands
 
@@ -110,6 +127,8 @@ def run_single(job_id, entry=None):
         if entry.get("post"):
             _hook("post", entry)
         _prune(entry)
+        if _s("compact_after_prune", "1") in ("1", "true", True):
+            _compact(entry)
         log("INFO", f"=== Borg '{entry.get('description', job_id)}' abgeschlossen ===")
     finally:
         clear_log_context()
@@ -176,15 +195,16 @@ def _backup(entry):
     archive_name = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     env = dict(os.environ)
-    env["BORG_PASSPHRASE"] = get_secret("BORG_PASSPHRASE")
+    env["BORG_PASSPHRASE"] = _s("passphrase", "") or get_secret("BORG_PASSPHRASE")
 
     repo    = _repo(source_host, target_host, entry.get("target_path"))
     archive = f"{repo}::{archive_name}"
     src     = f"{entry.get('source_path')}/./"
 
+    compression = _s("compression", "auto,zstd")
     base_cmd = [
         "/var/lib/backupadm/.venv/bin/borg", "create",
-        "--verbose", "--stats", "--compression", "auto,zstd",
+        "--verbose", "--stats", "--compression", compression,
         "--exclude-caches",
     ]
     for pattern in entry.get("exclude", []):
@@ -218,14 +238,23 @@ def _prune(entry):
     connection  = build_connection_string(source_host, "backupadm")
 
     env = dict(os.environ)
-    env["BORG_PASSPHRASE"] = get_secret("BORG_PASSPHRASE")
+    env["BORG_PASSPHRASE"] = _s("passphrase", "") or get_secret("BORG_PASSPHRASE")
 
     repo = _repo(source_host, target_host, entry.get("target_path"))
 
+    keep_daily   = _s("keep_daily",   "7")
+    keep_weekly  = _s("keep_weekly",  "4")
+    keep_monthly = _s("keep_monthly", "12")
+    keep_yearly  = _s("keep_yearly",  "5")
+    keep_within  = _s("keep_within",  "7")
+
     base_cmd = [
         "/var/lib/backupadm/.venv/bin/borg", "prune",
-        "--keep-daily=7", "--keep-weekly=4", "--keep-monthly=12", "--keep-yearly=5",
+        f"--keep-daily={keep_daily}", f"--keep-weekly={keep_weekly}",
+        f"--keep-monthly={keep_monthly}", f"--keep-yearly={keep_yearly}",
     ]
+    if keep_within and str(keep_within) != "0":
+        base_cmd.append(f"--keep-within={keep_within}d")
 
     if is_local(source_host):
         cmd = [*base_cmd, repo]
@@ -237,4 +266,28 @@ def _prune(entry):
         log("INFO", "Borg-Prune erfolgreich.")
     except subprocess.CalledProcessError as e:
         log("WARNING", "Borg-Prune fehlgeschlagen")
+        log("ERROR", e.stderr.strip() if e.stderr else "Unbekannter Fehler.")
+
+
+def _compact(entry):
+    source_host = entry.get("source_host")
+    target_host = entry.get("target_host")
+    connection  = build_connection_string(source_host, "backupadm")
+
+    env = dict(os.environ)
+    env["BORG_PASSPHRASE"] = _s("passphrase", "") or get_secret("BORG_PASSPHRASE")
+
+    repo     = _repo(source_host, target_host, entry.get("target_path"))
+    base_cmd = ["/var/lib/backupadm/.venv/bin/borg", "compact", repo]
+
+    if is_local(source_host):
+        cmd = base_cmd
+    else:
+        cmd = [f"BORG_PASSPHRASE={env['BORG_PASSPHRASE']}", *base_cmd]
+
+    try:
+        run_cmd(cmd, connection, env=env)
+        log("INFO", "Borg-Compact erfolgreich.")
+    except subprocess.CalledProcessError as e:
+        log("WARNING", "Borg-Compact fehlgeschlagen")
         log("ERROR", e.stderr.strip() if e.stderr else "Unbekannter Fehler.")
