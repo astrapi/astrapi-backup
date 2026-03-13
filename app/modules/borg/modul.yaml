@@ -8,13 +8,7 @@ nav_default: true
 card_actions:
   - type: run
     url:  /api/borg/{item}/run
-  - type: run_debug
-    url:  /api/borg/{item}/run?debug=true
   - type: log
     url:  /api/borg/{item}/logs
-  - title: Befehlsvorschau
-    icon:  terminal-box
-    style: log
-    hx_get:    /api/borg/{item}/preview
-    hx_target: body
-    hx_swap:   beforeend
+  - type: preview
+    url:  /api/borg/{item}/preview

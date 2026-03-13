@@ -8,13 +8,7 @@ nav_default: false
 card_actions:
   - type: run
     url:  /api/rsync/{item}/run
-  - type: run_debug
-    url:  /api/rsync/{item}/run?debug=true
   - type: log
     url:  /api/rsync/{item}/logs
-  - title: Befehlsvorschau
-    icon:  terminal-box
-    style: log
-    hx_get:    /api/rsync/{item}/preview
-    hx_target: body
-    hx_swap:   beforeend
+  - type: preview
+    url:  /api/rsync/{item}/preview
