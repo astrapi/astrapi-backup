@@ -7,8 +7,6 @@ from helpers.logger import log, set_log_context, clear_log_context
 from helpers.reachability import require_hosts
 from helpers.secrets import get_secret
 from helpers.cmd import run_cmd, build_connection_string, is_local
-from helpers.debug import is_debug
-
 from core.ui.settings_registry import get_module as _get_module_setting
 from api.storage import load_config as _load_config
 
@@ -115,19 +113,17 @@ def run_single(job_id, entry=None):
         log("ERROR", f"Borg-Eintrag '{job_id}' nicht gefunden")
         return
 
-    log_item_id = f"{job_id}_debug" if is_debug() else job_id
-    set_log_context("borg", log_item_id)
+    set_log_context("borg", job_id)
     try:
         log("INFO", f"=== Borg '{entry.get('description', job_id)}' gestartet ===")
-        if not is_debug():
-            src_local = _src_local(entry)
-            hosts = []
-            if not src_local and entry.get("source_host") and not is_local(entry.get("source_host")):
-                hosts.append(entry.get("source_host"))
-            if entry.get("target_host") and not is_local(entry.get("target_host")):
-                hosts.append(entry.get("target_host"))
-            if not require_hosts(hosts):
-                return
+        src_local = _src_local(entry)
+        hosts = []
+        if not src_local and entry.get("source_host") and not is_local(entry.get("source_host")):
+            hosts.append(entry.get("source_host"))
+        if entry.get("target_host") and not is_local(entry.get("target_host")):
+            hosts.append(entry.get("target_host"))
+        if not require_hosts(hosts):
+            return
         if entry.get("pre"):
             _hook("pre", entry)
         _backup(entry)

@@ -5,7 +5,6 @@ import subprocess
 from helpers.logger import log, set_log_context, clear_log_context
 from helpers.reachability import require_hosts
 from helpers.cmd import run_cmd, build_connection_string, is_local
-from helpers.debug import is_debug
 from core.ui.settings_registry import get_module as _get_module_setting
 
 from api.storage import load_config as _load_config
@@ -60,9 +59,8 @@ def run_single(item_id, entry=None):
     try:
         host = entry.get("host", item_id)
         log("INFO", f"=== Host '{entry.get('description', host)}' gestartet ===")
-        if not is_debug():
-            if not require_hosts([host]):
-                return
+        if not require_hosts([host]):
+            return
         _backup(host, entry)
         log("INFO", f"=== Host '{entry.get('description', host)}' abgeschlossen ===")
     finally:
