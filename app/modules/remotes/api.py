@@ -12,10 +12,14 @@ router = APIRouter(tags=[KEY])
 def _list_response(request: Request):
     from api.templates import templates
     return templates.TemplateResponse(
-        "remotes/partials/list.html",
+        "partials/list_wrapper_inner.html",
         {
-            "request": request,
-            "cfg":     load_config(KEY),
+            "request":          request,
+            "cfg":              load_config(KEY),
+            "module":           KEY,
+            "content_template": f"{KEY}/partials/list.html",
+            "container_id":     f"tab-{KEY}",
+            "loading_id":       f"{KEY}-loading",
         },
     )
 
@@ -24,7 +28,7 @@ def _list_response(request: Request):
 async def create_one(request: Request):
     form    = await request.form()
     payload = dict(form)
-    payload["enabled"] = payload.get("enabled") == "on"
+    payload["enabled"] = payload.get("enabled") in ("on", "1", True)
     new_id = next_item_id(KEY)
     save_item(KEY, new_id, payload)
     try:
@@ -45,7 +49,7 @@ async def patch_one(item_id: str, request: Request):
         raise HTTPException(404, "Item not found")
     form    = await request.form()
     payload = dict(form)
-    payload["enabled"] = payload.get("enabled") == "on"
+    payload["enabled"] = payload.get("enabled") in ("on", "1", True)
     existing.update(payload)
     save_item(KEY, iid, existing)
     try:

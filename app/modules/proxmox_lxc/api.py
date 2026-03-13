@@ -72,7 +72,7 @@ def _extract_lists(schema, payload):
 async def create_one(request: Request):
     form    = await request.form()
     payload = dict(form)
-    payload["enabled"] = payload.get("enabled") == "on"
+    payload["enabled"] = payload.get("enabled") in ("on", "1", True)
     payload = _extract_lists(_load_schema(), payload)
     save_item(KEY, next_item_id(KEY), _clean(payload))
     if request.headers.get("HX-Request") == "true":
@@ -88,7 +88,7 @@ async def patch_one(item_id: str, request: Request):
         raise HTTPException(404, "Item not found")
     form    = await request.form()
     payload = dict(form)
-    payload["enabled"] = payload.get("enabled") == "on"
+    payload["enabled"] = payload.get("enabled") in ("on", "1", True)
     payload  = _extract_lists(_load_schema(), payload)
     existing.update(payload)
     save_item(KEY, iid, _clean(existing))

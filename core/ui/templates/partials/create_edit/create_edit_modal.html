@@ -9,9 +9,9 @@
     submit_url   – Ziel-URL (POST für Create, PUT für Edit)
     method       – "post" oder "put"
     title        – Titel des Dialogs
-    container_id – Fallback (wird nicht mehr für hx-target genutzt)
+    container_id – HTMX-Target nach Speichern (z.B. "tab-rsync")
     loading_id   – HTMX-Indikator
-    submit_url   – Flask-Route die HTML zurückgibt (wird in #main-content geladen)
+    submit_url   – Flask-Route die HTML zurückgibt
 #}
 {% from "partials/components/ui_macros.html" import modal_title, modal_footer %}
 <div
@@ -26,7 +26,7 @@
 
     <form id="create-edit-form"
       hx-{{ method }}="{{ submit_url }}"
-      hx-target="#main-content"
+      hx-target="#{{ container_id }}"
       hx-swap="innerHTML"
       hx-indicator="#{{ loading_id }}"
       style="display:flex; flex-direction:column; gap:14px;"
