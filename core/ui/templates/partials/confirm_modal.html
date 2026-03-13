@@ -7,8 +7,7 @@
 <div class="ds-modal-backdrop"
      x-data
      x-init="$nextTick(() => $el.querySelector('.confirm-dialog').focus())"
-     x-on:keydown.escape.window="$el.remove()"
-     x-on:click.self="$el.remove()">
+     x-on:keydown.escape.window="$el.remove()">
 
   <div class="confirm-dialog" tabindex="-1">
 

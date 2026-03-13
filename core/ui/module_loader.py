@@ -30,15 +30,6 @@ _CARD_ACTION_TYPES: dict[str, dict] = {
         "hx_headers":      '{"HX-Request": "true"}',
         "disabled_if_off": True,
     },
-    "run_debug": {
-        "title":           "Ausführen (Debug)",
-        "icon":            "play-debug",
-        "style":           "debug",
-        "hx_post":         "/api/{module}/{item}/run?debug=true",
-        "hx_target":       "#{container_id}",
-        "hx_swap":         "innerHTML",
-        "hx_headers":      '{"HX-Request": "true"}',
-    },
     "log": {
         "title":    "Log anzeigen",
         "icon":     "file-text",
@@ -81,9 +72,33 @@ _CARD_ACTION_TYPES: dict[str, dict] = {
         "hx_swap":         "beforeend",
         "disabled_if_off": True,
     },
+    "preview": {
+        "title":    "Befehlsvorschau",
+        "icon":     "terminal-box",
+        "style":    "log",
+        "hx_get":   "/api/{module}/{item}/preview",
+        "hx_target":"body",
+        "hx_swap":  "beforeend",
+    },
+    "archives": {
+        "title":    "Archive anzeigen",
+        "icon":     "archive",
+        "style":    "log",
+        "hx_get":   "/api/{module}/{item}/archives",
+        "hx_target":"body",
+        "hx_swap":  "beforeend",
+    },
+    "stats": {
+        "title":    "Statistiken",
+        "icon":     "bar-chart",
+        "style":    "log",
+        "hx_get":   "/api/{module}/{item}/stats",
+        "hx_target":"body",
+        "hx_swap":  "beforeend",
+    },
 }
 
-_POST_TYPES = {"run", "run_debug"}
+_POST_TYPES = {"run"}
 
 
 def _expand_card_actions(actions: list, module_key: str) -> list:

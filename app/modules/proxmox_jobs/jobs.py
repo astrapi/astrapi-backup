@@ -4,8 +4,6 @@ import subprocess
 from helpers.logger import log, set_log_context, clear_log_context
 from helpers.reachability import require_hosts
 from helpers.cmd import run_cmd, build_connection_string
-from helpers.debug import is_debug
-
 from api.storage import load_config as _load_config
 def _get_config(): return _load_config("proxmox_jobs")
 
@@ -55,9 +53,8 @@ def run_single(item_id, job=None):
         host     = job["host"]
         desc     = job.get("description", job_name)
         log("INFO", f"=== Job '{desc}' ({job_type}) gestartet ===")
-        if not is_debug():
-            if not require_hosts([host]):
-                return
+        if not require_hosts([host]):
+            return
         _run(job_type, job_name, host)
         log("INFO", f"=== Job '{desc}' abgeschlossen ===")
     finally:

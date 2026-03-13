@@ -4,8 +4,6 @@ import subprocess
 from helpers.logger import log, set_log_context, clear_log_context
 from helpers.reachability import require_hosts
 from helpers.cmd import run_cmd, build_connection_string, is_local
-from helpers.debug import is_debug
-
 from api.storage import load_config as _load_config
 def _get_config(): return _load_config("rsync")
 
@@ -53,16 +51,13 @@ def run_single(job_id, entry=None):
     if entry is None:
         log("ERROR", f"Rsync-Eintrag '{job_id}' nicht gefunden")
         return
-    from helpers.debug import is_debug
-    log_id = f"{job_id}_debug" if is_debug() else job_id
-    set_log_context("rsync", log_id)
+    set_log_context("rsync", job_id)
     try:
         log("INFO", f"=== Rsync '{entry.get('description', job_id)}' gestartet ===")
-        if not is_debug():
-            hosts = [h for h in {entry.get("source_host"), entry.get("target_host")}
-                     if h and not is_local(h)]
-            if not require_hosts(hosts):
-                return
+        hosts = [h for h in {entry.get("source_host"), entry.get("target_host")}
+                 if h and not is_local(h)]
+        if not require_hosts(hosts):
+            return
         _rsync(entry)
         log("INFO", f"=== Rsync '{entry.get('description', job_id)}' abgeschlossen ===")
     finally:

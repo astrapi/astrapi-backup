@@ -39,16 +39,6 @@ navigation:
     icon:  server
     group: Jobs
 
-  - key:   repos
-    label: Repositories
-    icon:  archive
-    group: Borg
-
-  - key:   browser
-    label: Archiv-Browser
-    icon:  search
-    group: Borg
-
   - key:   history
     label: Job-History
     icon:  clock

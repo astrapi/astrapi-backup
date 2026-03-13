@@ -3,7 +3,6 @@ import socket
 import subprocess
 from functools import lru_cache
 from helpers.logger import log
-from helpers.debug import is_debug
 
 # Timeouts für Subprocess-Aufrufe.
 # Backup-Jobs können stundenlang laufen → kein globaler Timeout.
@@ -59,9 +58,6 @@ def run_cmd(cmd, connection: str, env=None, timeout=TIMEOUT_BACKUP):
 
 def run_cmd_local(cmd, env=None, timeout=TIMEOUT_BACKUP):
     final_cmd = ["bash", "-c", cmd]
-    if is_debug():
-        log("DEBUG", "LOCAL: bash -c " + repr(cmd))
-        return True
     try:
         result = subprocess.run(
             final_cmd, check=True, env=env,
@@ -78,9 +74,6 @@ def run_cmd_remote(cmd, connection, env=None, timeout=TIMEOUT_BACKUP):
     final_cmd = ["ssh", "-o", "BatchMode=yes",
                  "-o", "ConnectTimeout=10",
                  connection, cmd]
-    if is_debug():
-        log("DEBUG", "REMOTE: ssh " + connection + " " + repr(cmd))
-        return True
     try:
         result = subprocess.run(
             final_cmd, check=True,

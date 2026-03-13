@@ -12,27 +12,21 @@
 
   Field-Typen: text, password, number, select, checkbox, textarea
 #}
+{% if saved %}
+<script>document.getElementById('settings-modal-backdrop')?.remove();</script>
+{% else %}
 <div id="settings-modal-backdrop" class="ds-modal-backdrop"
      x-data
-     x-on:keydown.escape.window="$el.remove()"
-     x-on:click.self="$el.remove()">
+     x-on:keydown.escape.window="$el.remove()">
 
   <div class="ds-modal" style="width:480px; max-width:95vw; padding:24px 28px;" tabindex="-1"
        id="settings-modal">
 
-    {{ modal_title(title=mod.label + " – Einstellungen", icon="settings") }}
-
-    <!-- Flash -->
-    {% if saved %}
-    <div style="margin-bottom:14px; padding:8px 12px; border-radius:var(--rad);
-                background:rgba(74,222,128,0.10); color:#4ade80; font-size:13px;">
-      ✔ Einstellungen gespeichert.
-    </div>
-    {% endif %}
+    {{ modal_title(title=mod.label + " – Einstellungen") }}
 
     <!-- Form -->
     <form hx-post="/ui/{{ mod.key }}/settings"
-          hx-target="#settings-modal"
+          hx-target="#settings-modal-backdrop"
           hx-swap="outerHTML"
           style="display:flex; flex-direction:column; gap:8px;">
 
@@ -139,3 +133,4 @@
   if (modal) modal.focus();
 })();
 </script>
+{% endif %}

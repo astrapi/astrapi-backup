@@ -6,8 +6,6 @@ from concurrent.futures import ThreadPoolExecutor
 from helpers.logger import log, set_log_context, clear_log_context
 from helpers.reachability import require_hosts
 from helpers.cmd import run_cmd, build_connection_string
-from helpers.debug import is_debug
-
 from api.storage import load_config as _load_config
 def _get_config(): return _load_config("proxmox_lxc")
 
@@ -59,9 +57,8 @@ def run_single(item_id):
     set_log_context("proxmox_lxc", item_id)
     try:
         log("INFO", f"=== LXC '{entry.get('description', item_id)}' gestartet ===")
-        if not is_debug():
-            if not require_hosts([entry["node"]]):
-                return
+        if not require_hosts([entry["node"]]):
+            return
         _run_node(entry["node"],
                   [{"vmid": entry["vmid"], "name": entry.get("description", item_id)}])
         log("INFO", f"=== LXC '{entry.get('description', item_id)}' abgeschlossen ===")

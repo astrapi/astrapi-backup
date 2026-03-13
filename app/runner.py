@@ -4,7 +4,6 @@ import time
 from datetime import datetime
 from helpers.logger import log, set_log_context, clear_log_context
 from helpers.notify import notify_ntfy
-from helpers.debug import set_debug
 
 _running_jobs: set = set()
 
@@ -77,7 +76,6 @@ def run_backup(job_id: str, modules: list, debug: bool = False) -> None:
 
     _running_jobs.add(job_id)
     set_log_context("scheduler", job_id)
-    set_debug(debug)
     start = datetime.now()
     status = "OK"
 
@@ -122,7 +120,6 @@ def run_backup(job_id: str, modules: list, debug: bool = False) -> None:
 
     finally:
         _running_jobs.discard(job_id)
-        set_debug(False)
         duration_str = _format_duration(int((datetime.now() - start).total_seconds()))
         log("INFO", f"Job '{job_id}' beendet – Status: {status} – Dauer: {duration_str}")
         log("INFO", f"{'='*40}")
