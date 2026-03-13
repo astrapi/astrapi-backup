@@ -1,4 +1,4 @@
-# modules/borg.py
+# modules/borg/jobs.py
 import os
 import subprocess
 from datetime import datetime
@@ -17,6 +17,12 @@ def _src_local(entry): return is_local(entry.get("source_host"))
 _BORG_DEFAULT = "/var/lib/backupadm/.venv/bin/borg"
 def _borg_bin() -> str:
     return _s("borg_bin", _BORG_DEFAULT) or _BORG_DEFAULT
+
+
+def _borg_env() -> dict:
+    env = dict(os.environ)
+    env["BORG_PASSPHRASE"] = _s("passphrase", "") or get_secret("BORG_PASSPHRASE")
+    return env
 
 
 def preview(job_id) -> list[dict]:
@@ -154,7 +160,7 @@ def _hook(phase: str, entry):
     if not cmd:
         return
     try:
-        run_cmd(cmd, connection)
+        run_cmd(cmd, connection, env=_borg_env())
         log("INFO", f"Hook '{phase}' erfolgreich")
     except subprocess.CalledProcessError as e:
         log("WARNING", f"Hook '{phase}' fehlgeschlagen")
@@ -204,8 +210,7 @@ def _backup(entry):
     connection   = build_connection_string(source_host, "backupadm") if not src_local else "local"
     archive_name = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    env = dict(os.environ)
-    env["BORG_PASSPHRASE"] = _s("passphrase", "") or get_secret("BORG_PASSPHRASE")
+    env = _borg_env()
 
     repo    = _repo(source_host, target_host, entry.get("target_path"), src_local)
     archive = f"{repo}::{archive_name}"
@@ -248,8 +253,7 @@ def _prune(entry):
     # Borg läuft immer als backupadm – ssh_user gilt nur für Hooks
     connection  = build_connection_string(source_host, "backupadm") if not src_local else "local"
 
-    env = dict(os.environ)
-    env["BORG_PASSPHRASE"] = _s("passphrase", "") or get_secret("BORG_PASSPHRASE")
+    env = _borg_env()
 
     repo = _repo(source_host, target_host, entry.get("target_path"), src_local)
 
@@ -286,8 +290,7 @@ def _compact(entry):
     src_local   = _src_local(entry)
     connection  = build_connection_string(source_host, "backupadm") if not src_local else "local"
 
-    env = dict(os.environ)
-    env["BORG_PASSPHRASE"] = _s("passphrase", "") or get_secret("BORG_PASSPHRASE")
+    env = _borg_env()
 
     repo     = _repo(source_host, target_host, entry.get("target_path"), src_local)
     base_cmd = [_borg_bin(), "compact", repo]
