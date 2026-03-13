@@ -1,40 +1,35 @@
 # modules/borg/api.py
-import os
 import json
 import subprocess
+import threading
 import yaml
 from pathlib import Path, PurePosixPath
 from fastapi import APIRouter, HTTPException, Request, Header, Query
 from fastapi.responses import HTMLResponse, StreamingResponse
-from api.storage import load_config, get_item, delete_item, save_item, next_item_id
+from api.storage import (
+    load_config, get_item, delete_item, save_item, next_item_id,
+    get_archive_cache, save_archive_list_cache,
+    get_file_cache, archive_is_cached, save_file_cache_for_archive,
+    get_stats_cache, save_stats_cache,
+)
 from api.routers.run import get_running
+from api.templates import templates
+from helpers.cmd import is_local
+from helpers.logger import log
+from modules.borg.jobs import _borg_bin, _borg_env, preview as _preview_borg
 
 KEY = "borg"
 router = APIRouter()
 
 _SCHEMA_PATH = Path(__file__).parent / "schema.yaml"
-_BORG_DEFAULT = "/var/lib/backupadm/.venv/bin/borg"
 
-def _borg_bin() -> str:
-    from core.ui.settings_registry import get_module as _get_module_setting
-    return _get_module_setting(KEY, "borg_bin", _BORG_DEFAULT) or _BORG_DEFAULT
-
-
-def _borg_env() -> dict:
-    from core.ui.settings_registry import get_module as _get_module_setting
-    from helpers.secrets import get_secret
-    env = dict(os.environ)
-    env["BORG_PASSPHRASE"] = (
-        _get_module_setting(KEY, "passphrase", "")
-        or get_secret("BORG_PASSPHRASE")
-    )
-    env["BORG_UNKNOWN_UNENCRYPTED_REPO_ACCESS_IS_OK"] = "yes"
-    return env
+# Verhindert parallele save_file_cache_for_archive-Threads für dieselbe (item_id, archive)-Kombination
+_file_cache_building: set[tuple[str, str]] = set()
+_file_cache_building_lock = threading.Lock()
 
 
 def _repo_path(entry: dict) -> str:
     """Repo-Pfad aus Server-Perspektive (direkt auf dem Backupserver)."""
-    from helpers.cmd import is_local
     target_host = entry.get("target_host", "")
     target_path = entry.get("target_path", "")
     if is_local(target_host):
@@ -64,11 +59,7 @@ def _load_archive_entries(repo_path: str, archive: str, env: dict, timeout: int 
             capture_output=True, text=True, timeout=timeout, env=env
         )
         if r.returncode != 0:
-            import logging
-            logging.getLogger(__name__).warning(
-                "[borg] list --json-lines fehlgeschlagen (rc=%d): %s",
-                r.returncode, r.stderr.strip()[:300]
-            )
+            log("WARNING", f"[borg] list --json-lines fehlgeschlagen (rc={r.returncode}): {r.stderr.strip()[:300]}")
             return []
         out = []
         for line in r.stdout.splitlines():
@@ -80,14 +71,10 @@ def _load_archive_entries(repo_path: str, archive: str, env: dict, timeout: int 
                     pass
         return out
     except subprocess.TimeoutExpired:
-        import logging
-        logging.getLogger(__name__).warning(
-            "[borg] list --json-lines Timeout nach %ds für %s::%s", timeout, repo_path, archive
-        )
+        log("WARNING", f"[borg] list --json-lines Timeout nach {timeout}s für {repo_path}::{archive}")
         return []
     except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning("[borg] list --json-lines Exception: %s", e)
+        log("WARNING", f"[borg] list --json-lines Exception: {e}")
         return []
 
 
@@ -97,6 +84,26 @@ def _fmt_size(n: int) -> str:
             return f"{n:.1f} {u}"
         n /= 1024
     return f"{n:.1f} PB"
+
+
+def _sanitize_path(path: str) -> str:
+    """Bereinigt einen Archiv-Pfad und verwirft '..' Komponenten hart."""
+    clean = path.lstrip("/").strip()
+    if not clean:
+        raise HTTPException(400, "Ungültiger Pfad")
+    if any(part == ".." for part in PurePosixPath(clean).parts):
+        raise HTTPException(400, "Ungültiger Pfad")
+    return clean
+
+
+def _validate_path_in_cache(item_id: str, archive: str, path: str) -> None:
+    """Prüft ob ein Dateipfad im Cache bekannt ist. Kein Cache → kein Check."""
+    cached = get_file_cache(item_id, archive)
+    if not cached:
+        return
+    known = {e["path"].lstrip("/") for e in cached}
+    if path not in known:
+        raise HTTPException(404, f"Pfad nicht im Archiv gefunden: {path}")
 
 
 def _repo_info(repo_path: str, env: dict) -> tuple[dict | None, str | None]:
@@ -165,7 +172,6 @@ def _load_schema() -> dict:
 
 
 def _list_response(request: Request):
-    from api.templates import templates
     return templates.TemplateResponse(
         "partials/list_wrapper_inner.html",
         {
@@ -255,17 +261,11 @@ def delete_one(request: Request, item_id: str, hx_request: str | None = Header(N
 @router.post("/{item_id}/toggle")
 def toggle_item(request: Request, item_id: str, hx_request: str | None = Header(None)):
     cfg = load_config(KEY)
-    key = item_id
-    if key not in cfg:
-        try:
-            key = int(item_id)
-        except ValueError:
-            pass
-    cfg[key]["enabled"] = not cfg[key].get("enabled", False)
-    save_item(KEY, key, cfg[key])
+    cfg[item_id]["enabled"] = not cfg[item_id].get("enabled", False)
+    save_item(KEY, item_id, cfg[item_id])
     if hx_request:
         return _list_response(request)
-    return {"status": "ok", "item": key, "enabled": cfg[key]["enabled"]}
+    return {"status": "ok", "item": item_id, "enabled": cfg[item_id]["enabled"]}
 
 
 @router.post("/enable-all")
@@ -288,15 +288,13 @@ def disable_all(request: Request):
 
 @router.get("/{item_id}/preview")
 def preview_item(item_id: str, request: Request):
-    from modules.borg import jobs
-    entry = get_item(KEY, item_id) or get_item(KEY, int(item_id) if item_id.isdigit() else item_id)
+    entry = get_item(KEY, item_id)
     if entry is None:
         raise HTTPException(404, "Item not found")
-    from api.templates import templates
     return templates.TemplateResponse("partials/preview_modal.html", {
         "request":     request,
         "description": entry.get("description", item_id),
-        "commands":    jobs.preview(item_id),
+        "commands":    _preview_borg(item_id),
     })
 
 
@@ -304,9 +302,7 @@ def preview_item(item_id: str, request: Request):
 
 @router.get("/{item_id}/archives", response_class=HTMLResponse)
 def archives_modal(item_id: str, request: Request):
-    from api.templates import templates
-    from api.storage import get_archive_cache
-    entry = get_item(KEY, item_id) or get_item(KEY, int(item_id) if item_id.isdigit() else item_id)
+    entry = get_item(KEY, item_id)
     if entry is None:
         raise HTTPException(404, "Item not found")
     archives, cached_at = get_archive_cache(item_id)
@@ -327,9 +323,7 @@ def archives_modal(item_id: str, request: Request):
 
 @router.get("/{item_id}/archives/list", response_class=HTMLResponse)
 def archives_list(item_id: str, request: Request):
-    from api.templates import templates
-    from api.storage import get_archive_cache
-    entry = get_item(KEY, item_id) or get_item(KEY, int(item_id) if item_id.isdigit() else item_id)
+    entry = get_item(KEY, item_id)
     if entry is None:
         raise HTTPException(404, "Item not found")
     archives, cached_at = get_archive_cache(item_id)
@@ -345,9 +339,7 @@ def archives_list(item_id: str, request: Request):
 @router.post("/{item_id}/archives/refresh", response_class=HTMLResponse)
 def refresh_archives(item_id: str, request: Request):
     """Aktualisiert die Archivliste live und speichert sie im Cache."""
-    from api.templates import templates
-    from api.storage import save_archive_list_cache, get_archive_cache
-    entry = get_item(KEY, item_id) or get_item(KEY, int(item_id) if item_id.isdigit() else item_id)
+    entry = get_item(KEY, item_id)
     if entry is None:
         raise HTTPException(404, "Item not found")
     env  = _borg_env()
@@ -357,8 +349,8 @@ def refresh_archives(item_id: str, request: Request):
         cached_at = save_archive_list_cache(item_id, archives)
         error = None
         # Datei-Cache aller Archive im Hintergrund aufbauen
-        from modules.borg import cache as _cache
-        _cache.update(item_id, entry)
+        from modules.borg import cache as _borg_cache
+        _borg_cache.update(item_id, entry)
     else:
         archives, cached_at = get_archive_cache(item_id)
         error = live_error
@@ -373,9 +365,7 @@ def refresh_archives(item_id: str, request: Request):
 
 @router.get("/{item_id}/archives/{archive}/browse", response_class=HTMLResponse)
 def browse_archive(item_id: str, archive: str, request: Request, path: str = ""):
-    from api.templates import templates
-    from api.storage import get_file_cache, archive_is_cached
-    entry = get_item(KEY, item_id) or get_item(KEY, int(item_id) if item_id.isdigit() else item_id)
+    entry = get_item(KEY, item_id)
     if entry is None:
         raise HTTPException(404, "Item not found")
     cur = path.strip("/")
@@ -391,13 +381,23 @@ def browse_archive(item_id: str, archive: str, request: Request, path: str = "")
         repo = _repo_path(entry)
         entries = _load_archive_entries(repo, archive, env)
         if entries:
-            from api.storage import save_file_cache_for_archive
-            import threading
-            threading.Thread(
-                target=save_file_cache_for_archive,
-                args=(item_id, archive, entries),
-                daemon=True,
-            ).start()
+            key = (item_id, archive)
+            with _file_cache_building_lock:
+                already = key in _file_cache_building
+                if not already:
+                    _file_cache_building.add(key)
+            if not already:
+                def _save_and_release(iid, arc, ents):
+                    try:
+                        save_file_cache_for_archive(iid, arc, ents)
+                    finally:
+                        with _file_cache_building_lock:
+                            _file_cache_building.discard((iid, arc))
+                threading.Thread(
+                    target=_save_and_release,
+                    args=(item_id, archive, entries),
+                    daemon=True,
+                ).start()
     dirs, files = _dir_view(entries, cur)
     crumbs = [{"label": "Wurzel", "path": ""}]
     acc = ""
@@ -424,12 +424,11 @@ def browse_archive(item_id: str, archive: str, request: Request, path: str = "")
 
 @router.get("/{item_id}/archives/{archive}/download")
 def download_archive_file(item_id: str, archive: str, path: str):
-    entry = get_item(KEY, item_id) or get_item(KEY, int(item_id) if item_id.isdigit() else item_id)
+    entry = get_item(KEY, item_id)
     if entry is None:
         raise HTTPException(404, "Item not found")
-    clean = path.lstrip("/").replace("..", "").strip()
-    if not clean:
-        raise HTTPException(400, "Ungültiger Pfad")
+    clean    = _sanitize_path(path)
+    _validate_path_in_cache(item_id, archive, clean)
     env      = _borg_env()
     repo     = _repo_path(entry)
     filename = PurePosixPath(clean).name
@@ -461,13 +460,23 @@ def download_bundle(item_id: str, archive: str, path: list[str] = Query(default=
     Verzeichnis:      ?path=subdir/   (mit abschließendem Slash)
     Alles:            kein path-Parameter
     """
-    entry = get_item(KEY, item_id) or get_item(KEY, int(item_id) if item_id.isdigit() else item_id)
+    entry = get_item(KEY, item_id)
     if entry is None:
         raise HTTPException(404, "Item not found")
     env  = _borg_env()
     repo = _repo_path(entry)
 
-    clean = [p.replace("..", "").strip() for p in path if p.strip()]
+    clean = []
+    for p in path:
+        if not p.strip():
+            continue
+        if p.endswith("/"):
+            # Verzeichnispfad: keine Cache-Validierung (Cache enthält keine Dirs)
+            sanitized = _sanitize_path(p.rstrip("/")) + "/"
+        else:
+            sanitized = _sanitize_path(p)
+            _validate_path_in_cache(item_id, archive, sanitized)
+        clean.append(sanitized)
 
     if len(clean) == 1 and clean[0].endswith("/"):
         label = PurePosixPath(clean[0].rstrip("/")).name or "root"
@@ -528,14 +537,12 @@ def _build_stats(info: dict) -> dict | None:
             "last_modified":    repo.get("last_modified", "")[:16].replace("T", " "),
         }
     except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning("[stats] _build_stats Fehler: %s", e)
+        log("WARNING", f"[stats] _build_stats Fehler: {e}")
         return None
 
 
 def _enrich_stats_from_archive_cache(stats: dict, item_id: str) -> dict:
     """Ergänzt num_archives/newest/oldest aus borg_archive_cache falls borg info sie nicht liefert."""
-    from api.storage import get_archive_cache
     if stats.get("num_archives", 0) == 0:
         archives, _ = get_archive_cache(item_id)
         if archives:
@@ -549,9 +556,7 @@ def _enrich_stats_from_archive_cache(stats: dict, item_id: str) -> dict:
 @router.get("/{item_id}/stats", response_class=HTMLResponse)
 def stats_modal(item_id: str, request: Request):
     """Zeigt Repository-Statistiken aus dem Cache."""
-    from api.templates import templates
-    from api.storage import get_stats_cache
-    entry = get_item(KEY, item_id) or get_item(KEY, int(item_id) if item_id.isdigit() else item_id)
+    entry = get_item(KEY, item_id)
     if entry is None:
         raise HTTPException(404, "Item not found")
     info, cached_at = get_stats_cache(item_id)
@@ -572,9 +577,7 @@ def stats_modal(item_id: str, request: Request):
 @router.post("/{item_id}/stats/refresh", response_class=HTMLResponse)
 def refresh_stats(item_id: str, request: Request):
     """Aktualisiert Statistiken live und speichert sie im Cache."""
-    from api.templates import templates
-    from api.storage import save_stats_cache, get_stats_cache
-    entry = get_item(KEY, item_id) or get_item(KEY, int(item_id) if item_id.isdigit() else item_id)
+    entry = get_item(KEY, item_id)
     if entry is None:
         raise HTTPException(404, "Item not found")
     env  = _borg_env()

@@ -22,13 +22,13 @@ def _borg_bin() -> str:
 def _borg_env() -> dict:
     env = dict(os.environ)
     env["BORG_PASSPHRASE"] = _s("passphrase", "") or get_secret("BORG_PASSPHRASE")
+    env["BORG_UNKNOWN_UNENCRYPTED_REPO_ACCESS_IS_OK"] = "yes"
     return env
 
 
 def preview(job_id) -> list[dict]:
     """Gibt die Befehle zurück, die bei run_single ausgeführt würden."""
-    entry = _get_config().get(job_id) or _get_config().get(
-        int(job_id) if str(job_id).isdigit() else job_id)
+    entry = _get_config().get(str(job_id))
     if entry is None:
         return []
 
@@ -117,8 +117,7 @@ def run():
 
 def run_single(job_id, entry=None):
     if entry is None:
-        entry = _get_config().get(job_id) or _get_config().get(
-            int(job_id) if str(job_id).isdigit() else job_id)
+        entry = _get_config().get(str(job_id))
     if entry is None:
         log("ERROR", f"Borg-Eintrag '{job_id}' nicht gefunden")
         return
