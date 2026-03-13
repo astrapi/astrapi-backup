@@ -23,10 +23,11 @@
 
 {% else %}
 <div class="ds-card on" style="overflow:hidden;">
-  <div style="padding:8px 14px; border-bottom:1px solid var(--border-s);
-              font-size:11px; font-weight:600; color:var(--text-3);
-              text-transform:uppercase; letter-spacing:.06em;">
-    {{ archives|length }} Archive
+  <div style="padding:8px 14px; border-bottom:1px solid var(--border-s);">
+    <span style="font-size:11px; font-weight:600; color:var(--text-3);
+                 text-transform:uppercase; letter-spacing:.06em;">
+      {{ archives|length }} Archive
+    </span>
   </div>
   <div style="max-height:500px; overflow-y:auto;">
     {% for a in archives %}
@@ -57,6 +58,13 @@
     {% endfor %}
   </div>
 </div>
+{% endif %}
+
+{% if not include_mode %}
+<span id="borg-archive-stand" hx-swap-oob="true"
+      style="font-size:10px; color:var(--text-3);">
+  {% if cached_at %}Stand: {{ cached_at[:16] }}{% endif %}
+</span>
 {% endif %}
 
 <div id="borg-archive-loading" class="htmx-indicator"

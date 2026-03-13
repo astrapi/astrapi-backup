@@ -137,6 +137,8 @@ def run_single(job_id, entry=None):
         if _s("compact_after_prune", "1") in ("1", "true", True):
             _compact(entry)
         log("INFO", f"=== Borg '{entry.get('description', job_id)}' abgeschlossen ===")
+        from modules.borg import cache as _cache
+        _cache.update(job_id, entry)
     finally:
         clear_log_context()
 

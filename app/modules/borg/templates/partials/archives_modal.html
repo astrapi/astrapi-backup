@@ -1,4 +1,4 @@
-{% from "partials/components/ui_macros.html" import modal_wrapper, modal_title, modal_footer_simple %}
+{% from "partials/components/ui_macros.html" import modal_wrapper, modal_title %}
 {#
   borg/templates/partials/archives_modal.html
   Vollständiger Modal-Wrapper für den Archiv-Browser.
@@ -9,6 +9,7 @@
     description – Anzeigename des Jobs
     repo_path   – Borg-Repo-Pfad (für den Untertitel)
     archives    – list[dict] aus borg list --json
+    cached_at   – Timestamp des letzten Cache-Updates | None
     error       – str | None
 #}
 {% call modal_wrapper(id="borg-archive-modal", max_width="920px") %}
@@ -16,9 +17,10 @@
   {{ modal_title(title="Archive – " ~ description) }}
 
   <div style="font-size:11px; color:var(--text-3); font-family:var(--mono);
-              margin-bottom:14px; word-break:break-all;">{{ repo_path }}</div>
+              word-break:break-all; margin-bottom:14px;">{{ repo_path }}</div>
 
   <div id="borg-archive-content">
+    {% set include_mode = True %}
     {% include "borg/partials/archives_list.html" %}
   </div>
 
@@ -27,6 +29,30 @@
     Lade …
   </div>
 
-  {{ modal_footer_simple(close_label="Schließen") }}
+  <div class="ds-modal-footer-simple"
+       style="display:flex; align-items:center; justify-content:space-between;
+              padding-top:12px; margin-top:12px; border-top:1px solid var(--border-s);">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <button class="btn btn-ghost btn-sm"
+              hx-post="/api/borg/{{ item_id }}/archives/refresh"
+              hx-target="#borg-archive-content"
+              hx-swap="innerHTML"
+              hx-indicator="#borg-archive-loading"
+              title="Archive live vom Server abrufen">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+        </svg>
+        Aktualisieren
+      </button>
+      <span id="borg-archive-stand" style="font-size:10px; color:var(--text-3);">
+        {% if cached_at %}Stand: {{ cached_at[:16] }}{% endif %}
+      </span>
+    </div>
+    <button type="button" class="btn btn-ghost btn-sm"
+            x-on:click="$el.closest('.ds-modal-backdrop').remove()">
+      Schließen
+    </button>
+  </div>
 
 {% endcall %}

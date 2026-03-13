@@ -1,13 +1,14 @@
-{% from "partials/components/ui_macros.html" import modal_wrapper, modal_title, modal_footer_simple %}
+{% from "partials/components/ui_macros.html" import modal_wrapper, modal_title %}
 {#
   borg/templates/partials/stats_modal.html
-  Repository-Statistiken für einen Borg-Job (borg info --json).
+  Repository-Statistiken für einen Borg-Job.
 
   Variablen:
     item_id     – Job-ID
     description – Anzeigename des Jobs
     repo_path   – Borg-Repo-Pfad (Anzeige im Untertitel)
     stats       – dict mit aufbereiteten Werten | None
+    cached_at   – Timestamp des letzten Cache-Updates | None
     error       – Fehlermeldung als str | None
 #}
 {% call modal_wrapper(id="borg-stats-modal", max_width="680px") %}
@@ -15,122 +16,42 @@
   {{ modal_title(title="Statistiken – " ~ description) }}
 
   <div style="font-size:11px; color:var(--text-3); font-family:var(--mono);
-              margin-bottom:18px; word-break:break-all;">{{ repo_path }}</div>
+              word-break:break-all; margin-bottom:18px;">{{ repo_path }}</div>
 
-  {% if error %}
-    {# ── Fehlermeldung ──────────────────────────────────────────────────── #}
-    <div style="color:var(--danger,#e74c3c); background:rgba(231,76,60,.08);
-                border:1px solid rgba(231,76,60,.25); border-radius:6px;
-                padding:10px 14px; font-size:13px; font-family:var(--mono);
-                margin-bottom:12px; word-break:break-all;">
-      {{ error }}
+  <div id="borg-stats-content">
+    {% set include_mode = True %}
+    {% include "borg/partials/stats_content.html" %}
+  </div>
+
+  <div id="borg-stats-loading" class="htmx-indicator"
+       style="text-align:center; padding:10px 0; color:var(--text-3); font-size:13px;">
+    Lade …
+  </div>
+
+  <div class="ds-modal-footer-simple"
+       style="display:flex; align-items:center; justify-content:space-between;
+              padding-top:12px; margin-top:12px; border-top:1px solid var(--border-s);">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <button class="btn btn-ghost btn-sm"
+              hx-post="/api/borg/{{ item_id }}/stats/refresh"
+              hx-target="#borg-stats-content"
+              hx-swap="innerHTML"
+              hx-indicator="#borg-stats-loading"
+              title="Statistiken live vom Server abrufen">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+        </svg>
+        Aktualisieren
+      </button>
+      <span id="borg-stats-stand" style="font-size:10px; color:var(--text-3);">
+        {% if cached_at %}Stand: {{ cached_at[:16] }}{% endif %}
+      </span>
     </div>
-
-  {% elif stats %}
-
-    {# ── Speichernutzung ────────────────────────────────────────────────── #}
-    <div style="font-size:11px; font-weight:600; text-transform:uppercase;
-                letter-spacing:.06em; color:var(--text-3); margin-bottom:8px;">
-      Speichernutzung
-    </div>
-    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:22px;">
-
-      <div style="background:var(--card-hi); border:1px solid var(--border-i); border-radius:8px; padding:14px 16px;">
-        <div style="font-size:11px; color:var(--text-3); margin-bottom:5px;">Original</div>
-        <div style="font-size:20px; font-weight:700; color:var(--text-1);
-                    font-family:var(--mono); line-height:1;">
-          {{ stats.total_size_fmt }}
-        </div>
-        <div style="font-size:11px; color:var(--text-3); margin-top:4px;">alle Daten, unkomprimiert</div>
-      </div>
-
-      <div style="background:var(--card-hi); border:1px solid var(--border-i); border-radius:8px; padding:14px 16px;">
-        <div style="font-size:11px; color:var(--text-3); margin-bottom:5px;">Komprimiert</div>
-        <div style="font-size:20px; font-weight:700; color:var(--text-1);
-                    font-family:var(--mono); line-height:1;">
-          {{ stats.total_csize_fmt }}
-        </div>
-        <div style="font-size:11px; color:var(--text-3); margin-top:4px;">
-          {{ stats.comp_ratio }}% gespart
-        </div>
-      </div>
-
-      <div style="background:var(--accent-bg,rgba(99,102,241,.08));
-                  border:1px solid var(--accent-dim,rgba(99,102,241,.3));
-                  border-radius:8px; padding:14px 16px;">
-        <div style="font-size:11px; color:var(--accent,#6366f1); margin-bottom:5px;">
-          Tatsächlich belegt
-        </div>
-        <div style="font-size:20px; font-weight:700; color:var(--accent,#6366f1);
-                    font-family:var(--mono); line-height:1;">
-          {{ stats.unique_csize_fmt }}
-        </div>
-        <div style="font-size:11px; color:var(--text-3); margin-top:4px;">
-          {{ stats.dedup_efficiency }}% Dedup-Effizienz
-        </div>
-      </div>
-
-    </div>
-
-    {# ── Archive ────────────────────────────────────────────────────────── #}
-    <div style="font-size:11px; font-weight:600; text-transform:uppercase;
-                letter-spacing:.06em; color:var(--text-3); margin-bottom:8px;">
-      Archive
-    </div>
-    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:22px;">
-
-      <div style="background:var(--card-hi); border:1px solid var(--border-i); border-radius:8px; padding:14px 16px;">
-        <div style="font-size:11px; color:var(--text-3); margin-bottom:5px;">Anzahl</div>
-        <div style="font-size:26px; font-weight:700; color:var(--text-1); line-height:1;">
-          {{ stats.num_archives }}
-        </div>
-      </div>
-
-      <div style="background:var(--card-hi); border:1px solid var(--border-i); border-radius:8px; padding:14px 16px;">
-        <div style="font-size:11px; color:var(--text-3); margin-bottom:5px;">Neuestes Backup</div>
-        <div style="font-size:13px; font-weight:600; color:var(--text-1);
-                    font-family:var(--mono);">
-          {{ stats.newest_archive }}
-        </div>
-      </div>
-
-      <div style="background:var(--card-hi); border:1px solid var(--border-i); border-radius:8px; padding:14px 16px;">
-        <div style="font-size:11px; color:var(--text-3); margin-bottom:5px;">Ältestes Backup</div>
-        <div style="font-size:13px; font-weight:600; color:var(--text-1);
-                    font-family:var(--mono);">
-          {{ stats.oldest_archive }}
-        </div>
-      </div>
-
-    </div>
-
-    {# ── Details ────────────────────────────────────────────────────────── #}
-    <div style="font-size:11px; font-weight:600; text-transform:uppercase;
-                letter-spacing:.06em; color:var(--text-3); margin-bottom:8px;">
-      Details
-    </div>
-    <table style="width:100%; border-collapse:collapse; font-size:13px;">
-      <tbody>
-        {% for label, value in [
-          ("Chunks gesamt",     stats.total_chunks  | string),
-          ("Unique Chunks",     stats.unique_chunks | string),
-          ("Zuletzt geändert",  stats.last_modified),
-        ] %}
-        <tr style="{% if not loop.last %}border-bottom:1px solid var(--border-s);{% endif %}">
-          <td style="padding:8px 0; color:var(--text-2); width:42%;">{{ label }}</td>
-          <td style="padding:8px 0; font-family:var(--mono); font-size:12px;
-                     color:var(--text-1);">{{ value }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-  {% else %}
-    <div style="text-align:center; padding:32px 0; color:var(--text-3); font-size:13px;">
-      Keine Statistiken verfügbar.
-    </div>
-  {% endif %}
-
-  {{ modal_footer_simple(close_label="Schließen") }}
+    <button type="button" class="btn btn-ghost btn-sm"
+            x-on:click="$el.closest('.ds-modal-backdrop').remove()">
+      Schließen
+    </button>
+  </div>
 
 {% endcall %}

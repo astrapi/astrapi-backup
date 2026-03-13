@@ -76,6 +76,7 @@ def toggle_modal(item):
         description=description, verb=verb,
         confirm_url=f"/api/{KEY}/{item}/toggle",
         method="post",
+        reload_url=f"/ui/{KEY}/content",
         container_id=container_id, loading_id=loading_id,
     )
 
@@ -90,5 +91,6 @@ def delete_modal(item):
         description=description, verb="löschen",
         confirm_url=f"/api/{KEY}/{item}/delete",
         method="delete",
+        reload_url=f"/ui/{KEY}/content",
         container_id=container_id, loading_id=loading_id,
     )
