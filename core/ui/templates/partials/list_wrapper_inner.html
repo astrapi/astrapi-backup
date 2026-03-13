@@ -28,7 +28,6 @@
   <div style="display:flex; gap:6px; align-items:center;">
     {% if not light_mode and cfg and has_run_buttons | default(True) %}
     {{ ui.run_all_button(module=module, container_id=container_id) }}
-    {{ ui.run_debug_all_button(module=module, container_id=container_id) }}
     {{ ui.enable_all_button(module=module, container_id=container_id) }}
     {{ ui.disable_all_button(module=module, container_id=container_id) }}
     {% endif %}
