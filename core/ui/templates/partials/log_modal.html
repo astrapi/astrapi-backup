@@ -19,11 +19,10 @@
 #}
 <div id="log-modal" class="ds-modal-backdrop"
      x-data
-     x-on:keydown.escape.window="$el.remove()"
-     x-on:click.self="$el.remove()">
+     x-on:keydown.escape.window="$el.remove()">
   <div class="ds-modal log-modal-inner">
 
-    {{ modal_title(title="Log – " + description, icon="log") }}
+    {{ modal_title(title="Log – " + description) }}
 
     {% if live %}
     <!-- ── LIVE-MODUS ─────────────────────────────────────── -->

@@ -10,5 +10,9 @@ card_actions:
     url:  /api/borg/{item}/run
   - type: log
     url:  /api/borg/{item}/logs
+  - type: archives
+    url:  /api/borg/{item}/archives
+  - type: stats
+    url:  /api/borg/{item}/stats
   - type: preview
     url:  /api/borg/{item}/preview

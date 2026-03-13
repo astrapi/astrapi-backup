@@ -170,8 +170,7 @@
 {% macro modal_wrapper(id, max_width="620px", padding="28px 32px") %}
 <div id="{{ id }}" class="ds-modal-backdrop"
      x-data
-     x-on:keydown.escape.window="$el.remove()"
-     x-on:click.self="$el.remove()">
+     x-on:keydown.escape.window="$el.remove()">
   <div class="ds-modal" style="max-width:{{ max_width }}; padding:{{ padding }};">
     {{ caller() }}
   </div>
@@ -185,8 +184,8 @@
     icon    – 'edit' | 'create' | 'settings' | 'log' | 'bell' | 'warning' | 'info' | 'none'
     is_edit – veraltet: Kurzform für icon='edit' (True) / icon='create' (False)
 #}
-{% macro modal_title(title='', icon=None, is_edit=False) %}
-{% if icon is none %}{% set icon = 'edit' if is_edit else 'create' %}{% endif %}
+{% macro modal_title(title='', icon='none', is_edit=False) %}
+
 <div class="ds-modal-title">
   {% if icon == 'edit' %}
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -230,6 +229,16 @@
       <rect x="2" y="3" width="20" height="18" rx="2"/>
       <polyline points="6 9 10 13 6 17"/>
       <line x1="13" y1="17" x2="18" y2="17"/>
+    </svg>
+  {% elif icon == 'archive' %}
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 8v13H3V8"/><rect x="1" y="3" width="22" height="5" rx="1"/>
+      <line x1="10" y1="12" x2="14" y2="12"/>
+    </svg>
+  {% elif icon == 'bar-chart' %}
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+      <line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>
     </svg>
   {% endif %}
   {{ title }}
@@ -321,6 +330,7 @@
   {%- elif name == 'power-on' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
   {%- elif name == 'power-off' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64A9 9 0 1 1 5.64 5.64"/><line x1="12" y1="2" x2="12" y2="12"/><line x1="4" y1="4" x2="20" y2="20"/></svg>
   {%- elif name == 'play-debug' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+  {%- elif name == 'archive' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8v13H3V8"/><rect x="1" y="3" width="22" height="5" rx="1"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
   {%- else -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg>
   {%- endif -%}
 {% endmacro %}

@@ -1,6 +1,16 @@
 # Borg-Modul – globale Einstellungen
 
 - type: section
+  label: Allgemein
+
+- key: borg_bin
+  label: Borg-Pfad
+  type: text
+  placeholder: "/var/lib/backupadm/.venv/bin/borg"
+  default: "/var/lib/backupadm/.venv/bin/borg"
+  description: "Absoluter Pfad zur ausführbaren borg-Datei"
+
+- type: section
   label: Sicherheit
 
 - key: passphrase

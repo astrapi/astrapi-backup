@@ -1,0 +1,16 @@
+[repository]
+version = 1
+segments_per_dir = 1000
+max_segment_size = 524288000
+append_only = 0
+storage_quota = 0
+additional_free_space = 0
+id = 5f76be450331537d1df06593b7c66a87a7a6c446b52dc741acd8a2e051254c01
+key = hqlhbGdvcml0aG2mc2hhMjU2pGRhdGHaAN64CFL76cKwr48wsabdOhxgDtl1AGyn4kfv7X
+	dJo94/DHDR2yEvXQOGZ2pC8UHeptF/vf5ZXQX0wy7Lmb8KOwGgKa+dWAeXHT0PxjlXTJYJ
+	ymyJoDzvtdmNva4lbqVZb6TvZ/UPDcAyrf3qPiYSwECOsHdp8knDtYfM5RqEcGSm09cXVW
+	ZUMN3tGvLKDgAkNTcnjkRXEW9IMdKqee3mnIyTkkl2yAW9y/ccECkENnifwainV542DA/4
+	e2OFq3yEINJZVpZ0whHraknEIEgbth7EaQH5mvlOwnW/Di9du1+kaGFzaNoAIPln8bGgpf
+	m04VSlB8/4/Sf7oH0SupiVlCz6TMfTBT31qml0ZXJhdGlvbnPOAAGGoKRzYWx02gAgyjOd
+	Rxn5CkSKVn3EXjfZAjUG2WBh26q88k2zVrfXBVundmVyc2lvbgE=
+

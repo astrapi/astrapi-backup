@@ -9,11 +9,10 @@
 #}
 <div id="preview-modal" class="ds-modal-backdrop"
      x-data
-     x-on:keydown.escape.window="$el.remove()"
-     x-on:click.self="$el.remove()">
+     x-on:keydown.escape.window="$el.remove()">
   <div class="ds-modal" style="max-width:800px;">
 
-    {{ modal_title(title="Befehlsvorschau – " + description, icon="terminal-box") }}
+    {{ modal_title(title="Befehlsvorschau – " + description) }}
 
     {% if commands %}
       {% for entry in commands %}

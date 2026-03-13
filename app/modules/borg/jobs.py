@@ -14,6 +14,10 @@ def _get_config(): return _load_config("borg")
 def _s(key, default): return _get_module_setting("borg", key, default)
 def _src_local(entry): return is_local(entry.get("source_host"))
 
+_BORG_DEFAULT = "/var/lib/backupadm/.venv/bin/borg"
+def _borg_bin() -> str:
+    return _s("borg_bin", _BORG_DEFAULT) or _BORG_DEFAULT
+
 
 def preview(job_id) -> list[dict]:
     """Gibt die Befehle zurück, die bei run_single ausgeführt würden."""
@@ -54,7 +58,7 @@ def preview(job_id) -> list[dict]:
     compression = _s("compression", "auto,zstd")
     base_cmd = [
         "BORG_PASSPHRASE=***",
-        "/var/lib/backupadm/.venv/bin/borg", "create",
+        _borg_bin(), "create",
         "--verbose", "--stats", "--compression", compression,
         "--exclude-caches",
     ]
@@ -81,7 +85,7 @@ def preview(job_id) -> list[dict]:
     keep_within  = _s("keep_within",  "7")
     prune_cmd = [
         "BORG_PASSPHRASE=***",
-        "/var/lib/backupadm/.venv/bin/borg", "prune",
+        _borg_bin(), "prune",
         f"--keep-daily={keep_daily}", f"--keep-weekly={keep_weekly}",
         f"--keep-monthly={keep_monthly}", f"--keep-yearly={keep_yearly}",
     ]
@@ -92,7 +96,7 @@ def preview(job_id) -> list[dict]:
 
     # Borg Compact
     if _s("compact_after_prune", "1") in ("1", "true", True):
-        compact_cmd = ["BORG_PASSPHRASE=***", "/var/lib/backupadm/.venv/bin/borg", "compact", repo]
+        compact_cmd = ["BORG_PASSPHRASE=***", _borg_bin(), "compact", repo]
         commands.append({"label": "Borg Compact", "cmd": _fmt(compact_cmd, conn)})
 
     return commands
@@ -207,7 +211,7 @@ def _backup(entry):
 
     compression = _s("compression", "auto,zstd")
     base_cmd = [
-        "/var/lib/backupadm/.venv/bin/borg", "create",
+        _borg_bin(), "create",
         "--verbose", "--stats", "--compression", compression,
         "--exclude-caches",
     ]
@@ -254,7 +258,7 @@ def _prune(entry):
     keep_within  = _s("keep_within",  "7")
 
     base_cmd = [
-        "/var/lib/backupadm/.venv/bin/borg", "prune",
+        _borg_bin(), "prune",
         f"--keep-daily={keep_daily}", f"--keep-weekly={keep_weekly}",
         f"--keep-monthly={keep_monthly}", f"--keep-yearly={keep_yearly}",
     ]
@@ -284,7 +288,7 @@ def _compact(entry):
     env["BORG_PASSPHRASE"] = _s("passphrase", "") or get_secret("BORG_PASSPHRASE")
 
     repo     = _repo(source_host, target_host, entry.get("target_path"), src_local)
-    base_cmd = ["/var/lib/backupadm/.venv/bin/borg", "compact", repo]
+    base_cmd = [_borg_bin(), "compact", repo]
 
     if src_local:
         cmd = base_cmd
