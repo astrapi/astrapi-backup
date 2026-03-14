@@ -176,10 +176,14 @@ def _local_fqdn() -> str:
     if configured:
         return configured
     import socket
+    import ipaddress
     fqdn = socket.getfqdn()
-    # Fallback auf Hostname wenn getfqdn() eine IP zurückgibt
-    if fqdn and not fqdn.replace(".", "").isdigit():
-        return fqdn
+    # Fallback auf Hostname wenn getfqdn() eine IP-Adresse (v4 oder v6) zurückgibt
+    if fqdn:
+        try:
+            ipaddress.ip_address(fqdn)
+        except ValueError:
+            return fqdn  # Kein gültiges IP-Format → ist ein Hostname
     return socket.gethostname()
 
 
