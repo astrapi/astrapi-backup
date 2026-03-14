@@ -60,7 +60,7 @@ def run_single(item_id):
         if not require_hosts([entry["node"]]):
             return
         _run_node(entry["node"],
-                  [{"vmid": entry["vmid"], "name": entry.get("description", item_id)}])
+                  [{"vmid": entry["vmid"], "name": entry.get("description", item_id), "item_id": item_id}])
         log("INFO", f"=== LXC '{entry.get('description', item_id)}' abgeschlossen ===")
     finally:
         clear_log_context()
@@ -71,6 +71,9 @@ def _run_node(node, jobs):
     for job in jobs:
         vmid = job["vmid"]
         name = job["name"]
+        item_id = job.get("item_id")
+        if item_id is not None:
+            set_log_context("proxmox_lxc", item_id)
         cmd = [
             "sudo", "/usr/bin/vzdump", str(vmid),
             "--fleecing", "0", "--node", node,
@@ -93,5 +96,5 @@ def group_by_node(config):
         if not entry.get("enabled", True):
             continue
         grouped[entry["node"]].append(
-            {"vmid": entry["vmid"], "name": entry.get("description", item_id)})
+            {"vmid": entry["vmid"], "name": entry.get("description", item_id), "item_id": item_id})
     return grouped
