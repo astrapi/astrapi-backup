@@ -306,16 +306,36 @@ def _register_module_settings_routes(app: Flask, modules: list) -> None:
                 f["key"] for f in mod.settings_schema
                 if "key" in f and f.get("type") == "password"
             }
+            list_keys = {
+                f["key"] for f in mod.settings_schema
+                if "key" in f and f.get("type") == "list"
+            }
+            # Collect indexed list values (key_0, key_1, ...)
+            list_values: dict = {lk: [] for lk in list_keys}
+            for lk in list_keys:
+                i = 0
+                while f"{lk}_{i}" in request.form:
+                    val = request.form[f"{lk}_{i}"].strip()
+                    if val:
+                        list_values[lk].append(val)
+                    i += 1
             prefixed = {}
             for k, v in request.form.to_dict().items():
+                # Skip indexed sub-keys of list fields
+                if any(k.startswith(f"{lk}_") and k[len(lk)+1:].isdigit() for lk in list_keys):
+                    continue
                 if k in password_keys and not v.strip():
                     continue  # Leeres Passwort-Feld nicht speichern
                 prefixed[f"module.{module_key}.{k}"] = v
+            for lk, items in list_values.items():
+                prefixed[f"module.{module_key}.{lk}"] = items
             _set_many(prefixed)
 
         current_values = {
-            field["key"]: get_module(module_key, field["key"],
-                                     field.get("default", ""))
+            field["key"]: get_module(
+                module_key, field["key"],
+                [] if field.get("type") == "list" else field.get("default", "")
+            )
             for field in mod.settings_schema
             if "key" in field
         }
@@ -324,5 +344,4 @@ def _register_module_settings_routes(app: Flask, modules: list) -> None:
             mod=mod,
             schema=mod.settings_schema,
             values=current_values,
-            saved=(request.method == "POST"),
         )

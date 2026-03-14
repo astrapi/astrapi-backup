@@ -8,13 +8,9 @@
     mod    – Module-Instanz (core.ui.Module)
     schema – list von field-dicts (key, label, type, options, default, description)
     values – dict {field_key: current_value}
-    saved  – bool (True nach erfolgreichem POST)
 
-  Field-Typen: text, password, number, select, checkbox, textarea
+  Field-Typen: text, password, number, select, checkbox, textarea, list
 #}
-{% if saved %}
-<script>document.getElementById('settings-modal-backdrop')?.remove();</script>
-{% else %}
 <div id="settings-modal-backdrop" class="ds-modal-backdrop"
      x-data
      x-on:keydown.escape.window="$el.remove()">
@@ -25,9 +21,10 @@
     {{ modal_title(title=mod.label + " – Einstellungen") }}
 
     <!-- Form -->
-    <form hx-post="/ui/{{ mod.key }}/settings"
-          hx-target="#settings-modal-backdrop"
-          hx-swap="outerHTML"
+    <form id="settings-form"
+          hx-post="/ui/{{ mod.key }}/settings"
+          hx-target="this"
+          hx-swap="none"
           style="display:flex; flex-direction:column; gap:8px;">
 
       {# Track inline-group state with a namespace so assignments inside loops work #}
@@ -94,6 +91,51 @@
           <span style="font-size:13px; color:var(--text-2);">{{ field.get('checkbox_label', 'Aktiviert') }}</span>
         </label>
 
+        {% elif ftype == 'list' %}
+        <div
+          x-data='{
+            "lines": {{ (fval if fval is iterable and fval is not string else []) | tojson }},
+            add() { this.lines.push("") },
+            remove(i) { this.lines.splice(i, 1) }
+          }'
+          style="display:flex; flex-direction:column; gap:6px;"
+        >
+          <template x-for="(line, i) in lines" :key="i">
+            <div style="display:flex; gap:6px; align-items:center;">
+              <input
+                type="text"
+                :name="`{{ fkey }}_${i}`"
+                x-model="lines[i]"
+                class="form-input"
+                style="flex:1; {% if field.get('mono') %}font-family:var(--font-mono);{% endif %}"
+              >
+              <button
+                type="button"
+                @click="remove(i)"
+                class="btn-icon btn-icon-danger"
+                title="Entfernen"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+              </button>
+            </div>
+          </template>
+          <div>
+            <button
+              type="button"
+              @click="add()"
+              class="btn btn-ghost btn-sm"
+              style="gap:5px;"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Hinzufügen
+            </button>
+          </div>
+        </div>
+
         {% elif ftype == 'textarea' %}
         <textarea name="{{ fkey }}" class="form-input"
                   rows="{{ field.get('rows', 3) }}"
@@ -131,6 +173,8 @@
 (function() {
   var modal = document.getElementById('settings-modal');
   if (modal) modal.focus();
+  document.getElementById('settings-form').addEventListener('htmx:afterRequest', function(e) {
+    if (e.detail.successful) e.target.closest('.ds-modal-backdrop').remove();
+  });
 })();
 </script>
-{% endif %}
