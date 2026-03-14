@@ -1,7 +1,7 @@
 # modules/rsync/api.py
 import yaml
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, Request, Header
+from fastapi import APIRouter, HTTPException, Request, Header, Response
 
 from api.storage import load_config, get_item, delete_item, save_item, next_item_id
 from api.routers.run import get_running
@@ -103,6 +103,7 @@ def delete_one(request: Request, item_id: str, hx_request: str | None = Header(N
         raise HTTPException(404, "Item not found")
     if hx_request:
         return _list_response(request)
+    return Response(status_code=204)
 
 
 @router.post("/{item_id}/toggle")

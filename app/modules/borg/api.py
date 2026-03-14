@@ -6,7 +6,7 @@ import yaml
 from urllib.parse import quote as _urlquote
 from pathlib import Path, PurePosixPath
 from fastapi import APIRouter, HTTPException, Request, Header, Query
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, Response, StreamingResponse
 from api.storage import (
     load_config, get_item, delete_item, save_item, next_item_id,
     get_archive_cache, save_archive_list_cache,
@@ -257,6 +257,7 @@ def delete_one(request: Request, item_id: str, hx_request: str | None = Header(N
         raise HTTPException(404, "Item not found")
     if hx_request:
         return _list_response(request)
+    return Response(status_code=204)
 
 
 @router.post("/{item_id}/toggle")
