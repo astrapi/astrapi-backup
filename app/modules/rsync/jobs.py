@@ -15,10 +15,12 @@ def preview(job_id) -> list[dict]:
     if entry is None:
         return []
 
-    source_host = entry["source_host"]
-    source_path = entry["source_path"]
-    target_host = entry["target_host"]
-    target_path = entry["target_path"]
+    source_host = entry.get("source_host", "")
+    source_path = entry.get("source_path", "")
+    target_host = entry.get("target_host", "")
+    target_path = entry.get("target_path", "")
+    if not source_host or not source_path or not target_host or not target_path:
+        return []
     connection  = build_connection_string(source_host)
 
     if is_local(target_host) or target_host == source_host:
@@ -65,11 +67,14 @@ def run_single(job_id, entry=None):
 
 
 def _rsync(entry):
-    source_host = entry["source_host"]
-    source_path = entry["source_path"]
-    target_host = entry["target_host"]
-    target_path = entry["target_path"]
+    source_host = entry.get("source_host", "")
+    source_path = entry.get("source_path", "")
+    target_host = entry.get("target_host", "")
+    target_path = entry.get("target_path", "")
 
+    if not source_host or not target_host:
+        log("ERROR", "Rsync abgebrochen: source_host oder target_host fehlt.")
+        return
     if not source_path or not source_path.strip():
         log("ERROR", "Rsync abgebrochen: source_path ist leer (--delete würde Ziel löschen).")
         return

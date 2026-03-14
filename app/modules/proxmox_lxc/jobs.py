@@ -17,8 +17,10 @@ def preview(item_id) -> list[dict]:
     if entry is None:
         return []
 
-    node       = entry["node"]
-    vmid       = entry["vmid"]
+    node = entry.get("node")
+    vmid = entry.get("vmid")
+    if not node or vmid is None:
+        return []
     connection = build_connection_string(node)
 
     cmd_parts = [
@@ -56,11 +58,16 @@ def run_single(item_id):
         return
     set_log_context("proxmox_lxc", item_id)
     try:
-        log("INFO", f"=== LXC '{entry.get('description', item_id)}' gestartet ===")
-        if not require_hosts([entry["node"]]):
+        node = entry.get("node")
+        vmid = entry.get("vmid")
+        if not node or vmid is None:
+            log("ERROR", f"LXC-Eintrag '{item_id}': Pflichtfelder (node, vmid) fehlen")
             return
-        _run_node(entry["node"],
-                  [{"vmid": entry["vmid"], "name": entry.get("description", item_id), "item_id": item_id}])
+        log("INFO", f"=== LXC '{entry.get('description', item_id)}' gestartet ===")
+        if not require_hosts([node]):
+            return
+        _run_node(node,
+                  [{"vmid": vmid, "name": entry.get("description", item_id), "item_id": item_id}])
         log("INFO", f"=== LXC '{entry.get('description', item_id)}' abgeschlossen ===")
     finally:
         clear_log_context()
@@ -95,6 +102,11 @@ def group_by_node(config):
     for item_id, entry in config.items():
         if not entry.get("enabled", False):
             continue
-        grouped[entry["node"]].append(
-            {"vmid": entry["vmid"], "name": entry.get("description", item_id), "item_id": item_id})
+        node = entry.get("node")
+        vmid = entry.get("vmid")
+        if not node or vmid is None:
+            log("WARNING", f"LXC-Eintrag '{item_id}': Pflichtfelder (node, vmid) fehlen, übersprungen")
+            continue
+        grouped[node].append(
+            {"vmid": vmid, "name": entry.get("description", item_id), "item_id": item_id})
     return grouped

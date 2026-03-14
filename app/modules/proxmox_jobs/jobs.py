@@ -15,9 +15,11 @@ def preview(item_id) -> list[dict]:
     if job is None:
         return []
 
-    job_name   = job["job"]
-    job_type   = job["type"]
-    host       = job["host"]
+    job_name = job.get("job")
+    job_type = job.get("type")
+    host     = job.get("host")
+    if not job_name or not job_type or not host:
+        return []
     connection = build_connection_string(host)
 
     cmd_parts = ["sudo", "/usr/sbin/proxmox-backup-manager",
@@ -48,10 +50,13 @@ def run_single(item_id, job=None):
         return
     set_log_context("proxmox_jobs", item_id)
     try:
-        job_name = job["job"]
-        job_type = job["type"]
-        host     = job["host"]
-        desc     = job.get("description", job_name)
+        job_name = job.get("job")
+        job_type = job.get("type")
+        host     = job.get("host")
+        if not job_name or not job_type or not host:
+            log("ERROR", f"Proxmox-Job '{item_id}': Pflichtfelder (job, type, host) fehlen")
+            return
+        desc = job.get("description", job_name)
         log("INFO", f"=== Job '{desc}' ({job_type}) gestartet ===")
         if not require_hosts([host]):
             return
