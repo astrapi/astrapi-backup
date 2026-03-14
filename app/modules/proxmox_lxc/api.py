@@ -13,8 +13,13 @@ _SCHEMA_PATH = Path(__file__).parent / "schema.yaml"
 
 
 def _load_schema() -> dict:
-    with open(_SCHEMA_PATH) as f:
-        return yaml.safe_load(f)
+    try:
+        with open(_SCHEMA_PATH) as f:
+            return yaml.safe_load(f) or {}
+    except FileNotFoundError:
+        raise HTTPException(500, f"Schema-Datei nicht gefunden: {_SCHEMA_PATH}")
+    except yaml.YAMLError as e:
+        raise HTTPException(500, f"Schema-Datei fehlerhaft: {e}")
 
 
 def _list_response(request: Request):
