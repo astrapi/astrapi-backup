@@ -34,7 +34,7 @@ def preview(item_id) -> list[dict]:
 
 def run():
     for item_id, job in _get_config().items():
-        if not job.get("enabled", True):
+        if not job.get("enabled", False):
             continue
         run_single(item_id, job)
 

@@ -48,7 +48,7 @@ def preview(item_id) -> list[dict]:
 
 def run():
     for item_id, entry in _get_config().items():
-        if not entry.get("enabled", True):
+        if not entry.get("enabled", False):
             continue
         run_single(item_id, entry)
 

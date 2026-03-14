@@ -93,7 +93,7 @@ def _run_node(node, jobs):
 def group_by_node(config):
     grouped = defaultdict(list)
     for item_id, entry in config.items():
-        if not entry.get("enabled", True):
+        if not entry.get("enabled", False):
             continue
         grouped[entry["node"]].append(
             {"vmid": entry["vmid"], "name": entry.get("description", item_id), "item_id": item_id})
