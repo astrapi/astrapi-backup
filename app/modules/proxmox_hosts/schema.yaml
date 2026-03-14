@@ -18,8 +18,15 @@ fields:
     max: 50
     column: 1
     row: 2
-  - name: source
-    type: list
-    label: Source
+  - name: namespace
+    type: select
+    label: PBS Namespace
+    default: host
     column: 1
     row: 3
+
+  - name: source
+    type: list
+    label: Zusätzliche Quellen
+    column: 1
+    row: 4

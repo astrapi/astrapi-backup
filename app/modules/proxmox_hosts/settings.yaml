@@ -1,37 +1,12 @@
+- type: section
+  label: PBS
+
 - key: pbs_repository
   label: PBS Repository
   type: text
   placeholder: "backup@pbs!token-name@pbs.example.com:datastore"
   description: "PBS_REPOSITORY im Format: user@pbs!token-name@host:datastore"
   mono: true
-  default: ""
-
-- key: pbs_url
-  label: PBS Server-URL
-  type: text
-  placeholder: "https://pbs.example.com:8007"
-  description: URL des Proxmox Backup Servers
-  default: ""
-
-- key: pbs_user
-  label: PBS Benutzer
-  type: text
-  placeholder: "backup@pbs"
-  description: Benutzername für die PBS-Authentifizierung
-  default: ""
-
-- key: pbs_datastore
-  label: Datastore
-  type: text
-  placeholder: "backups"
-  description: Name des PBS-Datastores
-  default: ""
-
-- key: pbs_token_name
-  label: API-Token Name
-  type: text
-  placeholder: "backup-token"
-  description: Name des PBS API-Tokens (ohne Benutzerpräfix)
   default: ""
 
 - key: pbs_password
@@ -48,3 +23,25 @@
   description: TLS-Fingerprint des PBS-Servers
   mono: true
   default: ""
+
+- key: pbs_namespaces
+  label: PBS Namespaces
+  type: list
+  description: "Verfügbare PBS-Namespaces. Wird als Auswahl im Job-Dialog angeboten."
+  default:
+    - host
+
+- type: section
+  label: Backup-Quellen
+
+- key: default_sources
+  label: Standard-Backup-Quellen
+  type: list
+  description: "Quellen die für jeden Host gesichert werden (Format: name.pxar:/pfad)."
+  mono: true
+  default:
+    - "etc.pxar:/etc"
+    - "home.pxar:/home"
+    - "opt.pxar:/opt"
+    - "root.pxar:/root"
+    - "local.pxar:/usr/local"

@@ -5,10 +5,23 @@ import subprocess
 from helpers.logger import log, set_log_context, clear_log_context
 from helpers.reachability import require_hosts
 from helpers.cmd import run_cmd, build_connection_string, is_local
-from core.ui.settings_registry import get_module as _get_module_setting
+from core.ui.settings_registry import get_module as _get_module_setting, get as _get_global_setting
 
 from api.storage import load_config as _load_config
 def _get_config(): return _load_config("proxmox_hosts")
+
+_FALLBACK_SOURCES = [
+    "etc.pxar:/etc", "home.pxar:/home", "opt.pxar:/opt",
+    "root.pxar:/root", "local.pxar:/usr/local",
+]
+
+def _default_sources() -> list[str]:
+    sources = _get_module_setting("proxmox_hosts", "default_sources", [])
+    if isinstance(sources, list):
+        return sources if sources else list(_FALLBACK_SOURCES)
+    # Fallback für ältere String-Werte (textarea)
+    parsed = [s.strip() for s in sources.splitlines() if s.strip()]
+    return parsed if parsed else list(_FALLBACK_SOURCES)
 
 
 def preview(item_id) -> list[dict]:
@@ -21,27 +34,26 @@ def preview(item_id) -> list[dict]:
     host       = entry.get("host", item_id)
     connection = build_connection_string(host)
 
-    pxar_sources = [
-        "etc.pxar:/etc", "home.pxar:/home", "opt.pxar:/opt",
-        "root.pxar:/root", "local.pxar:/usr/local",
-    ]
+    pxar_sources = _default_sources()
     pxar_sources += entry.get("source", [])
 
-    pbs_repo = _get_module_setting("proxmox_hosts", "pbs_repository", "")
+    pbs_repo            = _get_module_setting("proxmox_hosts", "pbs_repository", "")
+    ssh_connect_timeout = _get_global_setting("ssh_connect_timeout", 10)
+    namespace           = entry.get("namespace", "host")
 
     cmd_parts = [
         f"PBS_REPOSITORY={pbs_repo}", "PBS_PASSWORD=***", "PBS_FINGERPRINT=***",
         "sudo", "--preserve-env=PBS_REPOSITORY,PBS_PASSWORD,PBS_FINGERPRINT",
         "/usr/bin/proxmox-backup-client", "backup", *pxar_sources,
         "--backup-type", "host", "--backup-id", "$(hostname)",
-        "--ns", "host", "--backup-time", "$(date +%s)",
+        "--ns", namespace, "--backup-time", "$(date +%s)",
     ]
     cmd_str = " ".join(cmd_parts)
 
     if connection == "local":
         full_cmd = cmd_str
     else:
-        full_cmd = f"ssh -o BatchMode=yes -o ConnectTimeout=10 {connection} '{cmd_str}'"
+        full_cmd = f"ssh -o BatchMode=yes -o ConnectTimeout={ssh_connect_timeout} {connection} '{cmd_str}'"
 
     return [{"label": "proxmox-backup-client", "cmd": full_cmd}]
 
@@ -72,22 +84,22 @@ def run_single(item_id, entry=None):
 def _backup(host, entry):
     connection = build_connection_string(host)
 
-    pxar_sources = [
-        "etc.pxar:/etc", "home.pxar:/home", "opt.pxar:/opt",
-        "root.pxar:/root", "local.pxar:/usr/local",
-    ]
+    pxar_sources = _default_sources()
     pxar_sources += entry.get("source", [])
+
+    ssh_connect_timeout    = _get_global_setting("ssh_connect_timeout", 10)
 
     env = dict(os.environ)
     env["PBS_REPOSITORY"] = _get_module_setting("proxmox_hosts", "pbs_repository", "")
     env["PBS_PASSWORD"]    = _get_module_setting("proxmox_hosts", "pbs_password", "")
     env["PBS_FINGERPRINT"] = _get_module_setting("proxmox_hosts", "pbs_fingerprint", "")
 
+    namespace = entry.get("namespace", "host")
     base_cmd = [
         "sudo", "--preserve-env=PBS_REPOSITORY,PBS_PASSWORD,PBS_FINGERPRINT",
         "/usr/bin/proxmox-backup-client", "backup", *pxar_sources,
         "--backup-type", "host", "--backup-id", "$(hostname)",
-        "--ns", "host", "--backup-time", "$(date +%s)"
+        "--ns", namespace, "--backup-time", "$(date +%s)"
     ]
 
     if is_local(host):
@@ -101,7 +113,7 @@ def _backup(host, entry):
         ]
 
     try:
-        run_cmd(cmd, connection, env=env)
+        run_cmd(cmd, connection, env=env, ssh_connect_timeout=ssh_connect_timeout)
         log("INFO", f"Host-Backup '{host}' erfolgreich")
     except subprocess.CalledProcessError as e:
         log("WARNING", f"Host-Backup '{host}' fehlgeschlagen")

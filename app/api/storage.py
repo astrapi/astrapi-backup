@@ -75,6 +75,7 @@ _DDL = {
             host           TEXT    NOT NULL DEFAULT '',
             description    TEXT    NOT NULL DEFAULT '',
             enabled        INTEGER NOT NULL DEFAULT 1,
+            namespace      TEXT    NOT NULL DEFAULT 'host',
             extra_sources  TEXT
         )""",
 
@@ -122,12 +123,26 @@ def _migrate_remotes_columns() -> None:
         print("[storage] Migration: remotes.ssh_user hinzugefügt")
 
 
+def _migrate_proxmox_hosts_columns() -> None:
+    """Fügt fehlende Spalten zur proxmox_hosts-Tabelle hinzu (Schema-Migration)."""
+    con = _conn()
+    tables = {row[0] for row in con.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+    if "proxmox_hosts" not in tables:
+        return
+    cols = {row[1] for row in con.execute("PRAGMA table_info(proxmox_hosts)").fetchall()}
+    if "namespace" not in cols:
+        con.execute("ALTER TABLE proxmox_hosts ADD COLUMN namespace TEXT NOT NULL DEFAULT 'host'")
+        con.commit()
+        print("[storage] Migration: proxmox_hosts.namespace hinzugefügt")
+
+
 def init_db() -> None:
     con = _conn()
     for ddl in _DDL.values():
         con.execute(ddl)
     con.commit()
     _migrate_remotes_columns()
+    _migrate_proxmox_hosts_columns()
     _migrate_all_yaml()
 
 
