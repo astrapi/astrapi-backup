@@ -14,7 +14,9 @@ def _get_config(): return _load_config("proxmox_hosts")
 def preview(item_id) -> list[dict]:
     """Gibt den Befehl zurück, der bei run_single ausgeführt würde."""
     entry = _get_config().get(item_id) or _get_config().get(
-        int(item_id) if str(item_id).isdigit() else item_id) or {}
+        int(item_id) if str(item_id).isdigit() else item_id)
+    if not entry:
+        return []
 
     host       = entry.get("host", item_id)
     connection = build_connection_string(host)
