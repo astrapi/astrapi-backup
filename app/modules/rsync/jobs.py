@@ -70,6 +70,13 @@ def _rsync(entry):
     target_host = entry["target_host"]
     target_path = entry["target_path"]
 
+    if not source_path or not source_path.strip():
+        log("ERROR", "Rsync abgebrochen: source_path ist leer (--delete würde Ziel löschen).")
+        return
+    if not target_path or not target_path.strip():
+        log("ERROR", "Rsync abgebrochen: target_path ist leer.")
+        return
+
     # rsync wird immer auf dem Source-Host ausgeführt
     connection = build_connection_string(source_host)
 
