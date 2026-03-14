@@ -97,10 +97,10 @@ def _sanitize_path(path: str) -> str:
 
 
 def _validate_path_in_cache(item_id: str, archive: str, path: str) -> None:
-    """Prüft ob ein Dateipfad im Cache bekannt ist. Kein Cache → kein Check."""
+    """Prüft ob ein Dateipfad im Cache bekannt ist. Kein Cache → 404."""
     cached = get_file_cache(item_id, archive)
     if not cached:
-        return
+        raise HTTPException(404, "Kein Datei-Cache vorhanden. Bitte zuerst Archiv im Browser öffnen.")
     known = {e["path"].lstrip("/") for e in cached}
     if path not in known:
         raise HTTPException(404, f"Pfad nicht im Archiv gefunden: {path}")
