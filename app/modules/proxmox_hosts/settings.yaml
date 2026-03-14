@@ -1,3 +1,11 @@
+- key: pbs_repository
+  label: PBS Repository
+  type: text
+  placeholder: "backup@pbs!token-name@pbs.example.com:datastore"
+  description: "PBS_REPOSITORY im Format: user@pbs!token-name@host:datastore"
+  mono: true
+  default: ""
+
 - key: pbs_url
   label: PBS Server-URL
   type: text

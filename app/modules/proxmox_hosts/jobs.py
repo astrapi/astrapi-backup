@@ -25,7 +25,7 @@ def preview(item_id) -> list[dict]:
     ]
     pxar_sources += entry.get("source", [])
 
-    pbs_repo = "backup@pbs!backup-host@172.19.18.5:storage"
+    pbs_repo = _get_module_setting("proxmox_hosts", "pbs_repository", "")
 
     cmd_parts = [
         f"PBS_REPOSITORY={pbs_repo}", "PBS_PASSWORD=***", "PBS_FINGERPRINT=***",
@@ -77,7 +77,7 @@ def _backup(host, entry):
     pxar_sources += entry.get("source", [])
 
     env = dict(os.environ)
-    env["PBS_REPOSITORY"] = "backup@pbs!backup-host@172.19.18.5:storage"
+    env["PBS_REPOSITORY"] = _get_module_setting("proxmox_hosts", "pbs_repository", "")
     env["PBS_PASSWORD"]    = _get_module_setting("proxmox_hosts", "pbs_password", "")
     env["PBS_FINGERPRINT"] = _get_module_setting("proxmox_hosts", "pbs_fingerprint", "")
 
