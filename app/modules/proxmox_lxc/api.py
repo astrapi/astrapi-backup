@@ -114,6 +114,8 @@ def toggle_item(request: Request, item_id: str, hx_request: str | None = Header(
             key = int(item_id)
         except ValueError:
             pass
+    if key not in cfg:
+        raise HTTPException(404, "Item not found")
     cfg[key]["enabled"] = not cfg[key].get("enabled", False)
     save_item(KEY, key, cfg[key])
     if hx_request:

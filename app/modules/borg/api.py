@@ -261,11 +261,19 @@ def delete_one(request: Request, item_id: str, hx_request: str | None = Header(N
 @router.post("/{item_id}/toggle")
 def toggle_item(request: Request, item_id: str, hx_request: str | None = Header(None)):
     cfg = load_config(KEY)
-    cfg[item_id]["enabled"] = not cfg[item_id].get("enabled", False)
-    save_item(KEY, item_id, cfg[item_id])
+    key = item_id
+    if key not in cfg:
+        try:
+            key = int(item_id)
+        except ValueError:
+            pass
+    if key not in cfg:
+        raise HTTPException(404, "Item not found")
+    cfg[key]["enabled"] = not cfg[key].get("enabled", False)
+    save_item(KEY, key, cfg[key])
     if hx_request:
         return _list_response(request)
-    return {"status": "ok", "item": item_id, "enabled": cfg[item_id]["enabled"]}
+    return {"status": "ok", "item": key, "enabled": cfg[key]["enabled"]}
 
 
 @router.post("/enable-all")
