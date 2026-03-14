@@ -1,4 +1,44 @@
-# Proxmox-LXC-Modul – PBS-Verbindungseinstellungen
+# Proxmox-LXC-Modul – globale Einstellungen
+
+- type: section
+  label: vzdump
+
+- key: backup_storage
+  label: Storage
+  type: text
+  placeholder: "backup01"
+  default: "backup01"
+  description: Name des Proxmox-Storages für die Backups (--storage)
+
+- key: backup_mode
+  label: Backup-Modus
+  type: select
+  options:
+    - value: snapshot
+      label: Snapshot (empfohlen)
+    - value: stop
+      label: Stop
+    - value: suspend
+      label: Suspend
+  default: snapshot
+  description: vzdump Backup-Modus (--mode)
+
+- key: fleecing
+  label: Fleecing
+  type: checkbox
+  checkbox_label: Fleecing aktivieren (--fleecing 1)
+  default: false
+  description: Schnelleres Snapshot-Backup mit Copy-on-Write (erfordert zusätzlichen Storage)
+
+- key: notes_template
+  label: Notes-Template
+  type: text
+  placeholder: "{{guestname}}"
+  default: "{{guestname}}"
+  description: Template für die Backup-Notiz in Proxmox (--notes-template)
+
+- type: section
+  label: PBS
 
 - key: pbs_password
   label: PBS Passwort / Token-Secret
