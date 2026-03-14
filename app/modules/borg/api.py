@@ -3,6 +3,7 @@ import json
 import subprocess
 import threading
 import yaml
+from urllib.parse import quote as _urlquote
 from pathlib import Path, PurePosixPath
 from fastapi import APIRouter, HTTPException, Request, Header, Query
 from fastapi.responses import HTMLResponse, StreamingResponse
@@ -456,7 +457,7 @@ def download_archive_file(item_id: str, archive: str, path: str):
     return StreamingResponse(
         _stream(),
         media_type="application/octet-stream",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{_urlquote(filename)}"},
     )
 
 
@@ -512,7 +513,7 @@ def download_bundle(item_id: str, archive: str, path: list[str] = Query(default=
     return StreamingResponse(
         _stream(),
         media_type="application/x-tar",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{_urlquote(filename)}"},
     )
 
 
