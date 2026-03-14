@@ -47,13 +47,13 @@ def build_connection_string(host: str, ssh_user: str = "backupadm") -> str:
     return f"{ssh_user or 'backupadm'}@{host}"
 
 
-def run_cmd(cmd, connection: str, env=None, timeout=TIMEOUT_BACKUP):
+def run_cmd(cmd, connection: str, env=None, timeout=TIMEOUT_BACKUP, ssh_connect_timeout=10):
     if isinstance(cmd, list):
         cmd = " ".join(cmd)
     if connection == "local":
         return run_cmd_local(cmd, env, timeout=timeout)
     else:
-        return run_cmd_remote(cmd, connection, env, timeout=timeout)
+        return run_cmd_remote(cmd, connection, env, timeout=timeout, ssh_connect_timeout=ssh_connect_timeout)
 
 
 def run_cmd_local(cmd, env=None, timeout=TIMEOUT_BACKUP):
@@ -70,9 +70,9 @@ def run_cmd_local(cmd, env=None, timeout=TIMEOUT_BACKUP):
         raise
 
 
-def run_cmd_remote(cmd, connection, env=None, timeout=TIMEOUT_BACKUP):
+def run_cmd_remote(cmd, connection, env=None, timeout=TIMEOUT_BACKUP, ssh_connect_timeout=10):
     final_cmd = ["ssh", "-o", "BatchMode=yes",
-                 "-o", "ConnectTimeout=10",
+                 "-o", f"ConnectTimeout={ssh_connect_timeout}",
                  connection, cmd]
     try:
         result = subprocess.run(

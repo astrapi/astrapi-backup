@@ -59,5 +59,44 @@
     </div>
   </div>
 
+  {# ── SSH ──────────────────────────────────────────────────────────────────── #}
+  <div>
+    <div class="settings-section-label">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="11" width="20" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+      SSH
+    </div>
+    <div class="ds-card on">
+      <div class="card-body" style="padding:16px;">
+        <form hx-post="/ui/settings/save/global"
+              hx-target="#settings-container"
+              hx-swap="innerHTML">
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;">
+            <div class="form-group">
+              <label class="form-label" style="display:flex; align-items:center; gap:4px;">
+                SSH Connect Timeout
+                <span title="Timeout in Sekunden für den SSH-Verbindungsaufbau (gilt für alle Module)"
+                      style="display:inline-flex; align-items:center; cursor:help; color:var(--text-3);">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                       stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/>
+                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                  </svg>
+                </span>
+              </label>
+              <input class="form-input" type="number" name="ssh_connect_timeout" min="5" max="120" step="1"
+                     value="{{ settings.get('ssh_connect_timeout', 10) }}">
+            </div>
+          </div>
+          <div style="display:flex; justify-content:flex-end; margin-top:14px;">
+            <button type="submit" class="btn btn-primary btn-sm">Speichern</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
 
 </div>
