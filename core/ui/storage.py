@@ -29,21 +29,9 @@ from pathlib import Path
 from typing import Any, Callable
 import yaml
 
-_DATA_DIR: Path | None = None
-
 
 class StorageNotInitialized(RuntimeError):
     pass
-
-
-def init(app_root: Path) -> None:
-    """Setzt das Datenverzeichnis. Muss vor der ersten Nutzung aufgerufen werden.
-
-    Wird automatisch von core/ui/app.py beim Start aufgerufen.
-    """
-    global _DATA_DIR
-    _DATA_DIR = app_root / "data"
-    _DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
 class YamlStorage:
@@ -57,6 +45,22 @@ class YamlStorage:
         store = YamlStorage("hosts", seed_data={"web-01": {...}})
     """
 
+    _DATA_DIR: Path | None = None
+
+    @classmethod
+    def init(cls, app_root: Path) -> None:
+        """Setzt das Datenverzeichnis. Muss vor der ersten Nutzung aufgerufen werden.
+
+        Wird automatisch von core/ui/app.py beim Start aufgerufen.
+        """
+        cls._DATA_DIR = app_root / "data"
+        cls._DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+    @classmethod
+    def reset(cls) -> None:
+        """Setzt den Klassen-Zustand zurück (für Test-Isolation)."""
+        cls._DATA_DIR = None
+
     def __init__(self, collection: str, seed_data: dict | None = None):
         self.collection = collection
         self._seed      = seed_data or {}
@@ -64,12 +68,12 @@ class YamlStorage:
 
     @property
     def _path(self) -> Path:
-        if _DATA_DIR is None:
+        if YamlStorage._DATA_DIR is None:
             raise StorageNotInitialized(
                 "YamlStorage.init(app_root) wurde noch nicht aufgerufen. "
                 "Stelle sicher dass core.ui.create() vor der ersten Storage-Nutzung läuft."
             )
-        return _DATA_DIR / f"{self.collection}.yaml"
+        return YamlStorage._DATA_DIR / f"{self.collection}.yaml"
 
     # ── Lesen ─────────────────────────────────────────────────────────────────
 
@@ -159,13 +163,18 @@ class YamlStorage:
             del data[key]
             self._write(data)
 
-    def toggle(self, key: str, field: str = "enabled") -> bool:
-        """Schaltet ein Boolean-Feld um. Gibt den neuen Wert zurück."""
+    def toggle(self, key: str, field: str = "enabled", default: bool = True) -> bool:
+        """Schaltet ein Boolean-Feld um. Gibt den neuen Wert zurück.
+
+        ``default`` bestimmt den angenommenen Zustand wenn das Feld fehlt:
+          True  – für Datensätze die per Default aktiv sind (Hosts, Tasks, …)
+          False – für Automatisierungseinträge die explizit aktiviert werden müssen
+        """
         with self._lock:
             data = self._read()
             if key not in data:
                 raise KeyError(f"'{key}' nicht gefunden in '{self.collection}'")
-            current = bool(data[key].get(field, True))
+            current = bool(data[key].get(field, default))
             data[key][field] = not current
             self._write(data)
             return data[key][field]
@@ -184,3 +193,12 @@ class YamlStorage:
 
     def __repr__(self) -> str:
         return f"YamlStorage(collection={self.collection!r}, path={self._path})"
+
+
+def init(app_root: Path) -> None:
+    """Setzt das Datenverzeichnis. Muss vor der ersten Nutzung aufgerufen werden.
+
+    Wird automatisch von core/ui/app.py beim Start aufgerufen.
+    Shim für YamlStorage.init(app_root).
+    """
+    YamlStorage.init(app_root)

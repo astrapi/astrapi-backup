@@ -11,21 +11,14 @@
 {% macro edit_button(module=None, item=None, container_id=None, loading_id=None) %}
   <button hx-get="/ui/{{ module }}/{{ item }}/edit?container_id={{ container_id }}&loading_id={{ loading_id }}"
     hx-target="body" hx-swap="beforeend" class="btn-icon" title="Bearbeiten">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-    </svg>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#icon-edit"></use></svg>
   </button>
 {% endmacro %}
 
 {% macro delete_button(module=None, item=None, container_id=None, loading_id=None, description=None) %}
   <button hx-get="/ui/{{ module }}/{{ item }}/delete?container_id={{ container_id }}&loading_id={{ loading_id }}&description={{ description }}"
     hx-target="body" hx-swap="beforeend" class="btn-icon btn-icon-danger" title="Löschen">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <polyline points="3 6 5 6 21 6"/>
-      <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
-      <path d="M10 11v6m4-6v6"/><path d="M9 6V4h6v2"/>
-    </svg>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#icon-trash"></use></svg>
   </button>
 {% endmacro %}
 
@@ -48,9 +41,7 @@
     hx-target="body" hx-swap="beforeend"
     class="btn btn-primary btn-sm" title="Neu"
   >
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-    </svg>
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#icon-plus"></use></svg>
     Neu
   </button>
 {% endmacro %}
@@ -62,10 +53,7 @@
     hx-indicator="#{{ loading_id }}"
     class="btn-icon" title="Aktualisieren"
   >
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/>
-      <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
-    </svg>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#icon-refresh-lg"></use></svg>
   </button>
 {% endmacro %}
 
@@ -80,11 +68,21 @@
     hx-headers='{"HX-Request": "true"}'
     class="btn-icon btn-icon-run"
     title="{{ 'Ausführen' if enabled else 'Deaktiviert – nur Debug-Run möglich' }}"
-    {% if not enabled %}disabled style="opacity:.3; cursor:not-allowed;"{% endif %}
+    {% if not enabled %}disabled{% endif %}
   >
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <polygon points="5 3 19 12 5 21 5 3"/>
-    </svg>
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#icon-play"></use></svg>
+  </button>
+{% endmacro %}
+
+{% macro run_debug_button(module=None, item=None, container_id=None) %}
+  <button
+    hx-post="/api/{{ module }}/{{ item }}/run?debug=true"
+    hx-target="#{{ container_id }}" hx-swap="innerHTML"
+    hx-headers='{"HX-Request": "true"}'
+    class="btn-icon btn-icon-debug"
+    title="Ausführen (Debug)"
+  >
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#icon-play-debug"></use></svg>
   </button>
 {% endmacro %}
 
@@ -94,10 +92,18 @@
     hx-target="#{{ container_id }}" hx-swap="innerHTML"
     hx-headers='{"HX-Request": "true"}'
     class="btn btn-ghost btn-sm btn-run" title="Alle ausführen">
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-      <polygon points="5 3 19 12 5 21 5 3"/>
-    </svg>
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><use href="#icon-play"></use></svg>
     Alle starten</button>
+{% endmacro %}
+
+{% macro run_debug_all_button(module=None, container_id=None) %}
+  <button
+    hx-post="/api/{{ module }}/run?debug=true"
+    hx-target="#{{ container_id }}" hx-swap="innerHTML"
+    hx-headers='{"HX-Request": "true"}'
+    class="btn btn-ghost btn-sm" title="Alle ausführen (Debug)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#icon-play-debug"></use></svg>
+    Debug</button>
 {% endmacro %}
 
 {% macro enable_all_button(module=None, container_id=None) %}
@@ -122,10 +128,7 @@
     hx-target="body" hx-swap="beforeend"
     class="btn-icon" title="Einstellungen"
   >
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="12" cy="12" r="3"/>
-      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-    </svg>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#icon-settings"></use></svg>
   </button>
 {% endmacro %}
 
@@ -136,11 +139,7 @@
     class="btn-icon btn-icon-log"
     title="Log anzeigen"
   >
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-      <polyline points="14 2 14 8 20 8"/>
-      <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-    </svg>
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#icon-file-text"></use></svg>
   </button>
 {% endmacro %}
 
@@ -184,65 +183,13 @@
     icon    – 'edit' | 'create' | 'settings' | 'log' | 'bell' | 'warning' | 'info' | 'none'
     is_edit – veraltet: Kurzform für icon='edit' (True) / icon='create' (False)
 #}
-{% macro modal_title(title='', icon='none', is_edit=False) %}
-
+{% macro modal_title(title='', icon=None, is_edit=False) %}
 <div class="ds-modal-title">
-  {% if icon == 'edit' %}
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-    </svg>
-  {% elif icon == 'create' %}
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-    </svg>
-  {% elif icon == 'settings' %}
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="12" cy="12" r="3"/>
-      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-    </svg>
-  {% elif icon == 'log' %}
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-      <polyline points="14 2 14 8 20 8"/>
-      <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-    </svg>
-  {% elif icon == 'bell' %}
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-      <path d="M13.73 21a2 2 0 01-3.46 0"/>
-    </svg>
-  {% elif icon == 'warning' %}
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-      <line x1="12" y1="9" x2="12" y2="13"/>
-      <circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/>
-    </svg>
-  {% elif icon == 'info' %}
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="12" cy="12" r="10"/>
-      <line x1="12" y1="8" x2="12" y2="12"/>
-      <line x1="12" y1="16" x2="12.01" y2="16"/>
-    </svg>
-  {% elif icon == 'terminal-box' %}
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <rect x="2" y="3" width="20" height="18" rx="2"/>
-      <polyline points="6 9 10 13 6 17"/>
-      <line x1="13" y1="17" x2="18" y2="17"/>
-    </svg>
-  {% elif icon == 'archive' %}
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M21 8v13H3V8"/><rect x="1" y="3" width="22" height="5" rx="1"/>
-      <line x1="10" y1="12" x2="14" y2="12"/>
-    </svg>
-  {% elif icon == 'bar-chart' %}
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
-      <line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>
-    </svg>
-  {% endif %}
   {{ title }}
 </div>
+<button type="button" class="ds-modal-close" x-on:click="$el.closest('.ds-modal-backdrop').remove()">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#icon-close"></use></svg>
+</button>
 {% endmacro %}
 
 {#
@@ -259,10 +206,9 @@
 {% macro modal_footer(enabled=True, enabled_id='modal-enabled', save_label='Speichern',
                       save_disabled=False, has_toggle=True, save_id=None, save_type='submit') %}
 <div class="ds-modal-footer"
-     style="display:flex; align-items:center; justify-content:{% if has_toggle %}space-between{% else %}flex-end{% endif %}; gap:10px;
-            padding-top:14px; margin-top:6px; border-top:1px solid var(--border-s);">
+     {% if not has_toggle %}style="justify-content:flex-end;"{% endif %}>
   {% if has_toggle %}
-  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+  <label class="toggle-field">
     <input type="hidden" name="enabled" value="0">
     <input type="checkbox" name="enabled" value="1" id="{{ enabled_id }}"
            style="display:none;" {{ 'checked' if enabled else '' }}>
@@ -276,17 +222,17 @@
               this.nextElementSibling.textContent = cb.checked ? 'Aktiviert' : 'Deaktiviert';
             "
     ><span class="toggle-knob"></span></button>
-    <span style="font-size:13px; color:var(--text-2);">{{ 'Aktiviert' if enabled else 'Deaktiviert' }}</span>
+    <span class="toggle-field-label">{{ 'Aktiviert' if enabled else 'Deaktiviert' }}</span>
   </label>
   {% endif %}
-  <div style="display:flex; gap:10px;">
+  <div class="modal-actions">
     <button type="button" class="btn btn-ghost btn-sm"
             x-on:click="$el.closest('.ds-modal-backdrop').remove()">
       Abbrechen
     </button>
     <button type="{{ save_type }}" class="btn btn-primary btn-sm"
             {% if save_id %}id="{{ save_id }}"{% endif %}
-            {% if save_disabled %}disabled style="opacity:.4; cursor:not-allowed;"{% endif %}>
+            {% if save_disabled %}disabled{% endif %}>
       {{ save_label }}
     </button>
   </div>
@@ -299,9 +245,7 @@
     close_label – Beschriftung des Schließen-Buttons (default: "Schließen")
 #}
 {% macro modal_footer_simple(close_label="Schließen") %}
-<div class="ds-modal-footer-simple"
-     style="display:flex; justify-content:center;
-            padding-top:12px; margin-top:12px; border-top:1px solid var(--border-s);">
+<div class="ds-modal-footer-simple">
   <button type="button" class="btn btn-ghost btn-sm"
           x-on:click="$el.closest('.ds-modal-backdrop').remove()">
     {{ close_label }}
@@ -316,24 +260,9 @@
   Bekannte Namen: search, bar-chart, play, bug, file-text, terminal,
                   external-link, info, refresh
 #}
-{% macro icon(name) %}
-  {%- if name == 'search' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-  {%- elif name == 'bar-chart' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
-  {%- elif name == 'play' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-  {%- elif name == 'bug' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2a4 4 0 0 1 8 0"/><path d="M4 8l2 2M20 8l-2 2M4 16l2-2M20 16l-2-2"/><rect x="8" y="8" width="8" height="12" rx="2"/></svg>
-  {%- elif name == 'file-text' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-  {%- elif name == 'terminal' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-  {%- elif name == 'terminal-box' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="2"/><polyline points="6 9 10 13 6 17"/><line x1="13" y1="17" x2="18" y2="17"/></svg>
-  {%- elif name == 'external-link' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-  {%- elif name == 'info' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-  {%- elif name == 'refresh' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-  {%- elif name == 'power-on' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
-  {%- elif name == 'power-off' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64A9 9 0 1 1 5.64 5.64"/><line x1="12" y1="2" x2="12" y2="12"/><line x1="4" y1="4" x2="20" y2="20"/></svg>
-  {%- elif name == 'play-debug' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-  {%- elif name == 'archive' -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8v13H3V8"/><rect x="1" y="3" width="22" height="5" rx="1"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
-  {%- else -%}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg>
-  {%- endif -%}
-{% endmacro %}
+{% macro icon(name) -%}
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#icon-{{ name }}"></use></svg>
+{%- endmacro %}
 
 {#
   card_action_button(action, item, item_data, container_id, loading_id)
@@ -372,7 +301,7 @@
         hx-target="{{ _sub(action.hx_target | default('#main-content')) }}"
         hx-swap="{{ action.hx_swap | default('innerHTML') }}"
         {% if action.hx_push_url %}hx-push-url="{{ _sub(action.hx_push_url) }}"{% endif %}
-        {% if action.disabled_if_off and not item_data.enabled %}disabled style="opacity:.3; cursor:not-allowed;"{% endif %}>
+        {% if action.disabled_if_off and not item_data.enabled %}disabled{% endif %}>
   {{ icon(action.icon) }}
 </button>
 {% endmacro %}

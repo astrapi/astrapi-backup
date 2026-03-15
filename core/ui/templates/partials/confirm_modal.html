@@ -11,6 +11,13 @@
 
   <div class="confirm-dialog" tabindex="-1">
 
+    <button type="button" class="ds-modal-close" x-on:click="$el.closest('.ds-modal-backdrop').remove()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+
     <!-- <div class="confirm-icon">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
@@ -19,14 +26,14 @@
       </svg>
     </div> -->
 
-    <p style="text-align:center; font-size:16px; color:var(--text-2); margin-bottom:6px; font-weight:600;">
+    <p class="modal-lead">
       {{ description }}
     </p>
-    <p style="text-align:center; font-size:13px; color:var(--text-3); margin-bottom:24px;">
-      Möchtest du diesen Eintrag wirklich <strong style="color:var(--text-2);">{{ verb }}</strong>?
+    <p class="modal-copy">
+      Möchtest du diesen Eintrag wirklich <strong>{{ verb }}</strong>?
     </p>
 
-    <div style="display:flex; gap:10px; justify-content:center;">
+    <div class="ds-modal-footer-simple">
       <button class="btn btn-ghost btn-sm"
               x-on:click="$el.closest('.ds-modal-backdrop').remove()">
         Abbrechen

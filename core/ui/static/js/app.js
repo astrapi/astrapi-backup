@@ -1,13 +1,8 @@
-// Dark Mode
-function toggleDarkMode() {
-    document.documentElement.classList.toggle('light-mode');
-    localStorage.setItem('lightMode', document.documentElement.classList.contains('light-mode') ? '1' : '0');
-}
-
-function initializeDarkMode() {
-    if (localStorage.getItem('lightMode') === '1') {
-        document.documentElement.classList.add('light-mode');
-    }
+// Dark Mode – Fallback: localStorage nur wenn JS-Toggle benötigt wird
+// (Server setzt .light-mode per class-Attribut; diese Funktion bleibt
+// für Rückwärtskompatibilität und sofortigen Effekt nach Settings-Save)
+function applyLightMode(value) {
+    document.documentElement.classList.toggle('light-mode', value === '1' || value === true);
 }
 
 // Active Nav
@@ -22,7 +17,6 @@ function updateActiveNav() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    initializeDarkMode();
     updateActiveNav();
 });
 

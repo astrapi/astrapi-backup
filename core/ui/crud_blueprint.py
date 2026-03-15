@@ -109,7 +109,7 @@ def make_crud_blueprint(
             item_id=item_id,
             submit_url=f"/ui/{key}/{item_id}/update",
             method="post",
-            title=f"{_label} bearbeiten – {item.get(description_field, item_id)}",
+            title=f"{_label} bearbeiten – {item_id}",
             reload_url=f"/ui/{key}/content",
             container_id=request.args.get("container_id", _c_id),
             loading_id=request.args.get("loading_id", _l_id),

@@ -3,13 +3,13 @@ core/ui/module_loader.py  –  Lädt modul.yaml und erstellt Module-Instanz
 
 modul.yaml liegt im Root jedes Moduls neben __init__.py:
 
-  label:       Hosts
-  icon:        server
-  nav_group:   Module
-  nav_default: true
+  label: Hosts
+  icon:  server
 
   settings_defaults:
     default_port: "22"
+
+Navigation (Reihenfolge, Gruppe) wird ausschließlich über app/config.yaml gesteuert.
 """
 
 import yaml
@@ -29,6 +29,15 @@ _CARD_ACTION_TYPES: dict[str, dict] = {
         "hx_swap":         "innerHTML",
         "hx_headers":      '{"HX-Request": "true"}',
         "disabled_if_off": True,
+    },
+    "run_debug": {
+        "title":           "Ausführen (Debug)",
+        "icon":            "play-debug",
+        "style":           "debug",
+        "hx_post":         "/api/{module}/{item}/run?debug=true",
+        "hx_target":       "#{container_id}",
+        "hx_swap":         "innerHTML",
+        "hx_headers":      '{"HX-Request": "true"}',
     },
     "log": {
         "title":    "Log anzeigen",
@@ -74,16 +83,14 @@ _CARD_ACTION_TYPES: dict[str, dict] = {
     },
     "preview": {
         "title":    "Befehlsvorschau",
-        "icon":     "terminal-box",
-        "style":    "log",
+        "icon":     "eye",
         "hx_get":   "/api/{module}/{item}/preview",
         "hx_target":"body",
         "hx_swap":  "beforeend",
     },
     "archives": {
-        "title":    "Archive anzeigen",
+        "title":    "Archive",
         "icon":     "archive",
-        "style":    "log",
         "hx_get":   "/api/{module}/{item}/archives",
         "hx_target":"body",
         "hx_swap":  "beforeend",
@@ -91,14 +98,13 @@ _CARD_ACTION_TYPES: dict[str, dict] = {
     "stats": {
         "title":    "Statistiken",
         "icon":     "bar-chart",
-        "style":    "log",
         "hx_get":   "/api/{module}/{item}/stats",
         "hx_target":"body",
         "hx_swap":  "beforeend",
     },
 }
 
-_POST_TYPES = {"run"}
+_POST_TYPES = {"run", "run_debug"}
 
 
 def _expand_card_actions(actions: list, module_key: str) -> list:

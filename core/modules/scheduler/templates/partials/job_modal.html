@@ -163,6 +163,42 @@
         {% endif %}
       </div>
 
+      <!-- Benachrichtigungen -->
+      {% set ns_on = job.notify_start if job else True %}
+      {% set ne_on = job.notify_end    if job else True %}
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <label class="toggle-field">
+          <input type="hidden" name="notify_start" value="0">
+          <input type="checkbox" name="notify_start" value="1" id="sched-notify-start"
+                 style="display:none;" {{ 'checked' if ns_on else '' }}>
+          <button type="button"
+                  class="toggle-switch {{ 'toggle-on' if ns_on else 'toggle-off' }}"
+                  onclick="
+                    var cb=document.getElementById('sched-notify-start');
+                    cb.checked=!cb.checked;
+                    this.classList.toggle('toggle-on',cb.checked);
+                    this.classList.toggle('toggle-off',!cb.checked);
+                    this.nextElementSibling.textContent=cb.checked?'Start-Notify an':'Start-Notify aus';
+                  "><span class="toggle-knob"></span></button>
+          <span class="toggle-field-label">{{ 'Start-Notify an' if ns_on else 'Start-Notify aus' }}</span>
+        </label>
+        <label class="toggle-field">
+          <input type="hidden" name="notify_end" value="0">
+          <input type="checkbox" name="notify_end" value="1" id="sched-notify-end"
+                 style="display:none;" {{ 'checked' if ne_on else '' }}>
+          <button type="button"
+                  class="toggle-switch {{ 'toggle-on' if ne_on else 'toggle-off' }}"
+                  onclick="
+                    var cb=document.getElementById('sched-notify-end');
+                    cb.checked=!cb.checked;
+                    this.classList.toggle('toggle-on',cb.checked);
+                    this.classList.toggle('toggle-off',!cb.checked);
+                    this.nextElementSibling.textContent=cb.checked?'Ende-Notify an':'Ende-Notify aus';
+                  "><span class="toggle-knob"></span></button>
+          <span class="toggle-field-label">{{ 'Ende-Notify an' if ne_on else 'Ende-Notify aus' }}</span>
+        </label>
+      </div>
+
       {{ modal_footer(enabled=job.enabled if job else False, enabled_id='sched-enabled',
                       save_label='Erstellen' if is_new else 'Speichern') }}
 

@@ -67,10 +67,12 @@ def create(
         static_url_path="/static",
     )
 
+    import os
+    _debug = os.environ.get("FLASK_DEBUG", "0") == "1"
     app.config.update(
-        DEBUG=True,
-        TEMPLATES_AUTO_RELOAD=True,
-        SEND_FILE_MAX_AGE_DEFAULT=0,
+        DEBUG=_debug,
+        TEMPLATES_AUTO_RELOAD=_debug,
+        SEND_FILE_MAX_AGE_DEFAULT=0 if _debug else 3600,
     )
     if config:
         app.config.update(config)
@@ -84,10 +86,11 @@ def create(
             _raw = _yaml.safe_load(_f) or {}
         _app = _raw.get("app", {})
         app_cfg = {
-            "APP_NAME":     _app.get("name",       "myapp"),
-            "APP_LANG":     _app.get("lang",        "de"),
-            "LIGHT_MODE":   bool(_app.get("light_mode", False)),
-            "APP_LOGO_SVG": _app.get("logo_svg",   None),
+            "APP_NAME":       _app.get("name",       "myapp"),
+            "APP_LANG":       _app.get("lang",        "de"),
+            "LIGHT_MODE":     bool(_app.get("light_mode", False)),
+            "APP_LOGO_SVG":   _app.get("logo_svg",   None),
+            "APP_ICON_THEME": _app.get("icon_theme", "default"),
         }
     else:
         for cfg_name in ("settings.py", "config.py"):
@@ -109,11 +112,18 @@ def create(
     # ── Einstellungs-Registry initialisieren ──────────────────────────────────
     settings_init(app_root)
     storage_init(app_root)
+    _light_default = "1" if app_cfg.get("LIGHT_MODE", False) else "0"
     global_defaults = {
         k: v for k, v in app_cfg.items()
-        if k not in ("LIGHT_MODE", "APP_LOGO_SVG") and not callable(v)
+        if k not in ("LIGHT_MODE", "APP_LOGO_SVG", "APP_ICON_THEME") and not callable(v)
     }
+    global_defaults.setdefault("LIGHT_MODE",      _light_default)
+    global_defaults.setdefault("APP_ICON_THEME",  app_cfg.get("APP_ICON_THEME", "lucide"))
+    global_defaults.setdefault("TIMEZONE",        "Europe/Berlin")
+    global_defaults.setdefault("DATE_FORMAT",     "DD.MM.YYYY")
     seed_defaults(global_defaults, modules)
+
+    app.config["LOADED_MODULES"] = modules
 
     # ── Template-Loader: Modul > App > Core ──────────────────────────────────
     app_templates  = app_root / "templates"
@@ -147,13 +157,18 @@ def create(
             m = _mod_map.get(key)
             return m.card_actions if m else []
 
+        from core.ui.settings_registry import get as _srget
+        _light = _srget("LIGHT_MODE", _light_default)
         return {
             "app_name":             app_cfg.get("APP_NAME",     "myapp"),
             "app_version":          _app_version,
             "core_version":         _core_version,
             "app_logo_svg":         app_cfg.get("APP_LOGO_SVG", None),
-            "app_lang":             app_cfg.get("APP_LANG",     "de"),
-            "light_mode":           light_mode,
+            "app_lang":             _srget("APP_LANG", app_cfg.get("APP_LANG", "de")),
+            "light_mode":           (_light == "1" or _light is True),
+            "icon_theme":           _srget("APP_ICON_THEME", app_cfg.get("APP_ICON_THEME", "lucide"))
+                                    if _srget("APP_ICON_THEME", "lucide") in {"lucide", "heroicons", "tabler"}
+                                    else "lucide",
             "modules":              modules,
             "module_has_settings":  module_has_settings,
             "module_label":         module_label,
@@ -303,39 +318,18 @@ def _register_module_settings_routes(app: Flask, modules: list) -> None:
 
         if request.method == "POST":
             password_keys = {
-                f["key"] for f in mod.settings_schema
-                if "key" in f and f.get("type") == "password"
+                f["key"] for f in mod.settings_schema if f.get("type") == "password"
             }
-            list_keys = {
-                f["key"] for f in mod.settings_schema
-                if "key" in f and f.get("type") == "list"
-            }
-            # Collect indexed list values (key_0, key_1, ...)
-            list_values: dict = {lk: [] for lk in list_keys}
-            for lk in list_keys:
-                i = 0
-                while f"{lk}_{i}" in request.form:
-                    val = request.form[f"{lk}_{i}"].strip()
-                    if val:
-                        list_values[lk].append(val)
-                    i += 1
             prefixed = {}
             for k, v in request.form.to_dict().items():
-                # Skip indexed sub-keys of list fields
-                if any(k.startswith(f"{lk}_") and k[len(lk)+1:].isdigit() for lk in list_keys):
-                    continue
                 if k in password_keys and not v.strip():
                     continue  # Leeres Passwort-Feld nicht speichern
                 prefixed[f"module.{module_key}.{k}"] = v
-            for lk, items in list_values.items():
-                prefixed[f"module.{module_key}.{lk}"] = items
             _set_many(prefixed)
 
         current_values = {
-            field["key"]: get_module(
-                module_key, field["key"],
-                [] if field.get("type") == "list" else field.get("default", "")
-            )
+            field["key"]: get_module(module_key, field["key"],
+                                     field.get("default", ""))
             for field in mod.settings_schema
             if "key" in field
         }
@@ -344,4 +338,5 @@ def _register_module_settings_routes(app: Flask, modules: list) -> None:
             mod=mod,
             schema=mod.settings_schema,
             values=current_values,
+            saved=(request.method == "POST"),
         )

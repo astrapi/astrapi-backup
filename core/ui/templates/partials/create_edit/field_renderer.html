@@ -1,5 +1,5 @@
 {% if field.type == "boolean" %}
-<div style="display:flex; align-items:center; justify-content:flex-end; padding-bottom:9px;">
+<div class="field-toggle-row">
   <input
     type="checkbox"
     name="{{ field.name }}"
@@ -31,7 +31,7 @@
     <input
       type="text"
       name="{{ field.name }}"
-      value="{{ values[field.name] if values else field.get('default', '') }}"
+      value="{{ values[field.name] if values else '' }}"
       {% if field.max %}maxlength="{{ field.max }}"{% endif %}
       {% if field.min_length %}minlength="{{ field.min_length }}"{% endif %}
       {% if field.pattern %}pattern="{{ field.pattern }}"{% endif %}

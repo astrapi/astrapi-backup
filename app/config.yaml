@@ -42,12 +42,12 @@ navigation:
   - key:   history
     label: Job-History
     icon:  clock
-    group: System
+    group: Information
 
   - key:   errors
     label: Fehler
     icon:  alert
-    group: System
+    group: Information
 
   - key:   remotes
     label: Remote-Geräte

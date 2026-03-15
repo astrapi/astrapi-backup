@@ -295,26 +295,5 @@ def test_job(job_id: str):
     return _test_badge(ok, msg)
 
 
-# ── Hilfsfunktion: Test-Badge ─────────────────────────────────────────────────
-
 def _test_badge(ok: bool, msg: str) -> str:
-    if ok:
-        return (
-            '<span style="font-size:13px; color:#4ade80; padding:3px 9px; '
-            'border-radius:var(--rad); background:rgba(74,222,128,0.10); '
-            'display:inline-flex; align-items:center; gap:5px;">'
-            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" '
-            'stroke="currentColor" stroke-width="2.5">'
-            '<polyline points="20 6 9 17 4 12"/></svg>'
-            f'{msg}</span>'
-        )
-    return (
-        '<span style="font-size:13px; color:var(--err); padding:3px 9px; '
-        'border-radius:var(--rad); background:var(--err-bg); '
-        'display:inline-flex; align-items:center; gap:5px;">'
-        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" '
-        'stroke="currentColor" stroke-width="2.5">'
-        '<line x1="18" y1="6" x2="6" y2="18"/>'
-        '<line x1="6" y1="6" x2="18" y2="18"/></svg>'
-        f'{msg}</span>'
-    )
+    return render_template(f"{KEY}/partials/test_badge.html", ok=ok, msg=msg)

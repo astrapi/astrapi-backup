@@ -44,7 +44,7 @@ def update_channel(channel_id: str, item: ChannelIn):
 @router.patch("/{channel_id}/toggle", summary="Kanal aktivieren/deaktivieren")
 def toggle_channel(channel_id: str):
     try:
-        return {"channel_id": channel_id, "enabled": store.toggle(channel_id)}
+        return {"channel_id": channel_id, "enabled": store.toggle(channel_id, default=False)}
     except KeyError as e:
         raise HTTPException(404, str(e))
 
@@ -99,7 +99,7 @@ def update_job(job_id: str, item: JobIn):
 @router.patch("/jobs/{job_id}/toggle", summary="Job aktivieren/deaktivieren")
 def toggle_job(job_id: str):
     try:
-        return {"job_id": job_id, "enabled": job_store.toggle(job_id)}
+        return {"job_id": job_id, "enabled": job_store.toggle(job_id, default=False)}
     except KeyError as e:
         raise HTTPException(404, str(e))
 

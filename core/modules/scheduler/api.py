@@ -6,10 +6,12 @@ router = APIRouter()
 
 
 class JobIn(BaseModel):
-    label:   str
-    cron:    str
-    enabled: bool = True
-    steps:   list[str] = []
+    label:        str
+    cron:         str
+    enabled:      bool = True
+    steps:        list[str] = []
+    notify_start: bool = True
+    notify_end:   bool = True
 
 
 @router.get("/", summary="List all jobs")
@@ -37,7 +39,8 @@ def get_job(job_id: str):
 def create_job(job_id: str, data: JobIn):
     from core.modules.scheduler.engine import create_job as _create
     try:
-        return _create(job_id, data.label, data.cron, data.enabled, data.steps)
+        return _create(job_id, data.label, data.cron, data.enabled, data.steps,
+                       notify_start=data.notify_start, notify_end=data.notify_end)
     except KeyError as e:
         raise HTTPException(409, str(e))
 
@@ -47,7 +50,8 @@ def update_job(job_id: str, data: JobIn):
     from core.modules.scheduler.engine import update_job as _update, get_job as _get
     if _get(job_id) is None:
         raise HTTPException(404, f"Job '{job_id}' nicht gefunden")
-    return _update(job_id, data.label, data.cron, data.enabled, data.steps)
+    return _update(job_id, data.label, data.cron, data.enabled, data.steps,
+                   notify_start=data.notify_start, notify_end=data.notify_end)
 
 
 @router.delete("/{job_id}", summary="Delete job", status_code=204)

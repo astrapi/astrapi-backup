@@ -4,10 +4,10 @@
     add() { this.lines.push("") },
     remove(i) { this.lines.splice(i, 1) }
   }'
-  style="display:flex; flex-direction:column; gap:6px;"
+  class="stack-sm"
 >
   <template x-for="(line, i) in lines" :key="i">
-    <div style="display:flex; gap:6px; align-items:center;">
+    <div class="inline-cluster">
       <input
         type="text"
         :name="`{{ field.name }}_${i}`"
@@ -21,9 +21,7 @@
         class="btn-icon btn-icon-danger"
         title="Entfernen"
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#icon-minus"></use></svg>
       </button>
     </div>
   </template>
@@ -35,9 +33,7 @@
       class="btn btn-ghost btn-sm"
       style="gap:5px;"
     >
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-      </svg>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#icon-plus"></use></svg>
       Hinzufügen
     </button>
   </div>
