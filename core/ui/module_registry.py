@@ -19,6 +19,7 @@ from pathlib import Path
 
 CORE_ROOT    = Path(__file__).resolve().parent           # core/ui/  (templates, static)
 CORE_MOD_DIR = Path(__file__).resolve().parents[1] / "modules"  # core/modules/
+CORE_NAV_YAML = Path(__file__).resolve().parents[1] / "navigation.yaml"  # core/navigation.yaml
 
 
 class ModuleRegistry:
@@ -183,47 +184,111 @@ def register_fastapi_modules(fastapi_app, modules: list) -> None:
 
 # ── Navigation ────────────────────────────────────────────────────────────────
 
-def build_nav_items(modules: list, app_root: Path) -> list[dict]:
-    """Baut die nav_items-Liste ausschließlich aus app/config.yaml → navigation:.
-
-    Nur was dort eingetragen ist, erscheint in der Navigation.
-    label / icon kommen aus der modul.yaml des Moduls und können in der
-    config.yaml überschrieben werden.
-    Unbekannte Keys (kein geladenes Modul) werden mit einer Warnung übersprungen.
-    """
+def _yaml_to_nav_items(yaml_path: "Path | None", modules: dict, raw: list = None) -> list[dict]:
+    """Liest Nav-Einträge aus einer items.yaml oder direkt aus einer Liste."""
     import yaml
 
-    mod_map = {m.key: m for m in modules}
-
-    config_yaml = app_root / "config.yaml"
-    if not config_yaml.exists():
-        warnings.warn("app/config.yaml nicht gefunden – Navigation ist leer.")
-        return []
-
-    with open(config_yaml, encoding="utf-8") as f:
-        nav_raw: list[dict] = (yaml.safe_load(f) or {}).get("navigation", [])
+    if raw is None:
+        if yaml_path is None or not yaml_path.exists():
+            return []
+        with open(yaml_path, encoding="utf-8") as f:
+            raw = yaml.safe_load(f) or []
 
     items: list[dict] = []
     current_group: str = ""
 
-    for entry in nav_raw:
+    for entry in raw:
         key = entry.get("key")
         if not key:
             continue
-        mod = mod_map.get(key)
-        if mod is None:
-            warnings.warn(f"Navigation: Eintrag '{key}' hat kein geladenes Modul – wird übersprungen.")
-            continue
-        group = entry.get("group") or mod.nav_group or ""
+
+        mod   = modules.get(key)
+        group = entry.get("group", "")
+
         if group != current_group:
             items.append({"separator": True, "group": group})
             current_group = group
+
         items.append({
-            "key":     key,
-            "label":   entry.get("label") or mod.label,
-            "url":     mod.nav_url,
-            "icon":    entry.get("icon")  or mod.icon,
-            "default": bool(entry.get("default", False)),
+            "key":       key,
+            "label":     entry.get("label") or (mod.label if mod else key.replace("_", " ").title()),
+            "url":       entry.get("url")   or (mod.nav_url if mod else f"/{key}"),
+            "icon":      entry.get("icon")  or (mod.icon if mod else "home"),
+            "default":   bool(entry.get("default", False)),
+            "separator": False,
+        })
+
+    return items
+
+
+def _auto_nav_item(mod) -> dict:
+    """Erzeugt einen Nav-Eintrag direkt aus der Modul-Instanz."""
+    return mod.to_nav_item()
+
+
+def build_nav_items(modules: list, app_root: Path) -> list[dict]:
+    """Baut die komplette nav_items-Liste.
+
+    Reihenfolge:
+      1. app/navigation.yaml  – App-spezifische Module
+      2. App-Module die nicht in der YAML stehen → automatisch angehängt (Gruppe "Module")
+      3. core/navigation.yaml – Core-Module (notify, scheduler, sysinfo, settings)
+    """
+    mod_map = {m.key: m for m in modules}
+
+    app_yaml  = app_root / "navigation.yaml"
+    core_yaml = CORE_NAV_YAML
+
+    app_items  = _yaml_to_nav_items(app_yaml,  mod_map)
+    core_items = _yaml_to_nav_items(core_yaml, mod_map)
+
+    # App-Module die in keiner YAML stehen → automatisch anhängen
+    yaml_keys  = {i["key"] for i in app_items  if not i.get("separator")}
+    yaml_keys |= {i["key"] for i in core_items if not i.get("separator")}
+
+    core_modules_dir = CORE_MOD_DIR
+    auto_mods = [
+        m for m in modules
+        if m.key not in yaml_keys
+        and not (m.module_root and m.module_root.parent == core_modules_dir)
+    ]
+
+    if auto_mods:
+        existing_groups = {i.get("group") for i in app_items if i.get("separator")}
+        if "Module" not in existing_groups:
+            app_items.append({"separator": True, "group": "Module"})
+        for mod in auto_mods:
+            app_items.append(_auto_nav_item(mod))
+
+    # Core-Items deduplizieren: Keys die bereits in app_items stehen überspringen.
+    app_keys = {i["key"] for i in app_items if not i.get("separator")}
+    filtered_core: list[dict] = []
+    pending_sep = None
+    for item in core_items:
+        if item.get("separator"):
+            pending_sep = item
+        elif item["key"] not in app_keys:
+            if pending_sep:
+                filtered_core.append(pending_sep)
+                pending_sep = None
+            filtered_core.append(item)
+
+    items = app_items + filtered_core
+
+    # Fallback wenn gar nichts da ist
+    if not items:
+        seen_groups: set[str] = set()
+        for mod in modules:
+            group = mod.nav_group or "Module"
+            if group not in seen_groups:
+                items.append({"separator": True, "group": group})
+                seen_groups.add(group)
+            items.append(_auto_nav_item(mod))
+        items.append({"separator": True, "group": "System"})
+        items.append({
+            "key": "settings", "label": "Einstellungen",
+            "url": "/ui/settings", "icon": "settings",
+            "default": False, "separator": False,
         })
 
     _set_default(items)

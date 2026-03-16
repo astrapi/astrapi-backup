@@ -26,15 +26,13 @@
     {% endif %}
   </div>
   <div class="page-header-actions">
-    {% if not light_mode and cfg and has_run_buttons | default(True) %}
+    {% if cfg and has_run_buttons | default(True) %}
     {{ ui.run_all_button(module=module, container_id=container_id) }}
     {{ ui.run_debug_all_button(module=module, container_id=container_id) }}
     {{ ui.enable_all_button(module=module, container_id=container_id) }}
     {{ ui.disable_all_button(module=module, container_id=container_id) }}
     {% endif %}
-    {% if not light_mode %}
     {{ ui.add_button(module=module, container_id=container_id, loading_id=loading_id) }}
-    {% endif %}
   </div>
 </div>
 
@@ -67,7 +65,7 @@
             <span class="run-badge">{{ 'Debug' if run_mode == 'debug' else 'läuft' }}</span>
           {% endif %}
         </div>
-        {% if not light_mode and has_toggle | default(True) %}
+        {% if has_toggle | default(True) %}
         {{ ui.toggle_switch(module=module, item=item_name, container_id=container_id,
                             loading_id=loading_id, enabled=item_data.enabled,
                             description=item_data.description) }}
@@ -85,7 +83,6 @@
 
       <!-- Card Footer -->
       <div class="card-footer">
-        {% if not light_mode %}
         <div class="card-footer-actions">
           {% set _card_actions = module_card_actions(module) %}
           {% for action in _card_actions %}{{ ui.card_action_button(action, item_name, item_data, container_id, loading_id) }}{% endfor %}
@@ -94,11 +91,6 @@
           {{ ui.edit_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id) }}
           {{ ui.delete_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id, description=item_data.description) }}
         </div>
-        {% else %}
-        <div class="card-footer-actions">
-          {{ ui.log_button(module=module, item=item_name) }}
-        </div>
-        {% endif %}
       </div>
 
     </article>

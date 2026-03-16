@@ -1,0 +1,45 @@
+# app/navigation.yaml – App-spezifische Navigation
+#
+# Core-Module (notify, scheduler, sysinfo, settings) erscheinen automatisch
+# aus core/navigation.yaml und müssen hier nicht eingetragen werden.
+
+- key:     borg
+  label:   Borg
+  icon:    database
+  group:   Jobs
+  default: true
+
+- key:   rsync
+  label: Rsync
+  icon:  chart
+  group: Jobs
+
+- key:   proxmox_lxc
+  label: Proxmox LXC
+  icon:  list
+  group: Jobs
+
+- key:   proxmox_hosts
+  label: Proxmox Hosts
+  icon:  shield
+  group: Jobs
+
+- key:   proxmox_jobs
+  label: Proxmox Jobs
+  icon:  server
+  group: Jobs
+
+- key:   history
+  label: Job-History
+  icon:  clock
+  group: Information
+
+- key:   errors
+  label: Fehler
+  icon:  alert
+  group: Information
+
+- key:   remotes
+  label: Remote-Geräte
+  icon:  monitor
+  group: System

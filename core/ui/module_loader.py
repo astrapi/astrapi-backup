@@ -3,13 +3,13 @@ core/ui/module_loader.py  –  Lädt modul.yaml und erstellt Module-Instanz
 
 modul.yaml liegt im Root jedes Moduls neben __init__.py:
 
-  label: Hosts
-  icon:  server
+  label:       Hosts
+  icon:        server
+  nav_group:   Module
+  nav_default: true
 
   settings_defaults:
     default_port: "22"
-
-Navigation (Reihenfolge, Gruppe) wird ausschließlich über app/config.yaml gesteuert.
 """
 
 import yaml
@@ -83,14 +83,16 @@ _CARD_ACTION_TYPES: dict[str, dict] = {
     },
     "preview": {
         "title":    "Befehlsvorschau",
-        "icon":     "eye",
+        "icon":     "terminal",
+        "style":    "log",
         "hx_get":   "/api/{module}/{item}/preview",
         "hx_target":"body",
         "hx_swap":  "beforeend",
     },
     "archives": {
-        "title":    "Archive",
+        "title":    "Archive anzeigen",
         "icon":     "archive",
+        "style":    "log",
         "hx_get":   "/api/{module}/{item}/archives",
         "hx_target":"body",
         "hx_swap":  "beforeend",
@@ -98,6 +100,7 @@ _CARD_ACTION_TYPES: dict[str, dict] = {
     "stats": {
         "title":    "Statistiken",
         "icon":     "bar-chart",
+        "style":    "log",
         "hx_get":   "/api/{module}/{item}/stats",
         "hx_target":"body",
         "hx_swap":  "beforeend",
