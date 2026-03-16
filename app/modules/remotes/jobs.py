@@ -1,8 +1,9 @@
 # app/modules/remotes/jobs.py
 """Scheduler-Aktionen für das Remotes-Modul.
 
-Jeder Eintrag registriert zwei eigene Aktionen:
+Jeder Eintrag registriert drei eigene Aktionen:
   remotes.wake.<id>     – Magic Packet senden
+  remotes.wait.<id>     – warten bis Gerät per SSH erreichbar ist
   remotes.poweroff.<id> – SSH-Shutdown
 
 Hilfsfunktionen:
@@ -11,6 +12,7 @@ Hilfsfunktionen:
   sync_all_item_actions()                 – alle DB-Einträge neu synchronisieren
 """
 import subprocess
+import time
 import logging
 
 log = logging.getLogger(__name__)
@@ -42,6 +44,30 @@ def wake_single(item_id):
         log.error("Remote '%s': wakeonlan nicht gefunden – bitte installieren", desc)
     except subprocess.CalledProcessError as ex:
         log.error("Remote '%s': Wake-on-LAN fehlgeschlagen: %s", desc, ex)
+
+
+def wait_for_single(item_id, timeout: int = 300, interval: int = 10):
+    """Blockiert bis das Remote-Gerät per SSH erreichbar ist (oder Timeout abläuft)."""
+    from api.storage import get_item
+    from helpers.reachability import check_ssh
+    entry = get_item("remotes", item_id)
+    if entry is None:
+        log.error("Remote-Gerät '%s' nicht gefunden", item_id)
+        return
+    host     = entry.get("host", "").strip()
+    ssh_user = entry.get("ssh_user") or "root"
+    desc     = entry.get("description", str(item_id))
+    if not host:
+        log.warning("Remote '%s': kein Hostname konfiguriert", desc)
+        return
+    deadline = time.monotonic() + timeout
+    log.info("Remote '%s' (%s): warte auf SSH-Erreichbarkeit (max %ds) …", desc, host, timeout)
+    while time.monotonic() < deadline:
+        if check_ssh(host, ssh_user):
+            log.info("Remote '%s' (%s): erreichbar", desc, host)
+            return
+        time.sleep(interval)
+    log.error("Remote '%s' (%s): nach %ds nicht erreichbar – Timeout", desc, host, timeout)
 
 
 def poweroff_single(item_id):
@@ -86,6 +112,13 @@ def register_item_actions(item_id, entry: dict) -> None:
             source_label="Remote-Geräte",
         )
         register_action(
+            f"remotes.wait.{iid}",
+            f"Warten bis erreichbar: {desc}",
+            lambda _id=iid: wait_for_single(_id),
+            source="remotes",
+            source_label="Remote-Geräte",
+        )
+        register_action(
             f"remotes.poweroff.{iid}",
             f"Herunterfahren: {desc}",
             lambda _id=iid: poweroff_single(_id),
@@ -100,6 +133,7 @@ def unregister_item_actions(item_id) -> None:
         from core.modules.scheduler.engine import _actions
         iid = str(item_id)
         _actions.pop(f"remotes.wake.{iid}",     None)
+        _actions.pop(f"remotes.wait.{iid}",     None)
         _actions.pop(f"remotes.poweroff.{iid}", None)
     except Exception as e:
         log.debug("Remotes: Scheduler-Aktionen für '%s' nicht abgemeldet: %s", item_id, e)
