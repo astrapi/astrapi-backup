@@ -18,7 +18,7 @@ _FALLBACK_SOURCES = [
 def _default_sources() -> list[str]:
     sources = _get_module_setting("proxmox_hosts", "default_sources", [])
     if isinstance(sources, list):
-        return sources if sources else list(_FALLBACK_SOURCES)
+        return list(sources) if sources else list(_FALLBACK_SOURCES)
     # Fallback für ältere String-Werte (textarea)
     parsed = [s.strip() for s in sources.splitlines() if s.strip()]
     return parsed if parsed else list(_FALLBACK_SOURCES)
