@@ -1,0 +1,6 @@
+# app/modules/history/modul.yaml – Modul-Konfiguration
+
+label:       Job-History
+icon:        clock
+nav_group:   System
+nav_default: false

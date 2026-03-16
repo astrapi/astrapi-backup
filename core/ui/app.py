@@ -20,7 +20,7 @@ from typing import Optional, Callable
 from .page_factory import register_pages
 from .swagger_utils import register_ui_docs
 from .module_registry import load_modules, register_flask_modules, build_nav_items
-from ..system.version import get_version, get_version_cached
+from ..system.version import get_app_version, get_core_version
 from .settings_registry import (
     init as settings_init, seed_defaults, set_many, all_settings,
 )
@@ -42,8 +42,13 @@ def create(
     app_root:   Path,
     config:     Optional[dict] = None,
     extra_init: Optional[Callable] = None,
+    modules:    Optional[list] = None,
 ) -> Flask:
-    """Erstellt und konfiguriert die Flask-Anwendung mit Modul-Unterstützung."""
+    """Erstellt und konfiguriert die Flask-Anwendung mit Modul-Unterstützung.
+
+    modules: Vorgeladene Modulliste (z.B. aus main.py). Wird nicht neu geladen
+             wenn angegeben – verhindert doppelten Modulaufruf.
+    """
 
     core_static = CORE_ROOT / "static"
     app_static  = app_root / "static"
@@ -62,30 +67,30 @@ def create(
         static_url_path="/static",
     )
 
+    import os
+    _debug = os.environ.get("FLASK_DEBUG", "0") == "1"
     app.config.update(
-        DEBUG=True,
-        TEMPLATES_AUTO_RELOAD=True,
-        SEND_FILE_MAX_AGE_DEFAULT=0,
+        DEBUG=_debug,
+        TEMPLATES_AUTO_RELOAD=_debug,
+        SEND_FILE_MAX_AGE_DEFAULT=0 if _debug else 3600,
     )
     if config:
         app.config.update(config)
 
     # ── App-Konfiguration laden ───────────────────────────────────────────────
     app_cfg: dict = {}
-    _version_root:    Path = app_root.parent
-    _version_default: str  = "0.1.0"
     cfg_yaml = app_root / "config.yaml"
     if cfg_yaml.exists():
         import yaml as _yaml
         with open(cfg_yaml, encoding="utf-8") as _f:
             _raw = _yaml.safe_load(_f) or {}
         _app = _raw.get("app", {})
-        _version_default = _app.get("version", "0.1.0")
         app_cfg = {
-            "APP_NAME":     _app.get("name",       "myapp"),
-            "APP_LANG":     _app.get("lang",        "de"),
-            "LIGHT_MODE":   bool(_app.get("light_mode", False)),
-            "APP_LOGO_SVG": _app.get("logo_svg",   None),
+            "APP_NAME":       _app.get("name",       "myapp"),
+            "APP_LANG":       _app.get("lang",        "de"),
+            "LIGHT_MODE":     bool(_app.get("light_mode", False)),
+            "APP_LOGO_SVG":   _app.get("logo_svg",   None),
+            "APP_ICON_THEME": _app.get("icon_theme", "default"),
         }
     else:
         for cfg_name in ("settings.py", "config.py"):
@@ -93,22 +98,32 @@ def create(
             if cfg_path.exists():
                 mod     = _load_module_file("app_settings", cfg_path)
                 app_cfg = {k: v for k, v in vars(mod).items() if not k.startswith("_")}
-                _version_default = app_cfg.get("APP_VERSION", _version_default)
                 break
+
+    _app_version  = get_app_version(app_root)
+    _core_version = get_core_version(CORE_ROOT.parent)
 
     light_mode: bool = app_cfg.get("LIGHT_MODE", False)
 
-    # ── Module laden ──────────────────────────────────────────────────────────
-    modules = load_modules(app_root)
+    # ── Module laden (nur wenn nicht bereits von außen übergeben) ─────────────
+    if modules is None:
+        modules = load_modules(app_root)
 
     # ── Einstellungs-Registry initialisieren ──────────────────────────────────
     settings_init(app_root)
     storage_init(app_root)
+    _light_default = "1" if app_cfg.get("LIGHT_MODE", False) else "0"
     global_defaults = {
         k: v for k, v in app_cfg.items()
-        if k not in ("LIGHT_MODE", "APP_LOGO_SVG") and not callable(v)
+        if k not in ("LIGHT_MODE", "APP_LOGO_SVG", "APP_ICON_THEME") and not callable(v)
     }
+    global_defaults.setdefault("LIGHT_MODE",      _light_default)
+    global_defaults.setdefault("APP_ICON_THEME",  app_cfg.get("APP_ICON_THEME", "lucide"))
+    global_defaults.setdefault("TIMEZONE",        "Europe/Berlin")
+    global_defaults.setdefault("DATE_FORMAT",     "DD.MM.YYYY")
     seed_defaults(global_defaults, modules)
+
+    app.config["LOADED_MODULES"] = modules
 
     # ── Template-Loader: Modul > App > Core ──────────────────────────────────
     app_templates  = app_root / "templates"
@@ -138,15 +153,26 @@ def create(
             m = _mod_map.get(key)
             return m.label if m else key.replace("_", " ").title()
 
+        def module_card_actions(key: str) -> list:
+            m = _mod_map.get(key)
+            return m.card_actions if m else []
+
+        from core.ui.settings_registry import get as _srget
+        _light = _srget("LIGHT_MODE", _light_default)
         return {
-            "app_name":            app_cfg.get("APP_NAME",     "myapp"),
-            "app_version":         get_version_cached(_version_root, _version_default),
-            "app_logo_svg":        app_cfg.get("APP_LOGO_SVG", None),
-            "app_lang":            app_cfg.get("APP_LANG",     "de"),
-            "light_mode":          light_mode,
-            "modules":             modules,
-            "module_has_settings": module_has_settings,
-            "module_label":        module_label,
+            "app_name":             app_cfg.get("APP_NAME",     "myapp"),
+            "app_version":          _app_version,
+            "core_version":         _core_version,
+            "app_logo_svg":         app_cfg.get("APP_LOGO_SVG", None),
+            "app_lang":             _srget("APP_LANG", app_cfg.get("APP_LANG", "de")),
+            "light_mode":           (_light == "1" or _light is True),
+            "icon_theme":           _srget("APP_ICON_THEME", app_cfg.get("APP_ICON_THEME", "lucide"))
+                                    if _srget("APP_ICON_THEME", "lucide") in {"lucide", "heroicons", "tabler"}
+                                    else "lucide",
+            "modules":              modules,
+            "module_has_settings":  module_has_settings,
+            "module_label":         module_label,
+            "module_card_actions":  module_card_actions,
         }
 
     # ── Navigation aus Modulen + optionaler items.yaml ────────────────────────
@@ -185,6 +211,14 @@ def create(
     # ── Projektspezifischer Hook ──────────────────────────────────────────────
     if extra_init:
         extra_init(app)
+
+    # ── Scheduler starten ─────────────────────────────────────────────────────
+    try:
+        from core.modules.scheduler.engine import init as scheduler_init
+        scheduler_init()
+    except Exception as _e:
+        import warnings
+        warnings.warn(f"Scheduler konnte nicht gestartet werden: {_e}")
 
     # ── Root-Redirect → erstes/default Nav-Item ───────────────────────────────
     default_item = next(
@@ -283,14 +317,21 @@ def _register_module_settings_routes(app: Flask, modules: list) -> None:
             return "", 404
 
         if request.method == "POST":
-            prefixed = {f"module.{module_key}.{k}": v
-                        for k, v in request.form.to_dict().items()}
+            password_keys = {
+                f["key"] for f in mod.settings_schema if f.get("type") == "password"
+            }
+            prefixed = {}
+            for k, v in request.form.to_dict().items():
+                if k in password_keys and not v.strip():
+                    continue  # Leeres Passwort-Feld nicht speichern
+                prefixed[f"module.{module_key}.{k}"] = v
             _set_many(prefixed)
 
         current_values = {
             field["key"]: get_module(module_key, field["key"],
                                      field.get("default", ""))
             for field in mod.settings_schema
+            if "key" in field
         }
         return render_template(
             "partials/settings_modal.html",

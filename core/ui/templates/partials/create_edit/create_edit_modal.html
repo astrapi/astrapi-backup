@@ -9,38 +9,27 @@
     submit_url   – Ziel-URL (POST für Create, PUT für Edit)
     method       – "post" oder "put"
     title        – Titel des Dialogs
-    container_id – HTMX-Target nach Speichern
+    container_id – Fallback (wird nicht mehr für hx-target genutzt)
     loading_id   – HTMX-Indikator
+    submit_url   – Flask-Route die HTML zurückgibt (wird in #main-content geladen)
 #}
+{% from "partials/components/ui_macros.html" import modal_title, modal_footer %}
 <div
   id="create-edit-modal"
   class="ds-modal-backdrop"
   x-data
   x-on:keydown.escape.window="$el.remove()"
-  x-on:click.self="$el.remove()"
 >
   <div class="ds-modal" style="max-width:620px; padding:20px 24px;">
 
-    <div class="ds-modal-title">
-      {% if item %}
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-        </svg>
-      {% else %}
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-      {% endif %}
-      {{ title }}
-    </div>
+    {{ modal_title(is_edit=item is not none, title=title) }}
 
     <form id="create-edit-form"
       hx-{{ method }}="{{ submit_url }}"
-      hx-target="#{{ container_id }}"
+      hx-target="#main-content"
       hx-swap="innerHTML"
       hx-indicator="#{{ loading_id }}"
-      style="display:flex; flex-direction:column; gap:14px;"
+      class="form-stack" style="gap:14px;"
     >
 
       {# ── ID-Feld (nur beim Anlegen) ─────────────────────────────────────── #}
@@ -64,7 +53,11 @@
 
       {# ── Felder aus Schema, nach row gruppiert ──────────────────────────── #}
       {% set values = values if values is mapping else (item if item is mapping else {}) %}
-      {% set rows = schema | groupby("row") %}
+      {# enabled-Feld wird im Footer als Toggle gerendert, nicht im Grid #}
+      {% set enabled_field = schema | selectattr('name', 'equalto', 'enabled') | list | first %}
+      {% set enabled_val = values.get('enabled', True) if values is mapping else True %}
+      {% set grid_schema = schema | rejectattr('name', 'equalto', 'enabled') | list %}
+      {% set rows = grid_schema | groupby("row") %}
       {% for row, fields in rows %}
         <div style="display:grid;
                     grid-template-columns:{% if fields | length == 2 and fields[1].type == 'boolean' %}1fr auto{% else %}repeat({{ fields | length }}, 1fr){% endif %};
@@ -76,19 +69,10 @@
         </div>
       {% endfor %}
 
-      {# ── Footer ─────────────────────────────────────────────────────────── #}
-      <div style="display:flex; justify-content:center; gap:8px; padding-top:10px; border-top:1px solid var(--border-s); margin-top:2px;">
-        <button
-          type="button"
-          onclick="document.getElementById('create-edit-modal').remove()"
-          class="btn btn-ghost btn-sm"
-        >Abbrechen</button>
-        <button
-          type="button"
-          id="create-edit-submit"
-          class="btn btn-primary btn-sm"
-        >{{ 'Speichern' if item else 'Erstellen' }}</button>
-      </div>
+      {{ modal_footer(enabled=enabled_val, enabled_id='modal-enabled',
+                      save_label='Speichern' if item else 'Erstellen',
+                      has_toggle=enabled_field, save_id='create-edit-submit',
+                      save_type='button') }}
     </form>
   </div>
 </div>
@@ -142,7 +126,9 @@
 
     htmx.trigger(form, 'submit');
     form.addEventListener('htmx:afterRequest', function handler(e) {
-      if (e.detail.successful) document.getElementById('create-edit-modal')?.remove();
+      if (e.detail.successful) {
+        document.getElementById('create-edit-modal')?.remove();
+      }
       form.removeEventListener('htmx:afterRequest', handler);
     });
   });

@@ -1,22 +1,15 @@
-import requests
-import urllib3
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-
 def notify_ntfy(message: str, priority: str | None = None):
-    """Sendet eine ntfy-Benachrichtigung. NTFY_URL aus SQLite-Settings."""
+    """Sendet eine Benachrichtigung über die Notify-Engine (alle konfigurierten Kanäle)."""
     if not message or not message.strip():
         return
-    from api.storage import get_setting
-    url = get_setting("ntfy_url", "")
-    if not url:
-        return
-    headers = {}
-    if priority:
-        headers["Priority"] = priority
     try:
-        requests.post(url, data=message.encode("utf-8"),
-                      headers=headers, verify=False, timeout=5)
+        from core.modules.notify import engine
+        engine.send(
+            title    = "BackupCtl",
+            message  = message,
+            event    = engine.INFO,
+            source   = "backup",
+            tags     = ([f"priority:{priority}"] if priority else []),
+        )
     except Exception as e:
-        print(f"Fehler beim Senden an ntfy: {e}")
+        print(f"Fehler beim Senden der Benachrichtigung: {e}")

@@ -7,7 +7,6 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 
-from helpers.debug import set_debug
 from helpers.logger import (get_log_dates, read_log,
                              log_path, set_tee_context, clear_tee_context,
                              set_log_context, clear_log_context)
@@ -92,7 +91,6 @@ def make_run_router(module: str) -> APIRouter:
             desc = _item_description(module, item_id)
             hist_id = history_start(module, item_id, desc, "debug" if debug else "run")
             t0 = time.time()
-            set_debug(debug)
             set_tee_context(module, log_id)
             status = "ok"
             try:
@@ -104,7 +102,6 @@ def make_run_router(module: str) -> APIRouter:
                 history_finish(hist_id, status, duration)
                 clear_tee_context()
                 _mark_done(module, item_id)
-                set_debug(False)
 
         threading.Thread(target=_execute, daemon=True).start()
 
@@ -139,7 +136,6 @@ def make_run_router(module: str) -> APIRouter:
             desc = _item_description(module, run_id)
             hist_id = history_start(module, run_id, desc, "debug" if debug else "run")
             t0 = time.time()
-            set_debug(debug)
             set_log_context(module, run_id)
             set_tee_context(module, run_id)
             status = "ok"
@@ -153,7 +149,6 @@ def make_run_router(module: str) -> APIRouter:
                 clear_tee_context()
                 clear_log_context()
                 _mark_done(module, run_id)
-                set_debug(False)
 
         threading.Thread(target=_execute, daemon=True).start()
 

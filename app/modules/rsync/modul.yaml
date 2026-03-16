@@ -1,0 +1,14 @@
+# app/modules/rsync/modul.yaml – Modul-Konfiguration
+
+label:       Rsync
+icon:        refresh-cw
+nav_group:   Backup
+nav_default: false
+
+card_actions:
+  - type: run
+    url:  /api/rsync/{item}/run
+  - type: log
+    url:  /api/rsync/{item}/logs
+  - type: preview
+    url:  /api/rsync/{item}/preview

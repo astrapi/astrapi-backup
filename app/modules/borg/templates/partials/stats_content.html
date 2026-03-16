@@ -1,0 +1,129 @@
+{#
+  borg/templates/partials/stats_content.html
+  Inhalt des Stats-Modals – wird per HTMX in #borg-stats-content getauscht.
+
+  Variablen:
+    item_id   – Job-ID
+    stats     – dict mit aufbereiteten Werten | None
+    cached_at – Timestamp des letzten Cache-Updates | None
+    error     – Fehlermeldung als str | None
+#}
+{% if error %}
+  <div style="color:var(--danger,#e74c3c); background:rgba(231,76,60,.08);
+              border:1px solid rgba(231,76,60,.25); border-radius:6px;
+              padding:10px 14px; font-size:13px; font-family:var(--mono);
+              margin-bottom:12px; word-break:break-all;">
+    {{ error }}
+  </div>
+
+{% elif stats %}
+
+  {# ── Speichernutzung ────────────────────────────────────────────────── #}
+  <div style="font-size:11px; font-weight:600; text-transform:uppercase;
+              letter-spacing:.06em; color:var(--text-3); margin-bottom:8px;">
+    Speichernutzung
+  </div>
+  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:22px;">
+
+    <div style="background:var(--card-hi); border:1px solid var(--border-i); border-radius:8px; padding:14px 16px;">
+      <div style="font-size:11px; color:var(--text-3); margin-bottom:5px;">Original</div>
+      <div style="font-size:20px; font-weight:700; color:var(--text-1);
+                  font-family:var(--mono); line-height:1;">
+        {{ stats.total_size_fmt }}
+      </div>
+      <div style="font-size:11px; color:var(--text-3); margin-top:4px;">alle Daten, unkomprimiert</div>
+    </div>
+
+    <div style="background:var(--card-hi); border:1px solid var(--border-i); border-radius:8px; padding:14px 16px;">
+      <div style="font-size:11px; color:var(--text-3); margin-bottom:5px;">Komprimiert</div>
+      <div style="font-size:20px; font-weight:700; color:var(--text-1);
+                  font-family:var(--mono); line-height:1;">
+        {{ stats.total_csize_fmt }}
+      </div>
+      <div style="font-size:11px; color:var(--text-3); margin-top:4px;">
+        {{ stats.comp_ratio }}% gespart
+      </div>
+    </div>
+
+    <div style="background:var(--accent-bg,rgba(99,102,241,.08));
+                border:1px solid var(--accent-dim,rgba(99,102,241,.3));
+                border-radius:8px; padding:14px 16px;">
+      <div style="font-size:11px; color:var(--accent,#6366f1); margin-bottom:5px;">
+        Tatsächlich belegt
+      </div>
+      <div style="font-size:20px; font-weight:700; color:var(--accent,#6366f1);
+                  font-family:var(--mono); line-height:1;">
+        {{ stats.unique_csize_fmt }}
+      </div>
+      <div style="font-size:11px; color:var(--text-3); margin-top:4px;">
+        {{ stats.dedup_efficiency }}% Dedup-Effizienz
+      </div>
+    </div>
+
+  </div>
+
+  {# ── Archive ────────────────────────────────────────────────────────── #}
+  <div style="font-size:11px; font-weight:600; text-transform:uppercase;
+              letter-spacing:.06em; color:var(--text-3); margin-bottom:8px;">
+    Archive
+  </div>
+  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:22px;">
+
+    <div style="background:var(--card-hi); border:1px solid var(--border-i); border-radius:8px; padding:14px 16px;">
+      <div style="font-size:11px; color:var(--text-3); margin-bottom:5px;">Anzahl</div>
+      <div style="font-size:26px; font-weight:700; color:var(--text-1); line-height:1;">
+        {{ stats.num_archives }}
+      </div>
+    </div>
+
+    <div style="background:var(--card-hi); border:1px solid var(--border-i); border-radius:8px; padding:14px 16px;">
+      <div style="font-size:11px; color:var(--text-3); margin-bottom:5px;">Neuestes Backup</div>
+      <div style="font-size:13px; font-weight:600; color:var(--text-1);
+                  font-family:var(--mono);">
+        {{ stats.newest_archive }}
+      </div>
+    </div>
+
+    <div style="background:var(--card-hi); border:1px solid var(--border-i); border-radius:8px; padding:14px 16px;">
+      <div style="font-size:11px; color:var(--text-3); margin-bottom:5px;">Ältestes Backup</div>
+      <div style="font-size:13px; font-weight:600; color:var(--text-1);
+                  font-family:var(--mono);">
+        {{ stats.oldest_archive }}
+      </div>
+    </div>
+
+  </div>
+
+  {# ── Details ────────────────────────────────────────────────────────── #}
+  <div style="font-size:11px; font-weight:600; text-transform:uppercase;
+              letter-spacing:.06em; color:var(--text-3); margin-bottom:8px;">
+    Details
+  </div>
+  <table style="width:100%; border-collapse:collapse; font-size:13px;">
+    <tbody>
+      {% for label, value in [
+        ("Chunks gesamt",     stats.total_chunks  | string),
+        ("Unique Chunks",     stats.unique_chunks | string),
+        ("Zuletzt geändert",  stats.last_modified),
+      ] %}
+      <tr style="{% if not loop.last %}border-bottom:1px solid var(--border-s);{% endif %}">
+        <td style="padding:8px 0; color:var(--text-2); width:42%;">{{ label }}</td>
+        <td style="padding:8px 0; font-family:var(--mono); font-size:12px;
+                   color:var(--text-1);">{{ value }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+{% else %}
+  <div style="text-align:center; padding:32px 0; color:var(--text-3); font-size:13px;">
+    Keine Statistiken verfügbar.
+  </div>
+{% endif %}
+
+{% if not include_mode %}
+<span id="borg-stats-stand" hx-swap-oob="true"
+      style="font-size:10px; color:var(--text-3);">
+  {% if cached_at %}Stand: {{ cached_at[:16] }}{% endif %}
+</span>
+{% endif %}

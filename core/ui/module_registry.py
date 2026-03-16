@@ -7,29 +7,69 @@ Navigation:
   3. Alle geladenen App-Module die in keiner YAML stehen → automatisch angehängt
 
 Ein neues Modul erscheint also automatisch in der Nav, sobald sein Ordner
-existiert und eine AstrapiModule-Instanz exportiert. Die YAML ist optional.
+existiert und eine Module-Instanz exportiert. Die YAML ist optional.
 """
 
 from __future__ import annotations
 
 import importlib.util
+import sys
 import warnings
 from pathlib import Path
 
 CORE_ROOT    = Path(__file__).resolve().parent           # core/ui/  (templates, static)
 CORE_MOD_DIR = Path(__file__).resolve().parents[1] / "modules"  # core/modules/
+CORE_NAV_YAML = Path(__file__).resolve().parents[1] / "navigation.yaml"  # core/navigation.yaml
 
-# Globale Registry – wird von load_modules() befüllt; von FastAPI-Templates genutzt
-_mod_registry: dict = {}
+
+class ModuleRegistry:
+    """Kapselt das Modul-Verzeichnis der geladenen Module.
+
+    Kann mit reset() in den Ausgangszustand zurückversetzt werden
+    (nützlich für Test-Isolation).
+    """
+
+    def __init__(self):
+        self._registry: dict = {}
+
+    def reset(self) -> None:
+        """Setzt die Registry zurück (für Test-Isolation)."""
+        self._registry = {}
+
+    def update(self, modules: dict) -> None:
+        """Aktualisiert die Registry mit einem Dict aus {key: module}."""
+        self._registry.update(modules)
+
+    def get(self, key: str):
+        """Gibt eine Modul-Instanz anhand ihres Keys zurück oder None."""
+        return self._registry.get(key)
+
+    def all(self) -> dict:
+        """Gibt eine Kopie der gesamten Registry zurück."""
+        return dict(self._registry)
+
+    def __contains__(self, key: str) -> bool:
+        return key in self._registry
+
+    def __getitem__(self, key: str):
+        return self._registry[key]
+
+
+# Modul-level Singleton – wird von load_modules() befüllt; von FastAPI-Templates genutzt
+_mod_registry_instance = ModuleRegistry()
+
+# Rückwärtskompatibilität: Code der direkt auf _mod_registry zugreift
+# benutzt weiterhin das interne dict via diesen Alias
+_mod_registry: dict = _mod_registry_instance._registry
 
 
 # ── Laden ─────────────────────────────────────────────────────────────────────
 
 def _load_from_dir(modules_dir: Path, pkg_prefix: str) -> dict:
-    """Lädt alle AstrapiModule-Instanzen aus einem Verzeichnis → {key: instance}."""
-    from app.modules._base import AstrapiModule
+    """Lädt alle Module-Instanzen aus einem Verzeichnis → {key: instance}."""
+    from core.ui._base import Module
 
-    found: dict[str, AstrapiModule] = {}
+    found: dict[str, Module] = {}
     if not modules_dir.exists():
         return found
 
@@ -44,10 +84,12 @@ def _load_from_dir(modules_dir: Path, pkg_prefix: str) -> dict:
                 f"{pkg_prefix}.{entry.name}", init_file
             )
             mod = importlib.util.module_from_spec(spec)
+            pkg_name = f"{pkg_prefix}.{entry.name}"
+            sys.modules[pkg_name] = mod
             spec.loader.exec_module(mod)
             instance = getattr(mod, "module", None)
-            if instance is None or not isinstance(instance, AstrapiModule):
-                warnings.warn(f"Modul '{entry.name}' ({pkg_prefix}): keine AstrapiModule-Instanz gefunden")
+            if instance is None or not isinstance(instance, Module):
+                warnings.warn(f"Modul '{entry.name}' ({pkg_prefix}): keine Module-Instanz gefunden")
                 continue
             # module_root nur setzen wenn dieses Verzeichnis Templates hat
             # oder noch kein module_root gesetzt ist (z.B. app re-exportiert Core-Instanz)
@@ -99,7 +141,7 @@ def load_modules(app_root: Path) -> list:
     for key in sorted({**ext_mods, **app_mods}):
         if key not in seen:
             ordered.append(merged[key]); seen.add(key)
-    _mod_registry.update({m.key: m for m in ordered})
+    _mod_registry_instance.update({m.key: m for m in ordered})
     return ordered
 
 
@@ -181,53 +223,23 @@ def _yaml_to_nav_items(yaml_path: "Path | None", modules: dict, raw: list = None
 
 def _auto_nav_item(mod) -> dict:
     """Erzeugt einen Nav-Eintrag direkt aus der Modul-Instanz."""
-    return {
-        "key":       mod.key,
-        "label":     mod.label,
-        "url":       mod.nav_url,
-        "icon":      mod.icon or "box",
-        "default":   bool(getattr(mod, "nav_default", False)),
-        "separator": False,
-    }
+    return mod.to_nav_item()
 
 
 def build_nav_items(modules: list, app_root: Path) -> list[dict]:
     """Baut die komplette nav_items-Liste.
 
     Reihenfolge:
-      1. app/templates/navigation/items.yaml  (explizit konfigurierte App-Module)
+      1. app/navigation.yaml  – App-spezifische Module
       2. App-Module die nicht in der YAML stehen → automatisch angehängt (Gruppe "Module")
-      3. core/templates/navigation/items.yaml (sysinfo, settings)
+      3. core/navigation.yaml – Core-Module (notify, scheduler, sysinfo, settings)
     """
     mod_map = {m.key: m for m in modules}
 
-    # Navigation: config.yaml hat Vorrang vor dem alten items.yaml-Pfad
-    config_yaml = app_root / "config.yaml"
-    app_yaml    = app_root / "templates" / "navigation" / "items.yaml"
-    core_yaml   = CORE_ROOT / "templates" / "navigation" / "items.yaml"
+    app_yaml  = app_root / "navigation.yaml"
+    core_yaml = CORE_NAV_YAML
 
-    if config_yaml.exists():
-        import yaml as _yaml
-        with open(config_yaml, encoding="utf-8") as _f:
-            _raw = _yaml.safe_load(_f) or {}
-        nav_raw   = _raw.get("navigation", [])
-        app_items = _yaml_to_nav_items(None, mod_map, nav_raw)
-        # Modul-Instanzen mit den Werten aus config.yaml synchronisieren,
-        # damit module_label() / mod.label auch ohne modul.yaml stimmt.
-        for entry in nav_raw:
-            mod = mod_map.get(entry.get("key", ""))
-            if mod is None:
-                continue
-            if entry.get("label"):
-                mod.label = entry["label"]
-            if entry.get("icon"):
-                mod.icon  = entry["icon"]
-            if entry.get("group"):
-                mod.nav_group = entry["group"]
-            mod.nav_default = bool(entry.get("default", False))
-    else:
-        app_items = _yaml_to_nav_items(app_yaml, mod_map)
-
+    app_items  = _yaml_to_nav_items(app_yaml,  mod_map)
     core_items = _yaml_to_nav_items(core_yaml, mod_map)
 
     # App-Module die in keiner YAML stehen → automatisch anhängen
@@ -242,7 +254,6 @@ def build_nav_items(modules: list, app_root: Path) -> list[dict]:
     ]
 
     if auto_mods:
-        # Gruppe "Module" als Separator wenn noch nicht vorhanden
         existing_groups = {i.get("group") for i in app_items if i.get("separator")}
         if "Module" not in existing_groups:
             app_items.append({"separator": True, "group": "Module"})
@@ -250,7 +261,6 @@ def build_nav_items(modules: list, app_root: Path) -> list[dict]:
             app_items.append(_auto_nav_item(mod))
 
     # Core-Items deduplizieren: Keys die bereits in app_items stehen überspringen.
-    # Separatoren ohne nachfolgende sichtbare Items werden ebenfalls unterdrückt.
     app_keys = {i["key"] for i in app_items if not i.get("separator")}
     filtered_core: list[dict] = []
     pending_sep = None

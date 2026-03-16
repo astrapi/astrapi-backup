@@ -1,19 +1,24 @@
-# Borg-Modul – globale Standardwerte für neue Backup-Jobs
+# Borg-Modul – globale Einstellungen
 
-- key: compression
-  label: Komprimierung
-  type: select
-  options:
-    - value: lz4
-      label: LZ4 (schnell)
-    - value: zstd,3
-      label: ZSTD Level 3 (ausgewogen)
-    - value: zstd,9
-      label: ZSTD Level 9 (kompakt)
-    - value: none
-      label: Keine
-  default: lz4
-  description: Standard-Komprimierung für neue Backup-Jobs
+- type: section
+  label: Allgemein
+
+- key: borg_bin
+  label: Borg-Pfad
+  type: text
+  placeholder: "/var/lib/backupadm/.venv/bin/borg"
+  default: "/var/lib/backupadm/.venv/bin/borg"
+  description: "Absoluter Pfad zur ausführbaren borg-Datei"
+
+- type: section
+  label: Sicherheit
+
+- key: passphrase
+  label: Borg Passphrase
+  type: password
+  placeholder: "••••••••"
+  description: "Passphrase für alle Borg-Repositories. Leer lassen um den gespeicherten Wert beizubehalten."
+  default: ""
 
 - key: encryption
   label: Verschlüsselung
@@ -30,20 +35,70 @@
   default: repokey
   description: Standard-Verschlüsselung für neue Repositories
 
+- type: section
+  label: Backup
+
+- key: compression
+  label: Komprimierung
+  type: select
+  options:
+    - value: auto,lz4
+      label: LZ4, schnell (auto)
+    - value: auto,zstd
+      label: ZSTD Standard (auto)
+    - value: auto,zstd,3
+      label: ZSTD Level 3, ausgewogen (auto)
+    - value: auto,zstd,9
+      label: ZSTD Level 9, kompakt (auto)
+    - value: none
+      label: Keine Komprimierung
+  default: auto,zstd
+  description: "auto = nur komprimieren wenn Ergebnis kleiner als das Original"
+
+- type: section
+  label: Aufbewahrung (Prune)
+
 - key: keep_daily
-  label: Tägliche Aufbewahrung
+  label: Täglich
   type: number
   default: "7"
-  description: Wie viele tägliche Backups behalten werden
+  description: Anzahl täglicher Backups die behalten werden
+  inline: true
 
 - key: keep_weekly
-  label: Wöchentliche Aufbewahrung
+  label: Wöchentlich
   type: number
   default: "4"
-  description: Wie viele wöchentliche Backups behalten werden
+  description: Anzahl wöchentlicher Backups die behalten werden
+  inline: true
 
 - key: keep_monthly
-  label: Monatliche Aufbewahrung
+  label: Monatlich
   type: number
-  default: "6"
-  description: Wie viele monatliche Backups behalten werden
+  default: "12"
+  description: Anzahl monatlicher Backups die behalten werden
+  inline: true
+
+- key: keep_yearly
+  label: Jährlich
+  type: number
+  default: "5"
+  description: Anzahl jährlicher Backups die behalten werden
+  inline: true
+
+- key: keep_within
+  label: Keep-Within (Tage)
+  type: number
+  default: "7"
+  description: Alle Archive innerhalb dieser Tage vollständig behalten (--keep-within=Nd), 0 = deaktiviert
+  inline: true
+
+- type: section
+  label: Wartung
+
+- key: compact_after_prune
+  label: Compact nach Prune
+  type: checkbox
+  checkbox_label: Speicher nach Prune freigeben (borg compact)
+  default: "1"
+  description: "Borg compact nach Prune ausführen um Speicherplatz freizugeben (empfohlen für Borg ≥ 1.2)"

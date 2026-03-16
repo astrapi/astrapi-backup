@@ -1,0 +1,6 @@
+# app/modules/errors/modul.yaml – Modul-Konfiguration
+
+label:       Fehler
+icon:        alert
+nav_group:   System
+nav_default: false

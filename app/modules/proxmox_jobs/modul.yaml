@@ -1,0 +1,14 @@
+# app/modules/proxmox_jobs/modul.yaml – Modul-Konfiguration
+
+label:       Proxmox Jobs
+icon:        play-circle
+nav_group:   Proxmox
+nav_default: false
+
+card_actions:
+  - type: run
+    url:  /api/proxmox_jobs/{item}/run
+  - type: log
+    url:  /api/proxmox_jobs/{item}/logs
+  - type: preview
+    url:  /api/proxmox_jobs/{item}/preview

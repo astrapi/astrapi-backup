@@ -39,29 +39,19 @@ navigation:
     icon:  server
     group: Jobs
 
-  - key:   repos
-    label: Repositories
-    icon:  archive
-    group: Borg
-
-  - key:   browser
-    label: Archiv-Browser
-    icon:  search
-    group: Borg
-
-  - key:   stats
-    label: Statistiken
-    icon:  bar-chart
-    group: Borg
-
   - key:   history
     label: Job-History
     icon:  clock
-    group: System
+    group: Information
 
   - key:   errors
     label: Fehler
     icon:  alert
+    group: Information
+
+  - key:   remotes
+    label: Remote-Geräte
+    icon:  monitor
     group: System
 
   - key:   sysinfo

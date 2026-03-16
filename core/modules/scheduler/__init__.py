@@ -7,11 +7,11 @@ Projekte konfigurieren den Scheduler vor dem App-Start:
     configure(job_fn=my_job, get_setting=..., set_setting=..., job_name="Sync")
     init()
 """
-from app.modules._base import AstrapiModule
+from core.ui import Module
 from .api import router
 from .ui import bp
 
-module = AstrapiModule(
+module = Module(
     key          = "scheduler",
     label        = "Scheduler",
     icon         = "clock",

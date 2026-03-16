@@ -1,0 +1,290 @@
+{#
+  borg/templates/partials/browse.html
+  Verzeichnis-Browser-Content für ein Borg-Archiv.
+  Wird per HTMX in #borg-archive-content getauscht.
+
+  Variablen:
+    item_id     – Job-ID
+    archive     – Archiv-Name
+    path        – aktueller Verzeichnispfad (ohne führenden Slash)
+    breadcrumbs – list[{label, path}]
+    dirs        – list[{name, path, mtime}]
+    files       – list[{name, path, size_fmt, mtime, mode}]
+    parent_path – str | None (None = an der Wurzel)
+    error       – str | None
+    total       – Gesamtzahl der Einträge im Archiv
+#}
+
+{# ── Kopfzeile ──────────────────────────────────────────────────────────── #}
+<div>
+<div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+  <button class="btn btn-ghost btn-sm"
+          hx-get="/api/borg/{{ item_id }}/archives/list"
+          hx-target="#borg-archive-content"
+          hx-swap="innerHTML"
+          hx-indicator="#borg-archive-loading">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+    Archive
+  </button>
+  <span style="color:var(--text-3);"> / </span>
+  <span style="font-size:13px; font-weight:600; font-family:var(--mono);
+               overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:300px;">{{ archive }}</span>
+  <span style="margin-left:auto; display:flex; align-items:center; gap:10px; flex-shrink:0;">
+    <span style="font-size:11px; color:var(--text-3);">{{ total }} Einträge gesamt</span>
+    {% if not error %}
+    <a class="btn btn-ghost btn-sm"
+       href="/api/borg/{{ item_id }}/archives/{{ archive }}/download-bundle{% if path %}?path={{ (path + '/') | urlencode }}{% endif %}"
+       title="Gesamtes Verzeichnis als .tar herunterladen">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Verzeichnis
+    </a>
+    {% endif %}
+  </span>
+</div>
+
+{# ── Breadcrumbs ─────────────────────────────────────────────────────────── #}
+<div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;
+            padding:7px 12px; background:var(--card); border-radius:6px;
+            margin-bottom:12px; font-size:12px; font-family:var(--mono);">
+  {% for crumb in breadcrumbs %}
+    {% if not loop.last %}
+      <button style="padding:2px 6px; border-radius:4px; border:none; background:transparent;
+                     cursor:pointer; color:var(--b); font-family:var(--mono); font-size:12px;"
+              hx-get="/api/borg/{{ item_id }}/archives/{{ archive }}/browse?path={{ crumb.path | urlencode }}"
+              hx-target="#borg-archive-content"
+              hx-swap="innerHTML"
+              hx-indicator="#borg-archive-loading">{{ crumb.label }}</button>
+      <span style="color:var(--text-3);">/</span>
+    {% else %}
+      <span style="color:var(--text-2);">{{ crumb.label }}</span>
+    {% endif %}
+  {% endfor %}
+</div>
+
+{# ── Fehler ──────────────────────────────────────────────────────────────── #}
+{% if error %}
+<div style="padding:14px 18px; background:rgba(239,68,68,.1);
+            border:1px solid rgba(239,68,68,.3); border-radius:var(--rad-lg);
+            color:#f87171; font-size:13px;">
+  {{ error }}
+</div>
+
+{# ── Dateiliste ──────────────────────────────────────────────────────────── #}
+{% else %}
+<div class="ds-card on" style="overflow:hidden;">
+
+  {# Tabellen-Kopfzeile #}
+  <div style="display:grid; grid-template-columns:28px 1fr 90px 130px 32px;
+              padding:6px 14px; border-bottom:1px solid var(--border-s);
+              font-size:11px; font-weight:600; color:var(--text-3);
+              text-transform:uppercase; letter-spacing:.06em;">
+    <span style="display:flex; align-items:center;">
+      <input id="borg-browse-select-all" type="checkbox" style="cursor:pointer;"
+             title="Alle auswählen">
+    </span>
+    <span>Name</span>
+    <span style="text-align:right;">Größe</span>
+    <span style="text-align:right; padding-right:4px;">Geändert</span>
+    <span></span>
+  </div>
+
+  <div style="max-height:420px; overflow-y:auto;">
+
+    {# Zurück-Button #}
+    {% if parent_path is not none %}
+    <button
+      style="display:grid; grid-template-columns:28px 1fr 90px 130px 32px; align-items:center;
+             padding:8px 14px; border:none; background:transparent; width:100%;
+             border-bottom:1px solid var(--border-s); cursor:pointer; color:var(--text-2);
+             transition:background 100ms;"
+      onmouseover="this.style.background='rgba(128,128,128,0.07)'"
+      onmouseout="this.style.background='transparent'"
+      hx-get="/api/borg/{{ item_id }}/archives/{{ archive }}/browse?path={{ parent_path | urlencode }}"
+      hx-target="#borg-archive-content"
+      hx-swap="innerHTML"
+      hx-indicator="#borg-archive-loading">
+      <span></span>
+      <div style="display:flex; align-items:center; gap:8px; font-size:13px; font-family:var(--mono);">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        ..
+      </div>
+      <span></span><span></span><span></span>
+    </button>
+    {% endif %}
+
+    {# Verzeichnisse #}
+    {% for d in dirs %}
+    <button
+      style="display:grid; grid-template-columns:28px 1fr 90px 130px 32px; align-items:center;
+             padding:8px 14px; border:none; background:transparent; width:100%;
+             border-bottom:1px solid var(--border-s); cursor:pointer; color:var(--text);
+             transition:background 100ms;"
+      onmouseover="this.style.background='rgba(128,128,128,0.07)'"
+      onmouseout="this.style.background='transparent'"
+      hx-get="/api/borg/{{ item_id }}/archives/{{ archive }}/browse?path={{ d.path | urlencode }}"
+      hx-target="#borg-archive-content"
+      hx-swap="innerHTML"
+      hx-indicator="#borg-archive-loading">
+      <span></span>
+      <div style="display:flex; align-items:center; gap:8px; font-size:13px; font-family:var(--mono);">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" style="color:#f5c211; flex-shrink:0;">
+          <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
+        </svg>
+        {{ d.name }}/
+      </div>
+      <span></span>
+      <span style="font-size:11px; color:var(--text-3); text-align:right; padding-right:4px;">{{ d.mtime }}</span>
+      <span></span>
+    </button>
+    {% endfor %}
+
+    {# Dateien #}
+    {% for f in files %}
+    <div
+      style="display:grid; grid-template-columns:28px 1fr 90px 130px 32px; align-items:center;
+             padding:8px 14px; border-bottom:1px solid var(--border-s);
+             transition:background 100ms;"
+      onmouseover="this.style.background='rgba(128,128,128,0.07)'"
+      onmouseout="this.style.background='transparent'">
+      <span style="display:flex; align-items:center;">
+        <input type="checkbox" class="borg-file-cb" data-path="{{ f.path }}"
+               style="cursor:pointer;">
+      </span>
+      <div style="display:flex; align-items:center; gap:8px; font-size:13px;
+                  font-family:var(--mono); min-width:0;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" style="color:var(--text-3); flex-shrink:0;">
+          <path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/>
+          <polyline points="13 2 13 9 20 9"/>
+        </svg>
+        <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ f.name }}</span>
+      </div>
+      <span style="font-size:11px; color:var(--text-3); text-align:right; font-family:var(--mono);">
+        {{ f.size_fmt }}
+      </span>
+      <span style="font-size:11px; color:var(--text-3); text-align:right; padding-right:4px;">
+        {{ f.mtime }}
+      </span>
+      <a href="/api/borg/{{ item_id }}/archives/{{ archive }}/download?path={{ f.path | urlencode }}"
+         title="Herunterladen"
+         style="display:flex; align-items:center; justify-content:center;
+                width:28px; height:28px; border-radius:5px; color:var(--text-3);
+                transition:background 100ms, color 100ms;"
+         onmouseover="this.style.background='rgba(128,128,128,0.1)'; this.style.color='var(--text)'"
+         onmouseout="this.style.background='transparent'; this.style.color='var(--text-3)'">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      </a>
+    </div>
+    {% endfor %}
+
+    {# Leer #}
+    {% if not dirs and not files %}
+    <div style="padding:24px; text-align:center; color:var(--text-3); font-size:13px;">
+      Dieses Verzeichnis ist leer.
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+{# ── Sticky Aktionsleiste (Mehrfachauswahl) ──────────────────────────────── #}
+<div id="borg-browse-actions" style="display:none; align-items:center;
+     justify-content:space-between; gap:12px; margin-top:10px; padding:10px 14px;
+     background:var(--card); border:1px solid var(--border-s); border-radius:var(--rad-lg);">
+  <span style="font-size:12px; color:var(--text-2);">
+    <span id="borg-browse-count">0</span> Datei(en) ausgewählt
+  </span>
+  <div style="display:flex; gap:8px;">
+    <button id="borg-browse-clear" class="btn btn-ghost btn-sm" style="color:var(--text-3);">
+      Auswahl aufheben
+    </button>
+    <button id="borg-browse-dl" class="btn btn-sm btn-primary">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Ausgewählte herunterladen
+    </button>
+  </div>
+</div>
+
+{% endif %}
+</div>
+
+{% if not error %}
+<script>
+(function() {
+  var ITEM_ID = {{ item_id | tojson }};
+  var ARCHIVE = {{ archive | tojson }};
+  var selected = new Set();
+
+  function updateUI() {
+    var actions  = document.getElementById('borg-browse-actions');
+    var countEl  = document.getElementById('borg-browse-count');
+    var selAll   = document.getElementById('borg-browse-select-all');
+    var allCbs   = document.querySelectorAll('.borg-file-cb');
+    var n = selected.size;
+    if (actions)  actions.style.display = n > 0 ? 'flex' : 'none';
+    if (countEl)  countEl.textContent = n;
+    if (selAll) {
+      selAll.checked       = allCbs.length > 0 && n === allCbs.length;
+      selAll.indeterminate = n > 0 && n < allCbs.length;
+    }
+  }
+
+  document.querySelectorAll('.borg-file-cb').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      if (this.checked) selected.add(this.dataset.path);
+      else              selected.delete(this.dataset.path);
+      updateUI();
+    });
+  });
+
+  var selAll = document.getElementById('borg-browse-select-all');
+  if (selAll) {
+    selAll.addEventListener('change', function() {
+      var cbs = document.querySelectorAll('.borg-file-cb');
+      cbs.forEach(function(cb) {
+        cb.checked = selAll.checked;
+        if (selAll.checked) selected.add(cb.dataset.path);
+        else                selected.delete(cb.dataset.path);
+      });
+      updateUI();
+    });
+  }
+
+  var clearBtn = document.getElementById('borg-browse-clear');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function() {
+      selected.clear();
+      document.querySelectorAll('.borg-file-cb').forEach(function(cb) { cb.checked = false; });
+      updateUI();
+    });
+  }
+
+  var dlBtn = document.getElementById('borg-browse-dl');
+  if (dlBtn) {
+    dlBtn.addEventListener('click', function() {
+      if (!selected.size) return;
+      window.location.href = '/api/borg/' + ITEM_ID +
+        '/archives/' + encodeURIComponent(ARCHIVE) + '/download-bundle?' +
+        Array.from(selected).map(function(p) { return 'path=' + encodeURIComponent(p); }).join('&');
+    });
+  }
+})();
+</script>
+{% endif %}

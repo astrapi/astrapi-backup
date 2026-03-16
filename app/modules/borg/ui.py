@@ -41,7 +41,7 @@ def create_modal():
     submit_url   = f"/api/{KEY}/create?container_id={container_id}&loading_id={loading_id}"
     return render_template(
         "partials/create_edit/create_edit_modal.html",
-        schema=schema["fields"], item=None, method="post", title="Neu",
+        schema=schema["fields"], item=None, method="post", title="Borg Job anlegen",
         submit_url=submit_url, container_id=container_id, loading_id=loading_id,
     )
 
@@ -59,7 +59,7 @@ def edit_modal(item):
     submit_url = f"/api/{KEY}/{item}/edit?container_id={container_id}&loading_id={loading_id}"
     return render_template(
         "partials/create_edit/create_edit_modal.html",
-        schema=schema["fields"], item=values, method="patch", title=f"Bearbeiten: {item}",
+        schema=schema["fields"], item=values, method="patch", title="Borg Job bearbeiten",
         submit_url=submit_url, container_id=container_id, loading_id=loading_id,
     )
 
@@ -76,6 +76,7 @@ def toggle_modal(item):
         description=description, verb=verb,
         confirm_url=f"/api/{KEY}/{item}/toggle",
         method="post",
+        reload_url=f"/ui/{KEY}/content",
         container_id=container_id, loading_id=loading_id,
     )
 
@@ -90,5 +91,6 @@ def delete_modal(item):
         description=description, verb="löschen",
         confirm_url=f"/api/{KEY}/{item}/delete",
         method="delete",
+        reload_url=f"/ui/{KEY}/content",
         container_id=container_id, loading_id=loading_id,
     )

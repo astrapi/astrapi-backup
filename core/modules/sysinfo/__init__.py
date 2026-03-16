@@ -1,10 +1,10 @@
 """core/modules/sysinfo/__init__.py – System-Informationen Modul."""
 
-from app.modules._base import AstrapiModule
+from core.ui import Module
 from .api import router
 from .ui import bp
 
-module = AstrapiModule(
+module = Module(
     key          = "sysinfo",
     label        = "System",
     icon         = "monitor",

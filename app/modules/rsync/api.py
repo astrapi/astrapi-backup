@@ -1,7 +1,7 @@
 # modules/rsync/api.py
 import yaml
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, Request, Header
+from fastapi import APIRouter, HTTPException, Request, Header, Response
 
 from api.storage import load_config, get_item, delete_item, save_item, next_item_id
 from api.routers.run import get_running
@@ -13,8 +13,13 @@ _SCHEMA_PATH = Path(__file__).parent / "schema.yaml"
 
 
 def _load_schema() -> dict:
-    with open(_SCHEMA_PATH) as f:
-        return yaml.safe_load(f)
+    try:
+        with open(_SCHEMA_PATH) as f:
+            return yaml.safe_load(f) or {}
+    except FileNotFoundError:
+        raise HTTPException(500, f"Schema-Datei nicht gefunden: {_SCHEMA_PATH}")
+    except yaml.YAMLError as e:
+        raise HTTPException(500, f"Schema-Datei fehlerhaft: {e}")
 
 
 def _list_response(request: Request):
@@ -72,7 +77,7 @@ def _extract_lists(schema, payload):
 async def create_one(request: Request):
     form    = await request.form()
     payload = dict(form)
-    payload["enabled"] = payload.get("enabled") == "on"
+    payload["enabled"] = payload.get("enabled") in ("on", "1", True)
     payload = _extract_lists(_load_schema(), payload)
     save_item(KEY, next_item_id(KEY), _clean(payload))
     if request.headers.get("HX-Request") == "true":
@@ -88,7 +93,7 @@ async def patch_one(item_id: str, request: Request):
         raise HTTPException(404, "Item not found")
     form    = await request.form()
     payload = dict(form)
-    payload["enabled"] = payload.get("enabled") == "on"
+    payload["enabled"] = payload.get("enabled") in ("on", "1", True)
     payload  = _extract_lists(_load_schema(), payload)
     existing.update(payload)
     save_item(KEY, iid, _clean(existing))
@@ -103,6 +108,7 @@ def delete_one(request: Request, item_id: str, hx_request: str | None = Header(N
         raise HTTPException(404, "Item not found")
     if hx_request:
         return _list_response(request)
+    return Response(status_code=204)
 
 
 @router.post("/{item_id}/toggle")
@@ -114,6 +120,8 @@ def toggle_item(request: Request, item_id: str, hx_request: str | None = Header(
             key = int(item_id)
         except ValueError:
             pass
+    if key not in cfg:
+        raise HTTPException(404, "Item not found")
     cfg[key]["enabled"] = not cfg[key].get("enabled", False)
     save_item(KEY, key, cfg[key])
     if hx_request:
@@ -137,3 +145,17 @@ def disable_all(request: Request):
             item["enabled"] = False
             save_item(KEY, iid, item)
     return _list_response(request)
+
+
+@router.get("/{item_id}/preview")
+def preview_item(item_id: str, request: Request):
+    from modules.rsync import jobs
+    entry = get_item(KEY, item_id) or get_item(KEY, int(item_id) if item_id.isdigit() else item_id)
+    if entry is None:
+        raise HTTPException(404, "Item not found")
+    from api.templates import templates
+    return templates.TemplateResponse("partials/preview_modal.html", {
+        "request":     request,
+        "description": entry.get("description", item_id),
+        "commands":    jobs.preview(item_id),
+    })

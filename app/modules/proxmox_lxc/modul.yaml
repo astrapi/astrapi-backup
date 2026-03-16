@@ -1,0 +1,14 @@
+# app/modules/proxmox_lxc/modul.yaml – Modul-Konfiguration
+
+label:       Proxmox LXC
+icon:        box
+nav_group:   Proxmox
+nav_default: false
+
+card_actions:
+  - type: run
+    url:  /api/proxmox_lxc/{item}/run
+  - type: log
+    url:  /api/proxmox_lxc/{item}/logs
+  - type: preview
+    url:  /api/proxmox_lxc/{item}/preview

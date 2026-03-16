@@ -1,9 +1,12 @@
 # core/templates/navigation/items.yaml
 #
-# Definiert die Framework-eigenen Navigationseinträge (erscheinen unten).
-# Wird von app/templates/navigation/items.yaml ergänzt, nicht ersetzt.
-#
-# settings muss hier explizit aufgeführt werden wenn es erscheinen soll.
+# FALLBACK für Projekte ohne app/navigation.yaml.
+# Wenn app/navigation.yaml vorhanden ist, wird diese Datei ignoriert.
+# Die vollständige Navigation gehört in app/navigation.yaml.
+
+- key: notify
+  label: Benachrichtigungen
+  group: System
 
 - key: scheduler
   label: Scheduler

@@ -4,24 +4,22 @@ import time
 from datetime import datetime
 from helpers.logger import log, set_log_context, clear_log_context
 from helpers.notify import notify_ntfy
-from helpers.debug import set_debug
 
 _running_jobs: set = set()
 
 
-def _wol_entries() -> list:
-    import json as _j
-    from api.storage import get_setting
+def _remotes_entries() -> list:
     try:
-        return _j.loads(get_setting("wol_entries", "[]"))
+        from api.storage import load_config
+        return list(load_config("remotes").values())
     except Exception:
         return []
 
 
 def _power_on_backup02():
-    entries = _wol_entries()
+    entries = _remotes_entries()
     if not entries:
-        log("WARNING", "WOL_ENTRIES nicht konfiguriert – Wake-on-LAN übersprungen")
+        log("WARNING", "Keine Remote-Geräte konfiguriert – Wake-on-LAN übersprungen")
         return
     for e in entries:
         mac = e.get("mac", "")
@@ -31,15 +29,16 @@ def _power_on_backup02():
 
 
 def _wait_for_backup02():
-    for e in _wol_entries():
-        host = e.get("host", "")
+    for e in _remotes_entries():
+        host     = e.get("host", "")
+        ssh_user = e.get("ssh_user") or "root"
         if not host:
             continue
         log("INFO", f"→ Warte bis {host} erreichbar ist …")
         while True:
             result = subprocess.run(
                 ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5",
-                 f"backupadm@{host}", "echo ok"],
+                 f"{ssh_user}@{host}", "echo ok"],
                 capture_output=True, text=True,
             )
             if result.returncode == 0 and "ok" in result.stdout:
@@ -49,11 +48,12 @@ def _wait_for_backup02():
 
 
 def _power_off_backup02():
-    for e in _wol_entries():
-        host = e.get("host", "")
+    for e in _remotes_entries():
+        host     = e.get("host", "")
+        ssh_user = e.get("ssh_user") or "root"
         if host:
             try:
-                subprocess.run(["ssh", f"backupadm@{host}", "sudo shutdown -h now"], check=True)
+                subprocess.run(["ssh", f"{ssh_user}@{host}", "sudo shutdown -h now"], check=True)
                 log("INFO", f"→ {host} heruntergefahren")
             except Exception as ex:
                 log("WARNING", f"Shutdown {host} fehlgeschlagen: {ex}")
@@ -76,7 +76,6 @@ def run_backup(job_id: str, modules: list, debug: bool = False) -> None:
 
     _running_jobs.add(job_id)
     set_log_context("scheduler", job_id)
-    set_debug(debug)
     start = datetime.now()
     status = "OK"
 
@@ -98,9 +97,17 @@ def run_backup(job_id: str, modules: list, debug: bool = False) -> None:
             from modules import rsync
             rsync.run()
 
-        if run_all or "proxmox" in modules:
-            from modules import proxmox
-            proxmox.run()
+        if run_all or "proxmox_lxc" in modules:
+            from modules import proxmox_lxc
+            proxmox_lxc.run()
+
+        if run_all or "proxmox_hosts" in modules:
+            from modules import proxmox_hosts
+            proxmox_hosts.run()
+
+        if run_all or "proxmox_jobs" in modules:
+            from modules import proxmox_jobs
+            proxmox_jobs.run()
 
         if not debug:
             _power_off_backup02()
@@ -113,7 +120,6 @@ def run_backup(job_id: str, modules: list, debug: bool = False) -> None:
 
     finally:
         _running_jobs.discard(job_id)
-        set_debug(False)
         duration_str = _format_duration(int((datetime.now() - start).total_seconds()))
         log("INFO", f"Job '{job_id}' beendet – Status: {status} – Dauer: {duration_str}")
         log("INFO", f"{'='*40}")
@@ -121,5 +127,4 @@ def run_backup(job_id: str, modules: list, debug: bool = False) -> None:
         if not debug:
             notify_ntfy(f"Backup {status}: {job_id}\nDauer: {duration_str}",
                         priority="low" if status == "OK" else "high")
-        from core.modules.scheduler.engine import update_result
-        update_result(status, duration_str)
+

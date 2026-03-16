@@ -1,9 +1,9 @@
 """core/modules/settings/__init__.py – Framework-Einstellungen Modul."""
 
-from app.modules._base import AstrapiModule
+from core.ui import Module
 from .ui import bp
 
-module = AstrapiModule(
+module = Module(
     key          = "settings",
     label        = "Einstellungen",
     icon         = "settings",

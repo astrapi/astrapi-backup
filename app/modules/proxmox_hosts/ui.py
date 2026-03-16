@@ -14,6 +14,20 @@ def _load_schema():
         return yaml.safe_load(f)
 
 
+def _enrich_schema(schema: dict) -> dict:
+    """Injiziert dynamische Optionen in Felder die auf Modul-Settings verweisen."""
+    from core.ui.settings_registry import get_module as _get_setting
+    namespaces = _get_setting("proxmox_hosts", "pbs_namespaces", ["host"])
+    if not isinstance(namespaces, list) or not namespaces:
+        namespaces = ["host"]
+    fields = []
+    for field in schema.get("fields", []):
+        if field.get("name") == "namespace":
+            field = {**field, "type": "select", "options": namespaces}
+        fields.append(field)
+    return {**schema, "fields": fields}
+
+
 def _list_ctx():
     from api.storage import load_config
     from api.routers.run import get_running
@@ -35,7 +49,7 @@ def content():
 
 @bp.route(f"/ui/{KEY}/create")
 def create_modal():
-    schema = _load_schema()
+    schema = _enrich_schema(_load_schema())
     container_id = request.args.get("container_id", f"tab-{KEY}")
     loading_id   = request.args.get("loading_id",   f"{KEY}-loading")
     submit_url   = f"/api/{KEY}/create?container_id={container_id}&loading_id={loading_id}"
@@ -49,7 +63,7 @@ def create_modal():
 @bp.route(f"/ui/{KEY}/<item>/edit")
 def edit_modal(item):
     from api.storage import get_item
-    schema = _load_schema()
+    schema = _enrich_schema(_load_schema())
     container_id = request.args.get("container_id", f"tab-{KEY}")
     loading_id   = request.args.get("loading_id",   f"{KEY}-loading")
     values = get_item(KEY, item) or {}
