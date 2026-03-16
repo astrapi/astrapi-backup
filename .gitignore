@@ -99,4 +99,4 @@ config/proxmox.yaml
 
 data/
 logs/
-.borg
+.borg/
