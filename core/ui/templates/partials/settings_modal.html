@@ -13,8 +13,8 @@
   Field-Typen: text, password, number, select, checkbox, textarea
 #}
 <div id="settings-modal-backdrop" class="ds-modal-backdrop"
-     x-data
-     x-on:keydown.escape.window="$el.remove()">
+  x-data
+  x-on:keydown.escape.window="$el.remove()">
 
   <div class="ds-modal" style="width:480px; max-width:95vw; padding:24px 28px;" tabindex="-1"
        id="settings-modal">
@@ -29,10 +29,10 @@
     {% endif %}
 
     <!-- Form -->
-    <form hx-post="/ui/{{ mod.key }}/settings"
-          hx-target="#settings-modal"
-          hx-swap="outerHTML"
-          class="form-stack" style="gap:14px;">
+            <form hx-post="/ui/{{ mod.key }}/settings"
+              hx-swap="none"
+              hx-on::after-request="if(event.detail.successful){ this.closest('#settings-modal-backdrop').remove(); }"
+              class="form-stack" style="gap:14px;">
 
       {% for field in schema %}
       {% set fkey  = field.key %}
