@@ -8,9 +8,8 @@
     mod    – Module-Instanz (core.ui.Module)
     schema – list von field-dicts (key, label, type, options, default, description)
     values – dict {field_key: current_value}
-    saved  – bool (True nach erfolgreichem POST)
 
-  Field-Typen: text, password, number, select, checkbox, textarea
+  Field-Typen: text, password, number, select, checkbox, textarea, list
 #}
 <div id="settings-modal-backdrop" class="ds-modal-backdrop"
      x-data
@@ -21,17 +20,10 @@
 
     {{ modal_title(title=mod.label + " – Einstellungen", icon="settings") }}
 
-    <!-- Flash -->
-    {% if saved %}
-    <div class="alert alert-success" style="margin-bottom:14px;">
-      ✔ Einstellungen gespeichert.
-    </div>
-    {% endif %}
-
     <!-- Form -->
     <form hx-post="/ui/{{ mod.key }}/settings"
-          hx-target="#settings-modal"
-          hx-swap="outerHTML"
+          hx-swap="none"
+          hx-on::after-request="if(event.detail.successful){this.closest('.ds-modal-backdrop').remove()}"
           class="form-stack" style="gap:14px;">
 
       {% for field in schema %}
@@ -67,6 +59,32 @@
                  onchange="this.form.querySelector('[name={{ fkey }}][type=hidden]').disabled=this.checked">
           <span class="toggle-field-label">{{ field.get('checkbox_label', 'Aktiviert') }}</span>
         </label>
+
+        {% elif ftype == 'list' %}
+        {% set flist = fval if fval is iterable and fval is not string else [] %}
+        <div
+          x-data='{ "lines": {{ flist | tojson }}, add() { this.lines.push("") }, remove(i) { this.lines.splice(i, 1) } }'
+          class="stack-sm"
+        >
+          <template x-for="(line, i) in lines" :key="i">
+            <div class="inline-cluster">
+              <input type="text"
+                     :name="`{{ fkey }}_${i}`"
+                     x-model="lines[i]"
+                     class="form-input"
+                     style="flex:1;{% if field.get('mono') %}font-family:var(--font-mono);{% endif %}font-size:13px;">
+              <button type="button" @click="remove(i)" class="btn-icon btn-icon-danger" title="Entfernen">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#icon-minus"></use></svg>
+              </button>
+            </div>
+          </template>
+          <div>
+            <button type="button" @click="add()" class="btn btn-ghost btn-sm" style="gap:5px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#icon-plus"></use></svg>
+              Hinzufügen
+            </button>
+          </div>
+        </div>
 
         {% elif ftype == 'textarea' %}
         <textarea name="{{ fkey }}" class="form-input"

@@ -320,8 +320,27 @@ def _register_module_settings_routes(app: Flask, modules: list) -> None:
             password_keys = {
                 f["key"] for f in mod.settings_schema if f.get("type") == "password"
             }
+            list_keys = {
+                f["key"] for f in mod.settings_schema if f.get("type") == "list"
+            }
             prefixed = {}
+            # Listen-Felder: fieldname_0, fieldname_1, … → list
+            for lk in list_keys:
+                items = []
+                i = 0
+                while True:
+                    val = request.form.get(f"{lk}_{i}")
+                    if val is None:
+                        break
+                    if val.strip():
+                        items.append(val.strip())
+                    i += 1
+                prefixed[f"module.{module_key}.{lk}"] = items
+            # Alle anderen Felder
+            handled = {f"{lk}_{i}" for lk in list_keys for i in range(50)}
             for k, v in request.form.to_dict().items():
+                if k in handled:
+                    continue
                 if k in password_keys and not v.strip():
                     continue  # Leeres Passwort-Feld nicht speichern
                 prefixed[f"module.{module_key}.{k}"] = v
@@ -338,5 +357,4 @@ def _register_module_settings_routes(app: Flask, modules: list) -> None:
             mod=mod,
             schema=mod.settings_schema,
             values=current_values,
-            saved=(request.method == "POST"),
         )
