@@ -139,9 +139,10 @@ class NotifyEngine:
         if backend_key == "ntfy":
             from .backends.ntfy import NtfyNotifier
             return NtfyNotifier(
-                url   = channel.get("ntfy_url",   "https://ntfy.sh") or "https://ntfy.sh",
-                topic = channel.get("ntfy_topic", "") or "",
-                token = channel.get("ntfy_token") or None,
+                url        = channel.get("ntfy_url",   "https://ntfy.sh") or "https://ntfy.sh",
+                topic      = channel.get("ntfy_topic", "") or "",
+                token      = channel.get("ntfy_token") or None,
+                verify_ssl = bool(channel.get("ntfy_verify_ssl", True)),
             )
 
         if backend_key == "email":

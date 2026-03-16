@@ -44,6 +44,7 @@ def _parse_channel_form() -> dict:
         "ntfy_url":            request.form.get("ntfy_url", "https://ntfy.sh").strip(),
         "ntfy_topic":          request.form.get("ntfy_topic", "").strip(),
         "ntfy_token":          request.form.get("ntfy_token", "").strip(),
+        "ntfy_verify_ssl":     "ntfy_verify_ssl" in request.form,
         # E-Mail
         "mail_smtp_host":      request.form.get("mail_smtp_host", "").strip(),
         "mail_smtp_port":      int(request.form.get("mail_smtp_port") or 587),

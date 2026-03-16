@@ -65,6 +65,13 @@
                  oninput="this.classList.remove('is-invalid'); var _e=document.getElementById(this.id+'-error'); if(_e)_e.style.display='none';">
           <span id="ch-ntfy-topic-error" class="form-error" style="display:none;">Bitte ein Thema eingeben.</span>
         </div>
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <input type="checkbox" name="ntfy_verify_ssl"
+                 style="width:14px; height:14px; accent-color:var(--accent);"
+                 {{ 'checked' if v.get('ntfy_verify_ssl', True) else '' }}>
+          <span style="font-size:13px; color:var(--text-2);">SSL-Zertifikat prüfen</span>
+          <span style="font-size:11px; color:var(--text-3);">(deaktivieren bei selbst-signierten Zertifikaten)</span>
+        </label>
       </div>
       {% endif %}
 

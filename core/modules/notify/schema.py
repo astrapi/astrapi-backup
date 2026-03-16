@@ -33,9 +33,10 @@ class ChannelIn(BaseModel):
     enabled:    bool = True
 
     # ntfy-spezifische Felder
-    ntfy_url:   str  = "https://ntfy.sh"
-    ntfy_topic: str  = ""
-    ntfy_token: str  = ""
+    ntfy_url:        str  = "https://ntfy.sh"
+    ntfy_topic:      str  = ""
+    ntfy_token:      str  = ""
+    ntfy_verify_ssl: bool = True
 
     # E-Mail-spezifische Felder
     mail_smtp_host:     str  = ""

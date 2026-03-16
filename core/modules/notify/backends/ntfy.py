@@ -14,6 +14,7 @@ Tags: Emoji-Kurzformen wie "white_check_mark", "warning", "rotating_light"
 from __future__ import annotations
 
 import logging
+import ssl
 import urllib.error
 import urllib.request
 from typing import Optional
@@ -38,13 +39,15 @@ class NtfyNotifier(BaseNotifier):
 
     def __init__(
         self,
-        url:   str           = "https://ntfy.sh",
-        topic: str           = "",
-        token: Optional[str] = None,
+        url:        str           = "https://ntfy.sh",
+        topic:      str           = "",
+        token:      Optional[str] = None,
+        verify_ssl: bool          = True,
     ) -> None:
-        self.url   = (url or "https://ntfy.sh").rstrip("/")
-        self.topic = (topic or "").strip()
-        self.token = (token or "").strip() or None
+        self.url        = (url or "https://ntfy.sh").rstrip("/")
+        self.topic      = (topic or "").strip()
+        self.token      = (token or "").strip() or None
+        self.verify_ssl = verify_ssl
 
     def send(
         self,
@@ -70,6 +73,11 @@ class NtfyNotifier(BaseNotifier):
 
         payload = message.encode("utf-8")
 
+        ssl_ctx = None if self.verify_ssl else ssl.create_default_context()
+        if ssl_ctx is not None:
+            ssl_ctx.check_hostname = False
+            ssl_ctx.verify_mode    = ssl.CERT_NONE
+
         try:
             req = urllib.request.Request(
                 url     = endpoint,
@@ -77,7 +85,7 @@ class NtfyNotifier(BaseNotifier):
                 headers = headers,
                 method  = "POST",
             )
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=10, context=ssl_ctx) as resp:
                 success = 200 <= resp.status < 300
                 if not success:
                     log.warning("ntfy: Unerwarteter HTTP-Status %s", resp.status)
