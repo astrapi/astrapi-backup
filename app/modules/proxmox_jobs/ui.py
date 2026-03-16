@@ -25,6 +25,7 @@ def _list_ctx():
         content_template=f"{KEY}/partials/list.html",
         list_wrapper="partials/list_wrapper.html",
         running=get_running(),
+        has_run_buttons=False,
     )
 
 

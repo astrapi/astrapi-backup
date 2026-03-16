@@ -36,17 +36,7 @@
   </div>
 </div>
 
-{% set _run_key  = module ~ ":__run__" %}
-{% set _dbg_key  = module ~ ":__debug__" %}
-{% set _run_all  = _run_key in (running or {}) %}
-{% set _dbg_all  = _dbg_key in (running or {}) %}
-
 <div class="ds-list-grid">
-{% if _run_all or _dbg_all %}
-  <div class="run-badge run-banner">
-    ● {{ 'Debug-Run' if _dbg_all else 'Gesamt-Run' }} läuft …
-  </div>
-{% endif %}
 
 {% if cfg %}
   {% for name, item in cfg.items() %}

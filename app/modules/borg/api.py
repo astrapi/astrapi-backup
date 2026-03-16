@@ -283,23 +283,6 @@ def toggle_item(request: Request, item_id: str, hx_request: str | None = Header(
     return {"status": "ok", "item": key, "enabled": cfg[key]["enabled"]}
 
 
-@router.post("/enable-all")
-def enable_all(request: Request):
-    for iid, item in load_config(KEY).items():
-        if not item.get("enabled", False):
-            item["enabled"] = True
-            save_item(KEY, iid, item)
-    return _list_response(request)
-
-
-@router.post("/disable-all")
-def disable_all(request: Request):
-    for iid, item in load_config(KEY).items():
-        if item.get("enabled", True):
-            item["enabled"] = False
-            save_item(KEY, iid, item)
-    return _list_response(request)
-
 
 @router.get("/{item_id}/preview")
 def preview_item(item_id: str, request: Request):

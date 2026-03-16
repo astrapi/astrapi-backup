@@ -27,9 +27,6 @@ def _get_templates():
 _running: dict = {}
 _running_lock  = threading.Lock()
 
-MODULE_RUN_ID   = "__run__"
-MODULE_DEBUG_ID = "__debug__"
-
 
 def _is_running(module: str, item_id: str) -> bool:
     return f"{module}:{item_id}" in _running
@@ -119,53 +116,6 @@ def make_run_router(module: str) -> APIRouter:
         trigger = json.dumps({"openLogModal": {"module": module, "itemId": log_id}})
         return HTMLResponse(list_html, headers={"HX-Trigger": trigger})
 
-    # ── Ganzes Modul ausführen ────────────────────────────────────────
-
-    @router.post("/run", response_class=HTMLResponse)
-    def run_all(request: Request, debug: bool = False):
-        run_id = MODULE_DEBUG_ID if debug else MODULE_RUN_ID
-
-        if _is_running(module, run_id):
-            raise HTTPException(status_code=409, detail="Modul läuft bereits")
-
-        _mark_running(module, run_id, "debug" if debug else "run")
-
-        def _execute():
-            import time
-            from api.storage import history_start, history_finish
-            desc = _item_description(module, run_id)
-            hist_id = history_start(module, run_id, desc, "debug" if debug else "run")
-            t0 = time.time()
-            set_log_context(module, run_id)
-            set_tee_context(module, run_id)
-            status = "ok"
-            try:
-                _dispatch_module(module)
-            except Exception:
-                status = "error"
-            finally:
-                duration = int(time.time() - t0)
-                history_finish(hist_id, status, duration)
-                clear_tee_context()
-                clear_log_context()
-                _mark_done(module, run_id)
-
-        threading.Thread(target=_execute, daemon=True).start()
-
-        cfg = load_config(module)
-        list_html = _get_templates().TemplateResponse(
-            "partials/list_wrapper_inner.html",
-            {
-                "request": request, "cfg": cfg, "module": module,
-                "container_id": f"tab-{module}", "loading_id": f"{module}-loading",
-                "content_template": f"{module}/partials/list.html",
-                "running": get_running(),
-            },
-        ).body.decode()
-
-        trigger = json.dumps({"openLogModal": {"module": module, "itemId": run_id}})
-        return HTMLResponse(list_html, headers={"HX-Trigger": trigger})
-
     # ── SSE: Live-Log-Stream ──────────────────────────────────────────
 
     @router.get("/{item_id}/logs/stream")
@@ -253,10 +203,6 @@ def make_run_router(module: str) -> APIRouter:
 # ── Hilfsfunktionen ───────────────────────────────────────────────
 
 def _item_description(module: str, item_id: str) -> str:
-    if item_id == MODULE_RUN_ID:
-        return f"{module.replace('_', ' ').title()} – Gesamt-Run"
-    if item_id == MODULE_DEBUG_ID:
-        return f"{module.replace('_', ' ').title()} – Debug-Run"
     debug = item_id.endswith("_debug")
     base  = item_id.removesuffix("_debug")
     try:
@@ -283,13 +229,3 @@ def _dispatch_single(module: str, item_id: str) -> None:
         log("ERROR", f"Unbekanntes Modul: {module}")
 
 
-def _dispatch_module(module: str) -> None:
-    fn = {
-        "borg":          lambda: __import__("modules.borg",          fromlist=["run"]).run(),
-        "rsync":         lambda: __import__("modules.rsync",         fromlist=["run"]).run(),
-        "proxmox_lxc":   lambda: __import__("modules.proxmox_lxc",   fromlist=["run"]).run(),
-        "proxmox_hosts": lambda: __import__("modules.proxmox_hosts", fromlist=["run"]).run(),
-        "proxmox_jobs":  lambda: __import__("modules.proxmox_jobs",  fromlist=["run"]).run(),
-    }.get(module)
-    if fn:
-        fn()
