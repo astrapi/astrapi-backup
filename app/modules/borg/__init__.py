@@ -9,6 +9,6 @@ module = load_modul(Path(__file__).parent, _KEY, router, bp)
 
 try:
     from core.modules.scheduler.engine import register_action
-    register_action(f"{_KEY}.run", "Borg-Backup ausführen", run, source=_KEY, source_label="Borg")
+    register_action(f"{_KEY}.run", "Borg: Backup ausführen", run, source=_KEY, source_label="Borg")
 except Exception:
     pass

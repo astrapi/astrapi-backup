@@ -41,6 +41,16 @@ def run():
         run_single(item_id, job)
 
 
+def run_by_type(job_type: str):
+    """Führt alle aktivierten Jobs eines bestimmten Typs sequenziell aus."""
+    for item_id, job in _get_config().items():
+        if not job.get("enabled", False):
+            continue
+        if job.get("type") != job_type:
+            continue
+        run_single(item_id, job)
+
+
 def run_single(item_id, job=None):
     if job is None:
         job = _get_config().get(item_id) or _get_config().get(

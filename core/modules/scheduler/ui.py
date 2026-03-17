@@ -1,4 +1,6 @@
 """core/modules/scheduler/ui.py – Flask-Blueprint für den Multi-Job Scheduler."""
+import uuid
+
 from flask import Blueprint, render_template, request
 
 KEY   = "scheduler"
@@ -97,39 +99,27 @@ def scheduler_job_toggle_modal(job_id: str):
 def scheduler_job_create():
     from core.modules.scheduler.engine import create_job, get_registered_actions
 
-    job_id        = request.form.get("job_id", "").strip()
     label         = request.form.get("label", "").strip()
     cron          = request.form.get("cron", "").strip()
-    enabled       = request.form.get("enabled") == "1"
+    enabled       = "1" in request.form.getlist("enabled")
     steps         = request.form.getlist("steps")
-    notify_start  = request.form.get("notify_start") == "1"
-    notify_end    = request.form.get("notify_end") == "1"
+    notify_start  = "1" in request.form.getlist("notify_start")
+    notify_end    = "1" in request.form.getlist("notify_end")
 
-    if not job_id or not label or not cron:
+    if not label or not cron:
         return render_template(
             f"{KEY}/partials/job_modal.html",
-            job={"id": None, "job_id": job_id, "label": label,
+            job={"id": None, "label": label,
                  "cron": cron, "enabled": enabled, "steps": steps,
                  "notify_start": notify_start, "notify_end": notify_end},
             actions=get_registered_actions(),
-            error="ID, Label und Cron-Ausdruck sind Pflichtfelder.",
+            error="Name und Cron-Ausdruck sind Pflichtfelder.",
             container_id=_C_ID, loading_id=_L_ID,
         ), 422
 
-    try:
-        create_job(job_id, label, cron, enabled, steps,
-                   notify_start=notify_start, notify_end=notify_end)
-    except KeyError:
-        return render_template(
-            f"{KEY}/partials/job_modal.html",
-            job={"id": None, "job_id": job_id, "label": label,
-                 "cron": cron, "enabled": enabled, "steps": steps,
-                 "notify_start": notify_start, "notify_end": notify_end},
-            actions=get_registered_actions(),
-            error=f"Job-ID '{job_id}' existiert bereits.",
-            container_id=_C_ID, loading_id=_L_ID,
-        ), 422
-
+    job_id = uuid.uuid4().hex[:12]
+    create_job(job_id, label, cron, enabled, steps,
+               notify_start=notify_start, notify_end=notify_end)
     return render_template(f"{KEY}/partials/tab.html", **_list_ctx())
 
 
@@ -139,10 +129,10 @@ def scheduler_job_save(job_id: str):
 
     label         = request.form.get("label", "").strip()
     cron          = request.form.get("cron", "").strip()
-    enabled       = request.form.get("enabled") == "1"
+    enabled       = "1" in request.form.getlist("enabled")
     steps         = request.form.getlist("steps")
-    notify_start  = request.form.get("notify_start") == "1"
-    notify_end    = request.form.get("notify_end") == "1"
+    notify_start  = "1" in request.form.getlist("notify_start")
+    notify_end    = "1" in request.form.getlist("notify_end")
 
     if not label or not cron:
         from core.modules.scheduler.engine import get_job

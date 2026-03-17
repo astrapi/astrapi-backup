@@ -69,6 +69,8 @@ def make_crud_blueprint(
     def _form_data() -> dict:
         data = {}
         for field in schema["fields"]:
+            if field.get("type") == "section" or not field.get("name"):
+                continue
             name = field["name"]
             if field.get("type") == "boolean":
                 data[name] = name in request.form
@@ -86,6 +88,7 @@ def make_crud_blueprint(
             "partials/create_edit/create_edit_modal.html",
             schema=schema["fields"],
             id_field=schema["id_field"],
+            modal_width=schema["modal_width"],
             item=None,
             item_id=None,
             submit_url=f"/ui/{key}/",
@@ -105,6 +108,7 @@ def make_crud_blueprint(
             "partials/create_edit/create_edit_modal.html",
             schema=schema["fields"],
             id_field=schema["id_field"],
+            modal_width=schema["modal_width"],
             item=item,
             item_id=item_id,
             submit_url=f"/ui/{key}/{item_id}/update",

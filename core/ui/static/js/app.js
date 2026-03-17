@@ -29,3 +29,14 @@ document.body.addEventListener("htmx:afterSwap", (evt) => {
 document.body.addEventListener("htmx:pushedIntoHistory", () => {
     updateActiveNav();
 });
+
+// ── Karten-/Listenansicht Toggle ─────────────────────────────────────────────
+function viewToggle(module) {
+    return {
+        view: localStorage.getItem(`view:${module}`) || 'card',
+        setView(v) {
+            this.view = v;
+            localStorage.setItem(`view:${module}`, v);
+        },
+    };
+}

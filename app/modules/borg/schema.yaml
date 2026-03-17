@@ -1,60 +1,65 @@
+modal_width: 860
 id_field: id
+
 fields:
   - name: description
     type: text
-    label: Beschreibung
+    label: Name
     max: 50
-    column: 1
-    row: 1
     required: true
+
   - name: enabled
     type: boolean
     label: Aktiviert
-    column: 2
-    row: 1
+
+  - type: section
+    label: Quelle
+    cols: 3
+
   - name: source_host
     type: text
     label: Source Host
     max: 50
-    column: 1
-    row: 2
+
   - name: source_path
     type: text
     label: Source Path
     max: 200
-    column: 2
-    row: 2
+    span: 2
+
+  - type: section
+    label: Ziel
+    cols: 3
+
   - name: target_host
     type: text
     label: Target Host
     max: 50
-    column: 1
-    row: 3
+
   - name: target_path
     type: text
     label: Target Path
     max: 200
-    column: 2
-    row: 3
+    span: 2
+
   - name: ssh_user
     type: text
     label: SSH User
     max: 50
     default: backupadm
-    column: 1
-    row: 4
+
+  - type: section
+    label: Skripte & Filter
+    cols: 3
+
   - name: pre
     type: list
     label: Pre-Script
-    column: 1
-    row: 5
+
   - name: post
     type: list
     label: Post-Script
-    column: 2
-    row: 5
+
   - name: exclude
     type: list
     label: Exclude-Patterns
-    column: 1
-    row: 6

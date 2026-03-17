@@ -9,6 +9,6 @@ module = load_modul(Path(__file__).parent, _KEY, router, bp)
 
 try:
     from core.modules.scheduler.engine import register_action
-    register_action(f"{_KEY}.run", "Proxmox LXC sichern", run, source=_KEY, source_label="Proxmox LXC")
+    register_action(f"{_KEY}.run", "Proxmox LXC: Sichern", run, source=_KEY, source_label="Proxmox LXC")
 except Exception:
     pass

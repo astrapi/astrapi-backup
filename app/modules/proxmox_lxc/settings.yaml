@@ -1,6 +1,14 @@
 # Proxmox-LXC-Modul – globale Einstellungen
 
 - type: section
+  label: Nodes
+
+- key: nodes
+  label: Verfügbare Nodes
+  type: list
+  description: "Proxmox-Nodes die als Auswahl in den Jobeinstellungen erscheinen (z.B. pve01)"
+
+- type: section
   label: vzdump
 
 - key: backup_storage

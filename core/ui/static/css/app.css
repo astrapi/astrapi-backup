@@ -257,6 +257,9 @@ input,select,textarea { font-family:var(--font); }
 .inline-cluster {
   gap:6px;
 }
+.card-footer-actions:last-child { margin-left:auto; }
+.card-footer .btn-icon     { width:32px; height:32px; }
+.card-footer .btn-icon svg { width:16px; height:16px; }
 
 .flex-between-wrap {
   justify-content:space-between;
@@ -554,6 +557,78 @@ input,select,textarea { font-family:var(--font); }
 
 /* ════════════════════════ LIST GRID ═════════════════════════════ */
 .ds-list-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
+.ds-list-grid .empty-state { grid-column: 1 / -1; }
+
+/* ════════════════════════ LIST TABLE ════════════════════════════ */
+.ds-list-table-wrap {
+  border:1px solid var(--border-s);
+  border-radius:var(--rad);
+  overflow:hidden;
+}
+.ds-list-table {
+  width:100%; border-collapse:collapse;
+  table-layout:fixed;
+  font-size:13px;
+}
+.ds-list-table thead tr {
+  background:var(--card);
+  border-bottom:1px solid var(--border-s);
+}
+.ds-list-table thead th {
+  padding:8px 12px;
+  text-align:left; font-weight:600;
+  font-size:11px; text-transform:uppercase; letter-spacing:0.06em;
+  color:var(--text-3); white-space:nowrap;
+}
+.ds-list-table tbody tr {
+  border-bottom:1px solid var(--border-s);
+  transition:background var(--t);
+}
+.ds-list-table tbody tr:last-child { border-bottom:none; }
+.ds-list-table tbody tr.on  { background:var(--card); }
+.ds-list-table tbody tr.off { background:var(--card-off); }
+.ds-list-table tbody tr.on:hover  { background:var(--card-hi); }
+.ds-list-table tbody tr.off:hover { background:var(--card-off-hi); }
+.ds-list-table tbody td {
+  padding:7px 12px; vertical-align:middle;
+}
+.ds-list-table tbody tr.on  td { color:var(--text); }
+.ds-list-table tbody tr.off td { color:var(--text-off); }
+
+.ds-list-table .col-toggle  { width:52px; padding-left:14px; }
+.ds-list-table .col-name    { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:500; }
+.ds-list-table .col-actions {
+  width:150px; padding:0;
+  border-left:1px solid var(--border-s);
+}
+.ds-list-table thead .col-actions { border-left:none; }
+.ds-list-table .table-actions {
+  display:flex; align-items:center; justify-content:flex-end; gap:2px;
+  padding:0 10px;
+}
+.ds-list-table .col-actions .btn-icon {
+  width:30px; height:30px; border-radius:7px;
+  background:transparent; border:1px solid transparent;
+}
+.ds-list-table .col-actions .btn-icon:hover { background:var(--sel); border-color:var(--border-s); }
+.ds-list-table .col-actions .btn-icon svg { width:16px !important; height:16px !important; }
+.ds-list-table .empty-state { padding:40px; }
+
+/* ════════════════════════ VIEW TOGGLE ═══════════════════════════ */
+.view-toggle {
+  display:flex; align-items:center;
+  border:1px solid var(--border-s); border-radius:8px;
+  overflow:hidden;
+}
+.view-toggle button {
+  display:flex; align-items:center; justify-content:center;
+  width:30px; height:30px; padding:0; border:none; cursor:pointer;
+  background:transparent; color:var(--text-3);
+  transition:background var(--t), color var(--t);
+}
+.view-toggle button:first-child { border-right:1px solid var(--border-s); }
+.view-toggle button:hover { background:var(--sel); color:var(--text); }
+.view-toggle button.active { background:var(--sel); color:var(--b); }
 
 /* ════════════════════════ META GRID ═════════════════════════════ */
 .meta-grid {

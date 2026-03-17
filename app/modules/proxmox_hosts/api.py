@@ -79,6 +79,7 @@ async def create_one(request: Request):
     payload = dict(form)
     payload["enabled"] = payload.get("enabled") in ("on", "1", True)
     payload = _extract_lists(_load_schema(), payload)
+    payload["description"] = payload.get("host", "")
     save_item(KEY, next_item_id(KEY), _clean(payload))
     if request.headers.get("HX-Request") == "true":
         return _list_response(request)
@@ -95,6 +96,7 @@ async def patch_one(item_id: str, request: Request):
     payload = dict(form)
     payload["enabled"] = payload.get("enabled") in ("on", "1", True)
     payload  = _extract_lists(_load_schema(), payload)
+    payload["description"] = payload.get("host", "")
     existing.update(payload)
     save_item(KEY, iid, _clean(existing))
     if request.headers.get("HX-Request") == "true":

@@ -106,21 +106,21 @@ def register_item_actions(item_id, entry: dict) -> None:
         desc = entry.get("description") or f"Remote #{iid}"
         register_action(
             f"remotes.wake.{iid}",
-            f"Aufwecken: {desc}",
+            f"{desc}: Starten",
             lambda _id=iid: wake_single(_id),
             source="remotes",
             source_label="Remote-Geräte",
         )
         register_action(
             f"remotes.wait.{iid}",
-            f"Warten bis erreichbar: {desc}",
+            f"{desc}: Warten bis erreichbar",
             lambda _id=iid: wait_for_single(_id),
             source="remotes",
             source_label="Remote-Geräte",
         )
         register_action(
             f"remotes.poweroff.{iid}",
-            f"Herunterfahren: {desc}",
+            f"{desc}: Herunterfahren",
             lambda _id=iid: poweroff_single(_id),
         )
     except Exception as e:
