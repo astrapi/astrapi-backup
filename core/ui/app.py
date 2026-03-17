@@ -11,7 +11,7 @@ Neu gegenüber V2:
 
 from __future__ import annotations
 
-from flask import Flask, redirect, send_from_directory, render_template, request
+from flask import Flask, redirect, send_from_directory, render_template, request, jsonify
 from pathlib import Path
 from jinja2 import ChoiceLoader, FileSystemLoader
 import importlib.util
@@ -23,6 +23,7 @@ from .module_registry import load_modules, register_flask_modules, build_nav_ite
 from ..system.version import get_app_version, get_core_version
 from .settings_registry import (
     init as settings_init, seed_defaults, set_many, all_settings,
+    get as settings_get, set as settings_set,
 )
 from .storage import init as storage_init
 
@@ -157,6 +158,9 @@ def create(
             m = _mod_map.get(key)
             return m.card_actions if m else []
 
+        def col_widths(module_key: str) -> str:
+            return settings_get(f"ui.col_widths.{module_key}", "{}")
+
         from core.ui.settings_registry import get as _srget
         _light = _srget("LIGHT_MODE", _light_default)
         return {
@@ -173,6 +177,7 @@ def create(
             "module_has_settings":  module_has_settings,
             "module_label":         module_label,
             "module_card_actions":  module_card_actions,
+            "col_widths":           col_widths,
         }
 
     # ── Navigation aus Modulen + optionaler items.yaml ────────────────────────
@@ -204,6 +209,7 @@ def create(
     settings_has_blueprint = any(m.key == "settings" and m.ui_blueprint for m in modules)
     _register_settings_routes(app, modules, app_cfg,
                                skip_content=settings_has_blueprint)
+    _register_preferences_routes(app)
 
     # ── Generische Modul-Settings-Modal-Routen ────────────────────────────────
     _register_module_settings_routes(app, modules)
@@ -358,3 +364,20 @@ def _register_module_settings_routes(app: Flask, modules: list) -> None:
             schema=mod.settings_schema,
             values=current_values,
         )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Preferences-Routen (Spaltenbreiten etc.)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _register_preferences_routes(app: Flask) -> None:
+
+    @app.route("/ui/preferences/col-widths/<module_key>", methods=["GET", "POST"])
+    def preferences_col_widths(module_key: str):
+        key = f"ui.col_widths.{module_key}"
+        if request.method == "POST":
+            data = request.get_json(silent=True) or {}
+            import json
+            settings_set(key, json.dumps(data.get("widths", {})))
+            return jsonify({"ok": True})
+        return jsonify({"widths": __import__("json").loads(settings_get(key, "{}"))})

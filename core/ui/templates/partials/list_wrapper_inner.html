@@ -130,13 +130,16 @@
 {# ── Tabellen-Ansicht ─────────────────────────────────────────────────────── #}
 <div class="ds-list-table-wrap" x-show="view === 'list'" style="display:none;">
 {% if cfg %}
-  <table class="ds-list-table">
+  {% set _card_actions = module_card_actions(module) %}
+  {% set _actions_width = (_card_actions|length + 2) * 34 %}
+  {% set _name_fixed = {'rsync': false} %}
+  <table class="ds-list-table" data-module="{{ module }}" data-col-widths="{{ col_widths(module) | e }}">
     <thead>
       <tr>
         <th class="col-toggle"></th>
-        <th class="col-name">Name</th>
+        <th class="col-name"{% if _name_fixed.get(module, true) %} style="width:250px"{% endif %}>Name</th>
         {% include module + '/partials/list_header.html' ignore missing %}
-        <th class="col-actions"></th>
+        <th class="col-actions" style="width:{{ _actions_width }}px"></th>
       </tr>
     </thead>
     <tbody>
@@ -162,7 +165,6 @@
           {% include module + '/partials/list_row.html' ignore missing %}
           <td class="col-actions">
             <div class="table-actions">
-              {% set _card_actions = module_card_actions(module) %}
               {% for action in _card_actions %}{{ ui.card_action_button(action, item_name, item_data, container_id, loading_id) }}{% endfor %}
               {{ ui.edit_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id) }}
               {{ ui.delete_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id, description=item_data.description) }}
