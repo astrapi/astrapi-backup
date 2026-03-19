@@ -625,6 +625,14 @@ input,select,textarea { font-family:var(--font); }
 .ds-list-table .col-actions .btn-icon svg { width:16px !important; height:16px !important; }
 .ds-list-table .empty-state { padding:40px; }
 
+/* Dark-mode: Tabellen-Trennlinien auf dunklen Hintergründen sichtbarer machen */
+:root .ds-list-table-wrap                  { border-color: rgba(255,255,255,0.13); }
+:root .ds-list-table thead tr              { border-bottom-color: rgba(255,255,255,0.13); }
+:root .ds-list-table thead th              { border-right-color: rgba(255,255,255,0.13); }
+:root .ds-list-table tbody tr              { border-bottom-color: rgba(255,255,255,0.13); }
+:root .ds-list-table tbody td              { border-right-color: rgba(255,255,255,0.13); }
+:root .ds-list-table .col-actions          { border-left-color: rgba(255,255,255,0.13); }
+
 /* ════════════════════════ VIEW TOGGLE ═══════════════════════════ */
 .view-toggle {
   display:flex; align-items:center;

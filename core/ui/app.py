@@ -140,6 +140,8 @@ def create(
     register_flask_modules(app, modules, all_loaders)
 
     app.jinja_env.loader = ChoiceLoader(all_loaders)
+    app.jinja_env.auto_reload = True
+    app.config["TEMPLATES_AUTO_RELOAD"] = True
 
     # ── Globale Template-Variablen ────────────────────────────────────────────
     _mod_map: dict = {m.key: m for m in modules}
@@ -321,6 +323,10 @@ def _register_module_settings_routes(app: Flask, modules: list) -> None:
         mod = mod_map.get(module_key)
         if mod is None:
             return "", 404
+
+        if request.method == "GET":
+            from core.ui.module_loader import reload_settings
+            reload_settings(mod)
 
         if request.method == "POST":
             password_keys = {

@@ -1,104 +1,105 @@
-# Borg-Modul – globale Einstellungen
+modal_width: 560
 
-- type: section
-  label: Allgemein
+fields:
+  - type: section
+    label: Allgemein
+    cols: 1
 
-- key: borg_bin
-  label: Borg-Pfad
-  type: text
-  placeholder: "/var/lib/backupadm/.venv/bin/borg"
-  default: "/var/lib/backupadm/.venv/bin/borg"
-  description: "Absoluter Pfad zur ausführbaren borg-Datei"
+  - key: borg_bin
+    label: Borg-Pfad
+    type: text
+    placeholder: "/var/lib/backupadm/.venv/bin/borg"
+    default: "/var/lib/backupadm/.venv/bin/borg"
+    description: "Absoluter Pfad zur ausführbaren borg-Datei"
 
-- type: section
-  label: Sicherheit
+  - type: section
+    label: Sicherheit
+    cols: 2
 
-- key: passphrase
-  label: Borg Passphrase
-  type: password
-  placeholder: "••••••••"
-  description: "Passphrase für alle Borg-Repositories. Leer lassen um den gespeicherten Wert beizubehalten."
-  default: ""
+  - key: passphrase
+    label: Borg Passphrase
+    type: password
+    placeholder: "••••••••"
+    description: "Passphrase für alle Borg-Repositories. Leer lassen um den gespeicherten Wert beizubehalten."
+    default: ""
 
-- key: encryption
-  label: Verschlüsselung
-  type: select
-  options:
-    - value: repokey
-      label: Repokey (empfohlen)
-    - value: keyfile
-      label: Keyfile
-    - value: repokey-blake2
-      label: Repokey BLAKE2
-    - value: none
-      label: Keine
-  default: repokey
-  description: Standard-Verschlüsselung für neue Repositories
+  - key: encryption
+    label: Verschlüsselung
+    type: select
+    options:
+      - value: repokey
+        label: Repokey (empfohlen)
+      - value: keyfile
+        label: Keyfile
+      - value: repokey-blake2
+        label: Repokey BLAKE2
+      - value: none
+        label: Keine
+    default: repokey
+    description: Standard-Verschlüsselung für neue Repositories
 
-- type: section
-  label: Backup
+  - type: section
+    label: Backup
+    cols: 1
 
-- key: compression
-  label: Komprimierung
-  type: select
-  options:
-    - value: auto,lz4
-      label: LZ4, schnell (auto)
-    - value: auto,zstd
-      label: ZSTD Standard (auto)
-    - value: auto,zstd,3
-      label: ZSTD Level 3, ausgewogen (auto)
-    - value: auto,zstd,9
-      label: ZSTD Level 9, kompakt (auto)
-    - value: none
-      label: Keine Komprimierung
-  default: auto,zstd
-  description: "auto = nur komprimieren wenn Ergebnis kleiner als das Original"
+  - key: compression
+    label: Komprimierung
+    type: select
+    options:
+      - value: auto,lz4
+        label: LZ4, schnell (auto)
+      - value: auto,zstd
+        label: ZSTD Standard (auto)
+      - value: auto,zstd,3
+        label: ZSTD Level 3, ausgewogen (auto)
+      - value: auto,zstd,9
+        label: ZSTD Level 9, kompakt (auto)
+      - value: none
+        label: Keine Komprimierung
+    default: auto,zstd
+    description: "auto = nur komprimieren wenn Ergebnis kleiner als das Original"
 
-- type: section
-  label: Aufbewahrung (Prune)
+  - type: section
+    label: Aufbewahrung (Prune)
+    cols: 5
 
-- key: keep_daily
-  label: Täglich
-  type: number
-  default: "7"
-  description: Anzahl täglicher Backups die behalten werden
-  inline: true
+  - key: keep_daily
+    label: Täglich
+    type: number
+    default: "7"
+    width: 70px
 
-- key: keep_weekly
-  label: Wöchentlich
-  type: number
-  default: "4"
-  description: Anzahl wöchentlicher Backups die behalten werden
-  inline: true
+  - key: keep_weekly
+    label: Wöchentlich
+    type: number
+    default: "4"
+    width: 70px
 
-- key: keep_monthly
-  label: Monatlich
-  type: number
-  default: "12"
-  description: Anzahl monatlicher Backups die behalten werden
-  inline: true
+  - key: keep_monthly
+    label: Monatlich
+    type: number
+    default: "12"
+    width: 70px
 
-- key: keep_yearly
-  label: Jährlich
-  type: number
-  default: "5"
-  description: Anzahl jährlicher Backups die behalten werden
-  inline: true
+  - key: keep_yearly
+    label: Jährlich
+    type: number
+    default: "5"
+    width: 70px
 
-- key: keep_within
-  label: Keep-Within (Tage)
-  type: number
-  default: "7"
-  description: Alle Archive innerhalb dieser Tage vollständig behalten (--keep-within=Nd), 0 = deaktiviert
-  inline: true
+  - key: keep_within
+    label: Keep-Within
+    type: number
+    default: "7"
+    width: 70px
 
-- type: section
-  label: Wartung
+  - type: section
+    label: Wartung
+    cols: 1
 
-- key: compact_after_prune
-  label: Compact nach Prune
-  type: checkbox
-  checkbox_label: Speicher nach Prune freigeben (borg compact)
-  default: "1"
-  description: "Borg compact nach Prune ausführen um Speicherplatz freizugeben (empfohlen für Borg ≥ 1.2)"
+  - key: compact_after_prune
+    label: Compact nach Prune
+    type: checkbox
+    checkbox_label: Speicher nach Prune freigeben (borg compact)
+    default: "1"
+    description: "Borg compact nach Prune ausführen um Speicherplatz freizugeben (empfohlen für Borg ≥ 1.2)"

@@ -1,16 +1,17 @@
-# Proxmox-Jobs-Modul – PBS-Verbindungseinstellungen
+modal_width: 560
 
-- key: pbs_password
-  label: PBS Passwort / Token-Secret
-  type: password
-  placeholder: "••••••••"
-  description: Passwort oder API-Token-Secret für die PBS-Authentifizierung
-  default: ""
+fields:
+  - key: pbs_password
+    label: PBS Passwort / Token-Secret
+    type: password
+    placeholder: "••••••••"
+    description: Passwort oder API-Token-Secret für die PBS-Authentifizierung
+    default: ""
 
-- key: pbs_fingerprint
-  label: PBS Fingerprint
-  type: text
-  placeholder: "AB:CD:EF:..."
-  description: TLS-Fingerprint des PBS-Servers
-  mono: true
-  default: ""
+  - key: pbs_fingerprint
+    label: PBS Fingerprint
+    type: text
+    placeholder: "AB:CD:EF:..."
+    description: TLS-Fingerprint des PBS-Servers
+    mono: true
+    default: ""
