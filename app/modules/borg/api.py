@@ -204,7 +204,7 @@ def _clean(data: dict) -> dict:
 def _extract_lists(schema, payload):
     """Gibt (bereinigtes payload, list_values) zurück."""
     fields = schema.get("fields", [])
-    list_fields = [f["name"] for f in fields if f.get("type") == "list"]
+    list_fields = [f["name"] for f in fields if f.get("type") == "list" and f.get("name")]
     lists: dict = {n: [] for n in list_fields}
     for k, v in payload.items():
         for ln in list_fields:
@@ -220,7 +220,9 @@ def _extract_lists(schema, payload):
     clean_payload = {k: v for k, v in payload.items() if not any(k.startswith(p) for p in prefixes)}
     # Fehlende Nicht-Listen-Felder auffüllen
     for f in fields:
-        if f["name"] not in clean_payload and f.get("type") != "list":
+        if not f.get("name") or f.get("type") in ("list", "section"):
+            continue
+        if f["name"] not in clean_payload:
             clean_payload[f["name"]] = ""
     for n in list_fields:
         clean_payload[n] = lists[n]

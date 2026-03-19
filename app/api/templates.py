@@ -54,6 +54,12 @@ def _module_card_actions(key: str) -> list:
     return m.card_actions if m else []
 
 
+def _col_widths(module_key: str) -> str:
+    from core.ui.settings_registry import get as settings_get
+    return settings_get(f"ui.col_widths.{module_key}", "{}")
+
+
 templates.env.globals["module_label"]        = _module_label
 templates.env.globals["module_has_settings"] = _module_has_settings
 templates.env.globals["module_card_actions"] = _module_card_actions
+templates.env.globals["col_widths"]          = _col_widths
