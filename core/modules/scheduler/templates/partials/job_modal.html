@@ -35,8 +35,6 @@
           {% endif %}
           hx-target="#main-content"
           hx-swap="innerHTML"
-          hx-on::before-request="if(!schedJobValidate(this)) event.preventDefault();"
-          hx-on::after-request="if(event.detail.successful){this.closest('.ds-modal-backdrop').remove()}"
           style="display:flex; flex-direction:column; gap:14px;">
 
       <!-- Name (volle Breite) -->
@@ -173,7 +171,8 @@
       </label>
 
       {{ modal_footer(enabled=job.enabled if job else False, enabled_id='sched-enabled',
-                      save_label='Erstellen' if is_new else 'Speichern') }}
+                      save_label='Erstellen' if is_new else 'Speichern',
+                      save_type='button', save_id='sched-job-save') }}
 
     </form>
   </div>
@@ -378,6 +377,18 @@
   // Initial-Erklärung beim Öffnen
   var initialCron = document.getElementById('cron-input');
   if (initialCron && initialCron.value) cronUpdate(initialCron.value);
+
+  // Speichern: Validierung + Schließen nach Erfolg
+  document.getElementById('sched-job-save').addEventListener('click', function () {
+    if (!schedJobValidate(form)) return;
+    htmx.trigger(form, 'submit');
+    form.addEventListener('htmx:afterRequest', function handler(e) {
+      if (e.detail.successful) {
+        document.getElementById('scheduler-job-modal').remove();
+      }
+      form.removeEventListener('htmx:afterRequest', handler);
+    });
+  });
 
 })();
 </script>
