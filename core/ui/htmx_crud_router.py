@@ -33,6 +33,7 @@ def make_htmx_crud_router(
     schema_path: Path,
     *,
     post_process: Callable[[dict], dict] | None = None,
+    preview_fn: Callable[[str], list[dict]] | None = None,
 ) -> APIRouter:
     """Erstellt einen HTMX-CRUD-Router für ein Modul.
 
@@ -143,6 +144,20 @@ def make_htmx_crud_router(
         if hx_request:
             return _list_response(request)
         return Response(status_code=204)
+
+    if preview_fn is not None:
+        @router.get("/{item_id}/preview")
+        def preview_item(item_id: str, request: Request):
+            from api.templates import templates
+            from api.storage import get_item
+            entry = get_item(key, item_id)
+            if entry is None:
+                raise HTTPException(404, "Item not found")
+            return templates.TemplateResponse("partials/preview_modal.html", {
+                "request":     request,
+                "description": entry.get("description", item_id),
+                "commands":    preview_fn(item_id),
+            })
 
     @router.post("/{item_id}/toggle")
     def toggle_item(request: Request, item_id: str, hx_request: str | None = Header(None)):

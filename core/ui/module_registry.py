@@ -56,11 +56,10 @@ class ModuleRegistry:
 
 
 # Modul-level Singleton – wird von load_modules() befüllt; von FastAPI-Templates genutzt
-_mod_registry_instance = ModuleRegistry()
+_instance = ModuleRegistry()
 
 # Rückwärtskompatibilität: Code der direkt auf _mod_registry zugreift
-# benutzt weiterhin das interne dict via diesen Alias
-_mod_registry: dict = _mod_registry_instance._registry
+_mod_registry: dict = _instance._registry
 
 
 # ── Laden ─────────────────────────────────────────────────────────────────────
@@ -166,7 +165,7 @@ def load_modules(app_root: Path) -> list:
     for key in sorted({**ext_mods, **app_mods}):
         if key not in seen:
             ordered.append(merged[key]); seen.add(key)
-    _mod_registry_instance.update({m.key: m for m in ordered})
+    _instance.update({m.key: m for m in ordered})
     return ordered
 
 

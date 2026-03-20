@@ -7,7 +7,7 @@ from core.system.reachability import require_hosts
 from core.system.cmd import run_cmd, build_connection_string, is_local
 from core.ui.settings_registry import get_module as _get_module_setting, get as _get_global_setting
 
-from api.storage import load_config as _load_config
+from api.storage import load_config as _load_config, get_entry as _get_entry
 def _get_config(): return _load_config("proxmox_hosts")
 
 _FALLBACK_SOURCES = [
@@ -26,8 +26,7 @@ def _default_sources() -> list[str]:
 
 def preview(item_id) -> list[dict]:
     """Gibt den Befehl zurück, der bei run_single ausgeführt würde."""
-    entry = _get_config().get(item_id) or _get_config().get(
-        int(item_id) if str(item_id).isdigit() else item_id)
+    entry = _get_entry(_get_config(), item_id)
     if not entry:
         return []
 
@@ -65,8 +64,7 @@ def run():
 
 def run_single(item_id, entry=None):
     if entry is None:
-        entry = _get_config().get(item_id) or _get_config().get(
-            int(item_id) if str(item_id).isdigit() else item_id) or {}
+        entry = _get_entry(_get_config(), item_id) or {}
     with log_context("proxmox_hosts", item_id):
         host = entry.get("host", item_id)
         log("INFO", f"=== Host '{entry.get('description', host)}' gestartet ===")

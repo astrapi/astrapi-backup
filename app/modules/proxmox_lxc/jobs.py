@@ -5,7 +5,7 @@ from collections import defaultdict
 from core.system.logger import log, log_context, set_log_context
 from core.system.reachability import require_hosts
 from core.system.cmd import run_cmd, build_connection_string
-from api.storage import load_config as _load_config
+from api.storage import load_config as _load_config, get_entry as _get_entry
 from core.ui.settings_registry import get_module as _get_module_setting, get as _get_global_setting
 
 def _get_config(): return _load_config("proxmox_lxc")
@@ -13,8 +13,7 @@ def _get_config(): return _load_config("proxmox_lxc")
 
 def preview(item_id) -> list[dict]:
     """Gibt den Befehl zurück, der bei run_single ausgeführt würde."""
-    entry = _get_config().get(item_id) or _get_config().get(
-        int(item_id) if str(item_id).isdigit() else item_id)
+    entry = _get_entry(_get_config(), item_id)
     if entry is None:
         return []
 
@@ -54,8 +53,7 @@ def run():
 
 
 def run_single(item_id, entry=None):
-    entry = _get_config().get(item_id) or _get_config().get(
-        int(item_id) if str(item_id).isdigit() else item_id)
+    entry = _get_entry(_get_config(), item_id)
     if not entry:
         log("ERROR", f"LXC-Eintrag '{item_id}' nicht gefunden")
         return

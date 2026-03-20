@@ -163,28 +163,5 @@ class SettingsRegistry:
 _registry = SettingsRegistry()
 
 
-# ── Shims ──────────────────────────────────────────────────────────
-
-def init(app_root: Path) -> None:
-    _registry.init(app_root)
-
-def get(key: str, default: Any = None) -> Any:
-    return _registry.get(key, default)
-
-def get_module(module_key: str, key: str, default: Any = None) -> Any:
-    return _registry.get_module(module_key, key, default)
-
-def set(key: str, value: Any) -> None:
-    _registry.set(key, value)
-
-def set_module(module_key: str, key: str, value: Any) -> None:
-    _registry.set_module(module_key, key, value)
-
-def set_many(values: dict) -> None:
-    _registry.set_many(values)
-
-def all_settings() -> dict:
-    return _registry.all_settings()
-
-def seed_defaults(global_defaults: dict, modules: list) -> None:
-    _registry.seed_defaults(global_defaults, modules)
+def __getattr__(name: str):
+    return getattr(_registry, name)

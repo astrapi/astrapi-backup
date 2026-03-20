@@ -307,33 +307,9 @@ class NotifyEngine:
 _engine = NotifyEngine()
 
 
-# ── Shims ─────────────────────────────────────────────────────────────────────
+def __getattr__(name: str):
+    return getattr(_engine, name)
 
-def register_source(key: str, label: str) -> None:          _engine.register_source(key, label)
-def unregister_source(key: str) -> None:                    _engine.unregister_source(key)
-def get_registered_sources() -> dict[str, str]:             return _engine.get_registered_sources()
-def register_backend(key: str, factory) -> None:            _engine.register_backend(key, factory)
-def get_registered_backends() -> list[str]:                 return _engine.get_registered_backends()
-
-def list_channels() -> dict:                                return _engine.list_channels()
-def get_channel(channel_id: str):                           return _engine.get_channel(channel_id)
-def create_channel(channel_id: str, data: dict) -> dict:    return _engine.create_channel(channel_id, data)
-def update_channel(channel_id: str, data: dict) -> dict:    return _engine.update_channel(channel_id, data)
-def toggle_channel(channel_id: str) -> bool:                return _engine.toggle_channel(channel_id)
-def delete_channel(channel_id: str) -> None:                _engine.delete_channel(channel_id)
-
-def list_jobs() -> dict:                                    return _engine.list_jobs()
-def get_job(job_id: str):                                   return _engine.get_job(job_id)
-def create_job(job_id: str, data: dict) -> dict:            return _engine.create_job(job_id, data)
-def update_job(job_id: str, data: dict) -> dict:            return _engine.update_job(job_id, data)
-def toggle_job(job_id: str) -> bool:                        return _engine.toggle_job(job_id)
-def delete_job(job_id: str) -> None:                        _engine.delete_job(job_id)
-
-def send(title, message, event=INFO, source=None, tags=None, priority=None) -> int:
-    return _engine.send(title, message, event, source, tags, priority)
-
-def test_channel(channel_id: str) -> tuple[bool, str]:     return _engine.test_channel(channel_id)
-def test_job(job_id: str) -> tuple[bool, str]:             return _engine.test_job(job_id)
 
 def send_simple(message: str, priority: str | None = None) -> None:
     """Sendet eine Benachrichtigung mit dem App-Namen als Titel (Kurzform)."""
@@ -353,4 +329,4 @@ def send_simple(message: str, priority: str | None = None) -> None:
 
 
 # Rückwärtskompatibilität
-test = test_channel
+test = _engine.test_channel

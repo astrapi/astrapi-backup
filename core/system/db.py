@@ -201,6 +201,21 @@ def next_item_id(key: str) -> str:
     return str(row["next"])
 
 
+def get_entry(config: dict, item_id) -> dict | None:
+    """Sucht einen Eintrag im Config-Dict – mit str- und int-Fallback.
+
+    load_config() liefert {str(id): item}. Je nach Aufrufer kommt item_id
+    als str oder int an. Diese Funktion probiert beide Varianten.
+    """
+    entry = config.get(item_id)
+    if entry is None:
+        str_id = str(item_id)
+        entry = config.get(str_id)
+        if entry is None and str_id.isdigit():
+            entry = config.get(int(str_id))
+    return entry
+
+
 # ── Key-Value Store (kvstore) ─────────────────────────────────────
 # Generischer String→JSON-Speicher für Module (ersetzt YAML-Dateien).
 # Wird von SqliteStorage genutzt.

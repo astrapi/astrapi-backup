@@ -4,14 +4,13 @@ import subprocess
 from core.system.logger import log, log_context
 from core.system.reachability import require_hosts
 from core.system.cmd import run_cmd, build_connection_string
-from api.storage import load_config as _load_config
+from api.storage import load_config as _load_config, get_entry as _get_entry
 def _get_config(): return _load_config("proxmox_jobs")
 
 
 def preview(item_id) -> list[dict]:
     """Gibt den Befehl zurück, der bei run_single ausgeführt würde."""
-    job = _get_config().get(item_id) or _get_config().get(
-        int(item_id) if str(item_id).isdigit() else item_id)
+    job = _get_entry(_get_config(), item_id)
     if job is None:
         return []
 
@@ -50,8 +49,7 @@ def run_by_type(job_type: str):
 
 def run_single(item_id, job=None):
     if job is None:
-        job = _get_config().get(item_id) or _get_config().get(
-            int(item_id) if str(item_id).isdigit() else item_id)
+        job = _get_entry(_get_config(), item_id)
     if job is None:
         log("ERROR", f"Proxmox-Job '{item_id}' nicht gefunden")
         return

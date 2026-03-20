@@ -14,6 +14,19 @@ from .engine import (
 router = APIRouter(tags=["activity_log"])
 
 
+@router.get("/clear-confirm", response_class=HTMLResponse)
+def activity_log_clear_confirm(request: Request):
+    return get_templates().TemplateResponse("partials/confirm_modal.html", {
+        "request":      request,
+        "description":  "Alle Activity-Log-Einträge",
+        "verb":         "löschen",
+        "confirm_url":  "/api/activity_log/clear",
+        "method":       "delete",
+        "container_id": "tab-activity_log",
+        "loading_id":   "activity_log-loading",
+    })
+
+
 @router.delete("/clear", response_class=HTMLResponse)
 def activity_log_clear(request: Request):
     clear_activity_log()

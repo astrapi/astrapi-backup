@@ -3,15 +3,14 @@ import subprocess
 from core.system.logger import log, log_context
 from core.system.reachability import require_hosts
 from core.system.cmd import run_cmd, build_connection_string, is_local
-from api.storage import load_config as _load_config
+from api.storage import load_config as _load_config, get_entry as _get_entry
 from core.ui.settings_registry import get_module as _get_module_setting, get as _get_global_setting
 
 def _get_config(): return _load_config("rsync")
 
 def preview(job_id) -> list[dict]:
     """Gibt den Befehl zurück, der bei run_single ausgeführt würde."""
-    entry = _get_config().get(job_id) or _get_config().get(
-        int(job_id) if str(job_id).isdigit() else job_id)
+    entry = _get_entry(_get_config(), job_id)
     if entry is None:
         return []
 
@@ -54,8 +53,7 @@ def run():
 
 def run_single(job_id, entry=None):
     if entry is None:
-        entry = _get_config().get(job_id) or _get_config().get(
-            int(job_id) if str(job_id).isdigit() else job_id)
+        entry = _get_entry(_get_config(), job_id)
     if entry is None:
         log("ERROR", f"Rsync-Eintrag '{job_id}' nicht gefunden")
         return

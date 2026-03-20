@@ -22,7 +22,7 @@ from core.ui.htmx_crud_router import make_htmx_crud_router
 KEY = "borg"
 _SCHEMA_PATH = Path(__file__).parent / "schema.yaml"
 
-router = make_htmx_crud_router(KEY, _SCHEMA_PATH)
+router = make_htmx_crud_router(KEY, _SCHEMA_PATH, preview_fn=_preview_borg)
 
 # Verhindert parallele save_file_cache_for_archive-Threads für dieselbe (item_id, archive)-Kombination
 _file_cache_building: set[tuple[str, str]] = set()
@@ -160,18 +160,6 @@ def _dir_view(entries: list[dict], cur: str) -> tuple[list, list]:
     dirs.sort(key=lambda d: d["name"].lower())
     files.sort(key=lambda f: f["name"].lower())
     return dirs, files
-
-
-@router.get("/{item_id}/preview")
-def preview_item(item_id: str, request: Request):
-    entry = get_item(KEY, item_id)
-    if entry is None:
-        raise HTTPException(404, "Item not found")
-    return templates.TemplateResponse("partials/preview_modal.html", {
-        "request":     request,
-        "description": entry.get("description", item_id),
-        "commands":    _preview_borg(item_id),
-    })
 
 
 # ── Archiv-Browser ────────────────────────────────────────────────────────────

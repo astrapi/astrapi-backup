@@ -17,7 +17,7 @@ from core.system.db import (
     _conn,
     get_setting, set_setting,
     register_table, create_all_registered_tables,
-    load_config, get_item, save_item, delete_item, next_item_id,
+    load_config, get_item, save_item, delete_item, next_item_id, get_entry,
 )
 from core.system.activity_log import (
     log_activity, update_activity_log,
