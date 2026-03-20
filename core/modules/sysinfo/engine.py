@@ -49,12 +49,7 @@ def _run(cmd: list, timeout: int = 5) -> str:
         return ""
 
 
-def _fmt_size(n: float) -> str:
-    for unit in ["B", "KB", "MB", "GB", "TB"]:
-        if n < 1024:
-            return f"{n:.1f} {unit}"
-        n /= 1024
-    return f"{n:.1f} PB"
+from core.system.format import fmt_bytes as _fmt_size
 
 
 def _fmt_uptime(seconds: float) -> str:

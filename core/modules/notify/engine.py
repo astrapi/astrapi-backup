@@ -37,7 +37,13 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Callable, Optional
 
+from core.ui.storage import SqliteStorage
+
 log = logging.getLogger(__name__)
+
+KEY       = "notify"
+store     = SqliteStorage("notify_channels")
+job_store = SqliteStorage("notify_jobs")
 
 # Ereignis-Konstanten
 
@@ -94,35 +100,66 @@ class NotifyEngine:
         self._backends = {}
         self._sources = {}
 
-    def register_source(self, key: str, label: str) -> None:
-        """Registriert eine Benachrichtigungsquelle (Modul) fuer die Kanal-UI.
+    # ── Source-Registry ───────────────────────────────────────────────────────
 
-        Args:
-            key:   Eindeutiger Quellen-Schluessel, z.B. "hosts" oder "job-abc123".
-            label: Anzeigename in der Kanal-Konfiguration, z.B. "Hosts".
-        """
+    def register_source(self, key: str, label: str) -> None:
         self._sources[key] = label
 
     def unregister_source(self, key: str) -> None:
-        """Entfernt eine Benachrichtigungsquelle aus der Registry."""
         self._sources.pop(key, None)
 
     def get_registered_sources(self) -> dict[str, str]:
-        """Gibt {key: label} aller registrierten Quellen zurueck."""
         return dict(self._sources)
 
-    def register_backend(self, key: str, factory: Callable[[dict], BaseNotifier]) -> None:
-        """Registriert ein benutzerdefiniertes Backend.
+    # ── Backend-Registry ──────────────────────────────────────────────────────
 
-        Args:
-            key:     Eindeutiger Backend-Schluessel (erscheint in der Kanal-UI).
-            factory: Callable(channel_config_dict) -> BaseNotifier-Instanz.
-        """
+    def register_backend(self, key: str, factory: Callable[[dict], BaseNotifier]) -> None:
         self._backends[key] = factory
 
     def get_registered_backends(self) -> list[str]:
-        """Gibt alle zusaetzlich registrierten Backend-Keys zurueck (ohne eingebaute)."""
         return list(self._backends.keys())
+
+    # ── Kanal-CRUD ────────────────────────────────────────────────────────────
+
+    def list_channels(self) -> dict:
+        return store.list()
+
+    def get_channel(self, channel_id: str):
+        return store.get(channel_id)
+
+    def create_channel(self, channel_id: str, data: dict) -> dict:
+        return store.create(channel_id, data)
+
+    def update_channel(self, channel_id: str, data: dict) -> dict:
+        return store.update(channel_id, data)
+
+    def toggle_channel(self, channel_id: str) -> bool:
+        return store.toggle(channel_id, default=False)
+
+    def delete_channel(self, channel_id: str) -> None:
+        store.delete(channel_id)
+
+    # ── Job-CRUD ──────────────────────────────────────────────────────────────
+
+    def list_jobs(self) -> dict:
+        return job_store.list()
+
+    def get_job(self, job_id: str):
+        return job_store.get(job_id)
+
+    def create_job(self, job_id: str, data: dict) -> dict:
+        return job_store.create(job_id, data)
+
+    def update_job(self, job_id: str, data: dict) -> dict:
+        return job_store.update(job_id, data)
+
+    def toggle_job(self, job_id: str) -> bool:
+        return job_store.toggle(job_id, default=False)
+
+    def delete_job(self, job_id: str) -> None:
+        job_store.delete(job_id)
+
+    # ── Senden ────────────────────────────────────────────────────────────────
 
     def _notifier_for_channel(self, channel: dict) -> Optional[BaseNotifier]:
         """Erstellt den passenden Notifier fuer einen Kanal-Config-Dict."""
@@ -170,31 +207,9 @@ class NotifyEngine:
         tags:     list[str]     = None,
         priority: Optional[str] = None,
     ) -> int:
-        """Sendet ueber alle aktiven Jobs, die zum Ereignistyp und zur Quelle passen.
-
-        Die Engine iteriert zuerst ueber Notify-Jobs (Ereignis- und Quellenfilter),
-        sucht dann den verknuepften Kanal heraus und sendet ueber dessen Backend.
-
-        Args:
-            title:    Titel der Benachrichtigung.
-            message:  Nachrichtentext.
-            event:    Ereignistyp (INFO, SUCCESS, WARNING, ERROR).
-            source:   Quellenkennung des sendenden Moduls, z.B. "hosts" oder "scheduler".
-                      Jobs mit konfiguriertem sources-Filter empfangen nur passende Quellen.
-                      None = allgemeine Nachricht, wird von allen Jobs empfangen.
-            tags:     Zusaetzliche Tags fuer das Backend (z.B. ntfy-Emojis).
-            priority: Ueberschreibt die automatische Prioritaet des Ereignistyps.
-
-        Returns:
-            Anzahl der erfolgreich benachrichtigten Kanaele.
-        """
-        try:
-            from .storage import store, job_store
-            channels = store.list()
-            jobs     = job_store.list()
-        except Exception as e:
-            log.debug("notify: Storage nicht verfuegbar: %s", e)
-            return 0
+        """Sendet ueber alle aktiven Jobs, die zum Ereignistyp und zur Quelle passen."""
+        channels = store.list()
+        jobs     = job_store.list()
 
         if not jobs:
             return 0
@@ -239,12 +254,7 @@ class NotifyEngine:
 
     def test_channel(self, channel_id: str) -> tuple[bool, str]:
         """Sendet eine Testbenachrichtigung direkt ueber einen bestimmten Kanal."""
-        try:
-            from .storage import store
-            channel = store.get(channel_id)
-        except Exception as e:
-            return False, f"Storage-Fehler: {e}"
-
+        channel = store.get(channel_id)
         if channel is None:
             return False, f"Kanal '{channel_id}' nicht gefunden."
 
@@ -267,16 +277,11 @@ class NotifyEngine:
 
     def test_job(self, job_id: str) -> tuple[bool, str]:
         """Sendet eine Testbenachrichtigung ueber den Kanal eines bestimmten Jobs."""
-        try:
-            from .storage import store, job_store
-            job     = job_store.get(job_id)
-            if job is None:
-                return False, f"Job '{job_id}' nicht gefunden."
-            channel_id = job.get("channel_id", "")
-            channel    = store.get(channel_id)
-        except Exception as e:
-            return False, f"Storage-Fehler: {e}"
-
+        job = job_store.get(job_id)
+        if job is None:
+            return False, f"Job '{job_id}' nicht gefunden."
+        channel_id = job.get("channel_id", "")
+        channel    = store.get(channel_id)
         if channel is None:
             return False, f"Kanal '{channel_id}' nicht gefunden (Job '{job_id}')."
 
@@ -302,80 +307,49 @@ class NotifyEngine:
 _engine = NotifyEngine()
 
 
-# ── Shims (halten alle bestehenden Aufrufstellen kompatibel) ───────────────────
+# ── Shims ─────────────────────────────────────────────────────────────────────
 
-def register_source(key: str, label: str) -> None:
-    """Registriert eine Benachrichtigungsquelle (Modul) fuer die Kanal-UI.
+def register_source(key: str, label: str) -> None:          _engine.register_source(key, label)
+def unregister_source(key: str) -> None:                    _engine.unregister_source(key)
+def get_registered_sources() -> dict[str, str]:             return _engine.get_registered_sources()
+def register_backend(key: str, factory) -> None:            _engine.register_backend(key, factory)
+def get_registered_backends() -> list[str]:                 return _engine.get_registered_backends()
 
-    Args:
-        key:   Eindeutiger Quellen-Schluessel, z.B. "hosts" oder "job-abc123".
-        label: Anzeigename in der Kanal-Konfiguration, z.B. "Hosts".
-    """
-    _engine.register_source(key, label)
+def list_channels() -> dict:                                return _engine.list_channels()
+def get_channel(channel_id: str):                           return _engine.get_channel(channel_id)
+def create_channel(channel_id: str, data: dict) -> dict:    return _engine.create_channel(channel_id, data)
+def update_channel(channel_id: str, data: dict) -> dict:    return _engine.update_channel(channel_id, data)
+def toggle_channel(channel_id: str) -> bool:                return _engine.toggle_channel(channel_id)
+def delete_channel(channel_id: str) -> None:                _engine.delete_channel(channel_id)
 
+def list_jobs() -> dict:                                    return _engine.list_jobs()
+def get_job(job_id: str):                                   return _engine.get_job(job_id)
+def create_job(job_id: str, data: dict) -> dict:            return _engine.create_job(job_id, data)
+def update_job(job_id: str, data: dict) -> dict:            return _engine.update_job(job_id, data)
+def toggle_job(job_id: str) -> bool:                        return _engine.toggle_job(job_id)
+def delete_job(job_id: str) -> None:                        _engine.delete_job(job_id)
 
-def unregister_source(key: str) -> None:
-    """Entfernt eine Benachrichtigungsquelle aus der Registry."""
-    _engine.unregister_source(key)
-
-
-def get_registered_sources() -> dict[str, str]:
-    """Gibt {key: label} aller registrierten Quellen zurueck."""
-    return _engine.get_registered_sources()
-
-
-def register_backend(key: str, factory: Callable[[dict], BaseNotifier]) -> None:
-    """Registriert ein benutzerdefiniertes Backend.
-
-    Args:
-        key:     Eindeutiger Backend-Schluessel (erscheint in der Kanal-UI).
-        factory: Callable(channel_config_dict) -> BaseNotifier-Instanz.
-    """
-    _engine.register_backend(key, factory)
-
-
-def get_registered_backends() -> list[str]:
-    """Gibt alle zusaetzlich registrierten Backend-Keys zurueck (ohne eingebaute)."""
-    return _engine.get_registered_backends()
-
-
-def send(
-    title:    str,
-    message:  str,
-    event:    str           = INFO,
-    source:   Optional[str] = None,
-    tags:     list[str]     = None,
-    priority: Optional[str] = None,
-) -> int:
-    """Sendet ueber alle aktiven Jobs, die zum Ereignistyp und zur Quelle passen.
-
-    Die Engine iteriert zuerst ueber Notify-Jobs (Ereignis- und Quellenfilter),
-    sucht dann den verknuepften Kanal heraus und sendet ueber dessen Backend.
-
-    Args:
-        title:    Titel der Benachrichtigung.
-        message:  Nachrichtentext.
-        event:    Ereignistyp (INFO, SUCCESS, WARNING, ERROR).
-        source:   Quellenkennung des sendenden Moduls, z.B. "hosts" oder "scheduler".
-                  Jobs mit konfiguriertem sources-Filter empfangen nur passende Quellen.
-                  None = allgemeine Nachricht, wird von allen Jobs empfangen.
-        tags:     Zusaetzliche Tags fuer das Backend (z.B. ntfy-Emojis).
-        priority: Ueberschreibt die automatische Prioritaet des Ereignistyps.
-
-    Returns:
-        Anzahl der erfolgreich benachrichtigten Kanaele.
-    """
+def send(title, message, event=INFO, source=None, tags=None, priority=None) -> int:
     return _engine.send(title, message, event, source, tags, priority)
 
+def test_channel(channel_id: str) -> tuple[bool, str]:     return _engine.test_channel(channel_id)
+def test_job(job_id: str) -> tuple[bool, str]:             return _engine.test_job(job_id)
 
-def test_channel(channel_id: str) -> tuple[bool, str]:
-    """Sendet eine Testbenachrichtigung direkt ueber einen bestimmten Kanal."""
-    return _engine.test_channel(channel_id)
-
-
-def test_job(job_id: str) -> tuple[bool, str]:
-    """Sendet eine Testbenachrichtigung ueber den Kanal eines bestimmten Jobs."""
-    return _engine.test_job(job_id)
+def send_simple(message: str, priority: str | None = None) -> None:
+    """Sendet eine Benachrichtigung mit dem App-Namen als Titel (Kurzform)."""
+    if not message or not message.strip():
+        return
+    try:
+        from core.modules.settings.engine import get_app_name
+        _engine.send(
+            title    = get_app_name(),
+            message  = message,
+            event    = INFO,
+            source   = "app",
+            tags     = ([f"priority:{priority}"] if priority else []),
+        )
+    except Exception as e:
+        log.error("notify: send_simple fehlgeschlagen: %s", e)
 
 
 # Rückwärtskompatibilität

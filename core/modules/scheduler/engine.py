@@ -182,26 +182,46 @@ class Scheduler:
             log.warning("Job '%s' nicht gefunden", job_id)
             return
 
-        label        = cfg.get("label", job_id)
-        steps        = cfg.get("steps", [])
-        notify_start = cfg.get("notify_start", True)
-        notify_end   = cfg.get("notify_end",   True)
-        start        = time.time()
+        label  = cfg.get("label", job_id)
+        steps  = cfg.get("steps", [])
+        start  = time.time()
         errors: list[str] = []
 
+        # ── Activity-Log: Start ────────────────────────────────────────────────
+        activity_id = None
+        try:
+            from core.system.activity_log import log_activity
+            activity_id = log_activity(
+                log_type='scheduler',
+                module='scheduler',
+                item_id=job_id,
+                description=f"Scheduler: {label}",
+                status='running',
+                scheduler_job_id=job_id,
+            )
+        except Exception as _e:
+            log.debug("activity_log nicht verfügbar: %s", _e)
+
         # ── Start-Benachrichtigung ─────────────────────────────────────────────
-        if notify_start:
-            try:
-                from core.modules.notify import engine as _notify
-                _notify.send(
-                    title   = f"Job gestartet: {label}",
-                    message = f"{len(steps)} Schritt(e) werden ausgeführt.",
-                    event   = _notify.INFO,
-                    source  = job_id,
-                    tags    = ["scheduler"],
-                )
-            except Exception as _e:
-                log.debug("Notify nicht verfügbar: %s", _e)
+        try:
+            from core.modules.notify import engine as _notify
+            _notify.send(
+                title   = f"Job gestartet: {label}",
+                message = f"{len(steps)} Schritt(e) werden ausgeführt.",
+                event   = _notify.INFO,
+                source  = job_id,
+                tags    = ["scheduler"],
+            )
+        except Exception as _e:
+            log.debug("Notify nicht verfügbar: %s", _e)
+
+        # ── DB-Logging für Steps aktivieren ───────────────────────────────────
+        try:
+            from core.system.logger import set_active_log_id as _set_log_id, log as _hlog
+            if activity_id is not None:
+                _set_log_id(activity_id)
+        except Exception:
+            pass
 
         for step_key in steps:
             action = self._actions.get(step_key)
@@ -217,37 +237,56 @@ class Scheduler:
                 errors.append(f"{step_key}: {e}")
                 log.error("Job '%s': Schritt '%s' fehlgeschlagen: %s", job_id, step_key, e)
 
-        duration = f"{time.time() - start:.1f}s"
-        status = "OK" if not errors else ("Fehler: " + "; ".join(errors))
+        try:
+            from core.system.logger import clear_active_log_id as _clear_log_id
+            _clear_log_id()
+        except Exception:
+            pass
+
+        duration_s   = int(time.time() - start)
+        duration     = f"{duration_s}s"
+        status_label = "OK" if not errors else ("Fehler: " + "; ".join(errors))
 
         _status_store().upsert(job_id, {
             "last_run":      datetime.now().strftime("%d.%m.%Y %H:%M"),
-            "last_status":   status,
+            "last_status":   status_label,
             "last_duration": duration,
         })
 
-        # ── Ende-Benachrichtigung ──────────────────────────────────────────────
-        if notify_end or errors:
+        # ── Activity-Log: Ende ─────────────────────────────────────────────────
+        if activity_id is not None:
             try:
-                from core.modules.notify import engine as _notify
-                if errors:
-                    _notify.send(
-                        title   = f"Job fehlgeschlagen: {label}",
-                        message = f"Dauer: {duration}\n" + "\n".join(errors),
-                        event   = _notify.ERROR,
-                        source  = job_id,
-                        tags    = ["scheduler"],
-                    )
-                elif notify_end:
-                    _notify.send(
-                        title   = f"Job abgeschlossen: {label}",
-                        message = f"Alle Schritte erfolgreich. Dauer: {duration}",
-                        event   = _notify.SUCCESS,
-                        source  = job_id,
-                        tags    = ["scheduler"],
-                    )
+                from core.system.activity_log import update_activity_log
+                update_activity_log(
+                    log_id=activity_id,
+                    status='ok' if not errors else 'error',
+                    duration_s=duration_s,
+                    error_message='; '.join(errors) if errors else None,
+                )
             except Exception as _e:
-                log.debug("Notify nicht verfügbar: %s", _e)
+                log.debug("activity_log update fehlgeschlagen: %s", _e)
+
+        # ── Ende-Benachrichtigung ──────────────────────────────────────────────
+        try:
+            from core.modules.notify import engine as _notify
+            if errors:
+                _notify.send(
+                    title   = f"Job fehlgeschlagen: {label}",
+                    message = f"Dauer: {duration}\n" + "\n".join(errors),
+                    event   = _notify.ERROR,
+                    source  = job_id,
+                    tags    = ["scheduler"],
+                )
+            else:
+                _notify.send(
+                    title   = f"Job abgeschlossen: {label}",
+                    message = f"Alle Schritte erfolgreich. Dauer: {duration}",
+                    event   = _notify.SUCCESS,
+                    source  = job_id,
+                    tags    = ["scheduler"],
+                )
+        except Exception as _e:
+            log.debug("Notify nicht verfügbar: %s", _e)
 
     def trigger_job(self, job_id: str) -> None:
         """Führt einen Job sofort in einem Hintergrundthread aus."""

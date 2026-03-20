@@ -1,11 +1,10 @@
 # modules/proxmox_lxc.py
 import subprocess
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
 
-from helpers.logger import log, set_log_context, clear_log_context
-from helpers.reachability import require_hosts
-from helpers.cmd import run_cmd, build_connection_string
+from core.system.logger import log, log_context, set_log_context
+from core.system.reachability import require_hosts
+from core.system.cmd import run_cmd, build_connection_string
 from api.storage import load_config as _load_config
 from core.ui.settings_registry import get_module as _get_module_setting, get as _get_global_setting
 
@@ -50,22 +49,17 @@ def preview(item_id) -> list[dict]:
 
 
 def run():
-    grouped = group_by_node(_get_config())
-    with ThreadPoolExecutor(max_workers=max(len(grouped), 1)) as executor:
-        futures = [executor.submit(_run_node, node, jobs)
-                   for node, jobs in grouped.items()]
-        for f in futures:
-            f.result()
+    from core.modules.scheduler.job_runner import run_all
+    run_all("proxmox_lxc", _get_config(), run_single)
 
 
-def run_single(item_id):
+def run_single(item_id, entry=None):
     entry = _get_config().get(item_id) or _get_config().get(
         int(item_id) if str(item_id).isdigit() else item_id)
     if not entry:
         log("ERROR", f"LXC-Eintrag '{item_id}' nicht gefunden")
         return
-    set_log_context("proxmox_lxc", item_id)
-    try:
+    with log_context("proxmox_lxc", item_id):
         node = entry.get("node")
         vmid = entry.get("vmid")
         if not node or vmid is None:
@@ -77,8 +71,7 @@ def run_single(item_id):
         _run_node(node,
                   [{"vmid": vmid, "name": entry.get("description", item_id), "item_id": item_id}])
         log("INFO", f"=== LXC '{entry.get('description', item_id)}' abgeschlossen ===")
-    finally:
-        clear_log_context()
+
 
 
 def _run_node(node, jobs):

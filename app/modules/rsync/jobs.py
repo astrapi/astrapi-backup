@@ -1,8 +1,8 @@
 import subprocess
 
-from helpers.logger import log, set_log_context, clear_log_context
-from helpers.reachability import require_hosts
-from helpers.cmd import run_cmd, build_connection_string, is_local
+from core.system.logger import log, log_context
+from core.system.reachability import require_hosts
+from core.system.cmd import run_cmd, build_connection_string, is_local
 from api.storage import load_config as _load_config
 from core.ui.settings_registry import get_module as _get_module_setting, get as _get_global_setting
 
@@ -49,10 +49,8 @@ def preview(job_id) -> list[dict]:
     return [{"label": "Rsync", "cmd": full_cmd}]
 
 def run():
-    for job_id, entry in _get_config().items():
-        if not entry.get("enabled", False):
-            continue
-        run_single(job_id, entry)
+    from core.modules.scheduler.job_runner import run_all
+    run_all("rsync", _get_config(), run_single)
 
 def run_single(job_id, entry=None):
     if entry is None:
@@ -61,8 +59,7 @@ def run_single(job_id, entry=None):
     if entry is None:
         log("ERROR", f"Rsync-Eintrag '{job_id}' nicht gefunden")
         return
-    set_log_context("rsync", job_id)
-    try:
+    with log_context("rsync", job_id):
         log("INFO", f"=== Rsync '{entry.get('description', job_id)}' gestartet ===")
         hosts = [h for h in {entry.get("source_host"), entry.get("target_host")}
                  if h and not is_local(h)]
@@ -70,8 +67,7 @@ def run_single(job_id, entry=None):
             return
         _rsync(entry)
         log("INFO", f"=== Rsync '{entry.get('description', job_id)}' abgeschlossen ===")
-    finally:
-        clear_log_context()
+
 
 def _rsync(entry):
     source_host = entry.get("source_host", "")

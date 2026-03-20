@@ -28,6 +28,7 @@ import uvicorn
 
 from core.ui import create as create_ui
 from core.ui.module_registry import load_modules
+from core.ui.settings_registry import init as settings_init
 from core.system.health import register_health
 from core.system.systemd import sd_notify, start_watchdog
 from core.modules.settings.engine import configure as configure_settings
@@ -37,7 +38,7 @@ _START_TIME = time.time()
 
 
 def _db_check() -> tuple[bool, dict]:
-    from app.api.storage import _conn
+    from core.system.db import _conn
     try:
         _conn().execute("SELECT 1").fetchone()
         return True, {"db": True}
@@ -46,8 +47,13 @@ def _db_check() -> tuple[bool, dict]:
 
 
 def create_app() -> FastAPI:
-    configure_settings(health_fn=_db_check)
+    configure_settings(health_fn=_db_check, app_name="BackupCtl")
 
+    # DB zuerst konfigurieren, damit settings_registry + SqliteStorage SQLite nutzen können
+    from app.api.storage import init_db
+    init_db()
+
+    settings_init(APP_ROOT)
     modules = load_modules(APP_ROOT)
     api = create_api(modules=modules)
     ui  = create_ui(app_root=APP_ROOT, modules=modules)

@@ -2,9 +2,9 @@
 import os
 import subprocess
 
-from helpers.logger import log, set_log_context, clear_log_context
-from helpers.reachability import require_hosts
-from helpers.cmd import run_cmd, build_connection_string, is_local
+from core.system.logger import log, log_context
+from core.system.reachability import require_hosts
+from core.system.cmd import run_cmd, build_connection_string, is_local
 from core.ui.settings_registry import get_module as _get_module_setting, get as _get_global_setting
 
 from api.storage import load_config as _load_config
@@ -59,26 +59,22 @@ def preview(item_id) -> list[dict]:
 
 
 def run():
-    for item_id, entry in _get_config().items():
-        if not entry.get("enabled", False):
-            continue
-        run_single(item_id, entry)
+    from core.modules.scheduler.job_runner import run_all
+    run_all("proxmox_hosts", _get_config(), run_single)
 
 
 def run_single(item_id, entry=None):
     if entry is None:
         entry = _get_config().get(item_id) or _get_config().get(
             int(item_id) if str(item_id).isdigit() else item_id) or {}
-    set_log_context("proxmox_hosts", item_id)
-    try:
+    with log_context("proxmox_hosts", item_id):
         host = entry.get("host", item_id)
         log("INFO", f"=== Host '{entry.get('description', host)}' gestartet ===")
         if not require_hosts([host]):
             return
         _backup(host, entry)
         log("INFO", f"=== Host '{entry.get('description', host)}' abgeschlossen ===")
-    finally:
-        clear_log_context()
+
 
 
 def _backup(host, entry):

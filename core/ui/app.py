@@ -19,7 +19,7 @@ from typing import Optional, Callable
 
 from .page_factory import register_pages
 from .swagger_utils import register_ui_docs
-from .module_registry import load_modules, register_flask_modules, build_nav_items
+from .module_registry import load_modules, register_flask_modules, build_nav_items, list_available_core_modules
 from ..system.version import get_app_version, get_core_version
 from .settings_registry import (
     init as settings_init, seed_defaults, set_many, all_settings,
@@ -264,10 +264,11 @@ def _register_settings_routes(app: Flask, modules: list, app_cfg: dict,
 
     def _ctx(flash: str = "") -> dict:
         return {
-            "settings":      all_settings(),
-            "modules":       modules,
-            "app_cfg":       app_cfg,
-            "flash_message": flash,
+            "settings":         all_settings(),
+            "modules":          modules,
+            "app_cfg":          app_cfg,
+            "flash_message":    flash,
+            "core_module_list": list_available_core_modules(),
         }
 
     @app.route("/settings")
@@ -303,6 +304,15 @@ def _register_settings_routes(app: Flask, modules: list, app_cfg: dict,
         return render_template(
             "partials/lists/settings.html",
             **_ctx(f"Einstellungen für \"{mod.label}\" gespeichert."),
+        )
+
+    @app.route("/ui/settings/core-module/<key>/toggle", methods=["POST"])
+    def settings_toggle_core_module(key: str):
+        current = settings_get(f"core.module.{key}.enabled", "1")
+        settings_set(f"core.module.{key}.enabled", "0" if current != "0" else "1")
+        return render_template(
+            "partials/lists/settings.html",
+            **_ctx(f"Core-Modul '{key}' {'deaktiviert' if current != '0' else 'aktiviert'}. Neustart erforderlich."),
         )
 
 

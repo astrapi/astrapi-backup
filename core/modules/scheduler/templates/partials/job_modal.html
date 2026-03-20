@@ -145,30 +145,7 @@
         {% endif %}
       </div>
 
-      <!-- Benachrichtigungen (zusammengefasst) -->
-      {% set ns_on = job.notify_start if job else True %}
-      {% set ne_on = job.notify_end    if job else True %}
-      {% set notif_on = ns_on and ne_on %}
-      <label class="toggle-field">
-        <input type="hidden" name="notify_start" value="0">
-        <input type="checkbox" name="notify_start" value="1" id="sched-notify-start"
-               style="display:none;" {{ 'checked' if ns_on else '' }}>
-        <input type="hidden" name="notify_end" value="0">
-        <input type="checkbox" name="notify_end" value="1" id="sched-notify-end"
-               style="display:none;" {{ 'checked' if ne_on else '' }}>
-        <button type="button"
-                class="toggle-switch {{ 'toggle-on' if notif_on else 'toggle-off' }}"
-                onclick="
-                  var s=document.getElementById('sched-notify-start');
-                  var e=document.getElementById('sched-notify-end');
-                  var on=!s.checked;
-                  s.checked=on; e.checked=on;
-                  this.classList.toggle('toggle-on',on);
-                  this.classList.toggle('toggle-off',!on);
-                  this.nextElementSibling.textContent=on?'Benachrichtigungen an':'Benachrichtigungen aus';
-                "><span class="toggle-knob"></span></button>
-        <span class="toggle-field-label">{{ 'Benachrichtigungen an' if notif_on else 'Benachrichtigungen aus' }}</span>
-      </label>
+      <!-- Benachrichtigungen werden immer gesendet (Start + Ende) -->
 
       {{ modal_footer(enabled=job.enabled if job else False, enabled_id='sched-enabled',
                       save_label='Erstellen' if is_new else 'Speichern',

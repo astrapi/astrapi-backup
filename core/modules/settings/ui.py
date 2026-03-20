@@ -7,10 +7,12 @@ bp  = Blueprint(f"{KEY}_ui", __name__)
 
 def _ctx(flash: str = "") -> dict:
     from core.ui.settings_registry import all_settings
+    from core.ui.module_registry import list_available_core_modules
     return {
-        "settings":      all_settings(),
-        "modules":       current_app.config.get("LOADED_MODULES", []),
-        "flash_message": flash,
+        "settings":         all_settings(),
+        "modules":          current_app.config.get("LOADED_MODULES", []),
+        "flash_message":    flash,
+        "core_module_list": list_available_core_modules(),
     }
 
 

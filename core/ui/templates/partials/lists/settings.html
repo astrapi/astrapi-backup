@@ -120,6 +120,36 @@
     })();
   </script>
 
+  {# ── Core-Module ─────────────────────────────────────────────────────────── #}
+  {% set toggleable_core_mods = core_module_list | selectattr('key', '!=', 'settings') | list %}
+  {% if toggleable_core_mods %}
+  <div>
+    <div class="ds-card on">
+      <div class="card-body" style="padding:16px;">
+        <div style="font-weight:600; margin-bottom:4px;">Core-Module</div>
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">
+          Änderungen werden nach einem Neustart wirksam.
+        </div>
+        <div style="display:flex; flex-direction:column; gap:2px;">
+          {% for mod in toggleable_core_mods %}
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--border-color);">
+            <span style="font-size:14px;">{{ mod.label }}</span>
+            <button
+              class="toggle-switch {{ 'toggle-on' if mod.enabled else 'toggle-off' }}"
+              title="{{ 'Deaktivieren' if mod.enabled else 'Aktivieren' }}"
+              hx-post="/ui/settings/core-module/{{ mod.key }}/toggle"
+              hx-target="#settings-container"
+              hx-swap="outerHTML">
+              <span class="toggle-knob"></span>
+            </button>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   </div>{# ── Ende section-stack ── #}
 
 </div>

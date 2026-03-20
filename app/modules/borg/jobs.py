@@ -3,27 +3,16 @@ import os
 import subprocess
 from datetime import datetime
 
-from helpers.logger import log, set_log_context, clear_log_context
-from helpers.reachability import require_hosts
-from helpers.secrets import get_secret
-from helpers.cmd import run_cmd, build_connection_string, is_local
+from core.system.logger import log, log_context
+from core.system.reachability import require_hosts
+from core.system.cmd import run_cmd, build_connection_string, is_local
 from core.ui.settings_registry import get_module as _get_module_setting
 from api.storage import load_config as _load_config
+from modules.borg.utils import borg_bin as _borg_bin, borg_env as _borg_env
 
 def _get_config(): return _load_config("borg")
 def _s(key, default): return _get_module_setting("borg", key, default)
 def _src_local(entry): return is_local(entry.get("source_host"))
-
-_BORG_DEFAULT = "/var/lib/backupadm/.venv/bin/borg"
-def _borg_bin() -> str:
-    return _s("borg_bin", _BORG_DEFAULT) or _BORG_DEFAULT
-
-
-def _borg_env() -> dict:
-    env = dict(os.environ)
-    env["BORG_PASSPHRASE"] = _s("passphrase", "") or get_secret("BORG_PASSPHRASE")
-    env["BORG_UNKNOWN_UNENCRYPTED_REPO_ACCESS_IS_OK"] = "yes"
-    return env
 
 
 def preview(job_id) -> list[dict]:
@@ -109,10 +98,8 @@ def preview(job_id) -> list[dict]:
 
 
 def run():
-    for job_id, entry in _get_config().items():
-        if not entry.get("enabled", False):
-            continue
-        run_single(job_id, entry)
+    from core.modules.scheduler.job_runner import run_all
+    run_all("borg", _get_config(), run_single)
 
 
 def run_single(job_id, entry=None):
@@ -122,8 +109,7 @@ def run_single(job_id, entry=None):
         log("ERROR", f"Borg-Eintrag '{job_id}' nicht gefunden")
         return
 
-    set_log_context("borg", job_id)
-    try:
+    with log_context("borg", job_id):
         log("INFO", f"=== Borg '{entry.get('description', job_id)}' gestartet ===")
         src_local = _src_local(entry)
         hosts = []
@@ -144,8 +130,6 @@ def run_single(job_id, entry=None):
         log("INFO", f"=== Borg '{entry.get('description', job_id)}' abgeschlossen ===")
         from modules.borg import cache as _cache
         _cache.update(job_id, entry)
-    finally:
-        clear_log_context()
 
 
 def _hook(phase: str, entry):

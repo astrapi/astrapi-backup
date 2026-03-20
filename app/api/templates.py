@@ -19,9 +19,10 @@ _base_loaders: list = [
 # PrefixLoader für jedes Modul das ein templates/-Unterverzeichnis hat
 # → render_template("borg/partials/list.html") → modules/borg/templates/partials/list.html
 _prefix_loaders: list = []
-_modules_dir = _APP_ROOT / "modules"
-if _modules_dir.is_dir():
-    for _mod_dir in sorted(_modules_dir.iterdir()):
+for _search_root in (_APP_ROOT / "modules", _PROJECT_ROOT / "core" / "modules"):
+    if not _search_root.is_dir():
+        continue
+    for _mod_dir in sorted(_search_root.iterdir()):
         if not _mod_dir.is_dir() or _mod_dir.name.startswith("_"):
             continue
         _tpl_dir = _mod_dir / "templates"
@@ -31,6 +32,10 @@ if _modules_dir.is_dir():
             )
 
 templates.env.loader = ChoiceLoader(_prefix_loaders + _base_loaders)
+
+# Jinja2-Instanz für core-Module bereitstellen
+from core.ui.fastapi_templates import configure as _configure_fastapi_templates
+_configure_fastapi_templates(templates)
 
 
 # ── Template-Globals: Funktionen die list_wrapper.html braucht ────────────────

@@ -26,8 +26,14 @@ def create(modules: list | None = None) -> FastAPI:
         openapi_url="/api/openapi.json",
     )
 
-    from api.storage import init_db
-    init_db()
+    from core.system.logger import configure_log_root
+    configure_log_root(APP_ROOT / "logs")
+
+    from core.system.secrets import configure as configure_secrets
+    configure_secrets(
+        key_path     = Path("/var/lib/backupadm/secret.key"),
+        dev_key_path = APP_ROOT / "config" / "secret.key",
+    )
 
     # ── Modul-Router registrieren (nur laden wenn nicht übergeben) ────────────────────
     from core.ui.module_registry import load_modules, register_fastapi_modules

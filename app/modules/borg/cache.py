@@ -4,7 +4,7 @@ Befüllt den lokalen Archiv-Cache im Hintergrund nach einem erfolgreichen Backup
 Wird von jobs.py am Ende von run_single() aufgerufen.
 """
 import threading
-from helpers.logger import log
+from core.system.logger import log
 
 # Pro item_id ein Lock – verhindert parallele Cache-Rebuilds für denselben Job
 _locks: dict[str, threading.Lock] = {}
@@ -34,8 +34,9 @@ def update(item_id: str, entry: dict) -> None:
 
 def _run(item_id: str, entry: dict, lock: threading.Lock) -> None:
     try:
-        from api.storage import save_archive_cache, save_stats_cache
-        from modules.borg.api import _repo_path, _borg_env, _list_archives, _load_archive_entries, _repo_info
+        from modules.borg.storage import save_archive_cache, save_stats_cache
+        from modules.borg.api import _repo_path, _list_archives, _load_archive_entries, _repo_info
+        from modules.borg.utils import borg_env as _borg_env
 
         env  = _borg_env()
         repo = _repo_path(entry)

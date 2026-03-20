@@ -1,9 +1,9 @@
 # modules/proxmox_jobs.py
 import subprocess
 
-from helpers.logger import log, set_log_context, clear_log_context
-from helpers.reachability import require_hosts
-from helpers.cmd import run_cmd, build_connection_string
+from core.system.logger import log, log_context
+from core.system.reachability import require_hosts
+from core.system.cmd import run_cmd, build_connection_string
 from api.storage import load_config as _load_config
 def _get_config(): return _load_config("proxmox_jobs")
 
@@ -35,20 +35,17 @@ def preview(item_id) -> list[dict]:
 
 
 def run():
-    for item_id, job in _get_config().items():
-        if not job.get("enabled", False):
-            continue
-        run_single(item_id, job)
+    from core.modules.scheduler.job_runner import run_all
+    run_all("proxmox_jobs", _get_config(), run_single,
+            desc_fn=lambda iid, e: e.get("description", e.get("job", iid)))
 
 
 def run_by_type(job_type: str):
     """Führt alle aktivierten Jobs eines bestimmten Typs sequenziell aus."""
-    for item_id, job in _get_config().items():
-        if not job.get("enabled", False):
-            continue
-        if job.get("type") != job_type:
-            continue
-        run_single(item_id, job)
+    from core.modules.scheduler.job_runner import run_all
+    filtered = {iid: e for iid, e in _get_config().items() if e.get("type") == job_type}
+    run_all("proxmox_jobs", filtered, run_single,
+            desc_fn=lambda iid, e: e.get("description", e.get("job", iid)))
 
 
 def run_single(item_id, job=None):
@@ -58,8 +55,7 @@ def run_single(item_id, job=None):
     if job is None:
         log("ERROR", f"Proxmox-Job '{item_id}' nicht gefunden")
         return
-    set_log_context("proxmox_jobs", item_id)
-    try:
+    with log_context("proxmox_jobs", item_id):
         job_name = job.get("job")
         job_type = job.get("type")
         host     = job.get("host")
@@ -72,8 +68,7 @@ def run_single(item_id, job=None):
             return
         _run(job_type, job_name, host)
         log("INFO", f"=== Job '{desc}' abgeschlossen ===")
-    finally:
-        clear_log_context()
+
 
 
 def _run(job_type, job_name, host):
