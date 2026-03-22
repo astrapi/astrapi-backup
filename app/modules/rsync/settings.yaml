@@ -1,16 +1,14 @@
-# app/modules/rsync/settings.yaml
+modal_width: 560
 
-- type: section
-  label: Rsync
+fields:
+  - key: rsync_delete
+    label: Delete
+    type: checkbox
+    checkbox_label: Dateien im Ziel löschen, die in der Quelle nicht mehr vorhanden sind
+    default: true
 
-- key: rsync_delete
-  label: Delete
-  type: checkbox
-  checkbox_label: Dateien im Ziel löschen, die in der Quelle nicht mehr vorhanden sind (--delete)
-  default: true
-
-- key: rsync_compress
-  label: Komprimierung
-  type: checkbox
-  checkbox_label: Daten während der Übertragung komprimieren (-z)
-  default: false
+  - key: rsync_compress
+    label: Komprimierung
+    type: checkbox
+    checkbox_label: Daten während der Übertragung komprimieren
+    default: false

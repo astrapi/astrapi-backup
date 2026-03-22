@@ -29,16 +29,6 @@
   icon:  server
   group: Jobs
 
-- key:   history
-  label: Job-History
-  icon:  clock
-  group: Information
-
-- key:   errors
-  label: Fehler
-  icon:  alert
-  group: Information
-
 - key:   remotes
   label: Remote-Geräte
   icon:  monitor

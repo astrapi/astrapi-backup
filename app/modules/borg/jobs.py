@@ -3,27 +3,47 @@ import os
 import subprocess
 from datetime import datetime
 
-from helpers.logger import log, set_log_context, clear_log_context
-from helpers.reachability import require_hosts
-from helpers.secrets import get_secret
-from helpers.cmd import run_cmd, build_connection_string, is_local
+from core.system.logger import log, log_context
+from core.system.reachability import require_hosts
+from core.system.cmd import run_cmd, build_connection_string, is_local
 from core.ui.settings_registry import get_module as _get_module_setting
-from api.storage import load_config as _load_config
+from api.storage import load_config as _load_config, patch_item as _patch_item
+from modules.borg.utils import borg_bin_for as _borg_bin_for, borg_env as _borg_env
 
 def _get_config(): return _load_config("borg")
 def _s(key, default): return _get_module_setting("borg", key, default)
 def _src_local(entry): return is_local(entry.get("source_host"))
 
-_BORG_DEFAULT = "/var/lib/backupadm/.venv/bin/borg"
-def _borg_bin() -> str:
-    return _s("borg_bin", _BORG_DEFAULT) or _BORG_DEFAULT
 
+def _get_host_info(entry: dict, host_type: str = "source") -> tuple[str, str, int]:
+    """
+    Resolve host/ssh_user/ssh_port from Remote Device OR legacy fields.
 
-def _borg_env() -> dict:
-    env = dict(os.environ)
-    env["BORG_PASSPHRASE"] = _s("passphrase", "") or get_secret("BORG_PASSPHRASE")
-    env["BORG_UNKNOWN_UNENCRYPTED_REPO_ACCESS_IS_OK"] = "yes"
-    return env
+    Tries:
+    1. New way: {host_type}_remote_id → Remote Device
+    2. Old way: {host_type}_host + ssh_user fields
+    """
+    remote_id_key = f"{host_type}_remote_id"
+    host_key = f"{host_type}_host"
+
+    if remote_id_key in entry and entry[remote_id_key]:
+        from core.modules.remotes.engine import get_remote_ssh
+        try:
+            return get_remote_ssh(entry[remote_id_key])
+        except ValueError as e:
+            log("ERROR", str(e))
+            raise
+
+    elif host_key in entry and entry[host_key]:
+        host = entry[host_key]
+        ssh_user = entry.get("ssh_user")
+        ssh_port = 22
+        return (host, ssh_user, ssh_port)
+
+    else:
+        raise ValueError(
+            f"Job missing: neither '{remote_id_key}' nor '{host_key}' configured"
+        )
 
 
 def preview(job_id) -> list[dict]:
@@ -32,11 +52,20 @@ def preview(job_id) -> list[dict]:
     if entry is None:
         return []
 
-    source_host = entry.get("source_host")
-    target_host = entry.get("target_host")
-    src_local   = _src_local(entry)
+    try:
+        source_host, ssh_user, ssh_port = _get_host_info(entry, "source")
+    except ValueError as e:
+        return [{"label": "Error", "cmd": str(e)}]
+
+    try:
+        target_host, target_ssh_user, target_ssh_port = _get_host_info(entry, "target")
+    except ValueError:
+        target_host = None
+        target_ssh_user = None
+
+    src_local    = is_local(source_host)
     archive_name = datetime.now().strftime("%Y%m%d_%H%M%S")
-    repo    = _repo(source_host, target_host, entry.get("target_path"), src_local)
+    repo    = _repo(source_host, target_host, entry.get("target_path"), src_local, ssh_user, target_ssh_user)
     archive = f"{repo}::{archive_name}"
     src     = f"{entry.get('source_path')}/./"
 
@@ -46,7 +75,7 @@ def preview(job_id) -> list[dict]:
             return cmd_str
         return f"ssh -o BatchMode=yes -o ConnectTimeout=10 {connection} '{cmd_str}'"
 
-    conn = "local" if src_local else build_connection_string(source_host, "backupadm")
+    conn = "local" if src_local else build_connection_string(source_host, ssh_user)
 
     commands = []
 
@@ -57,14 +86,13 @@ def preview(job_id) -> list[dict]:
             hooks = [l for l in hooks.split("\n") if l]
         cmd = "; ".join(hooks)
         if cmd:
-            hook_conn = "local" if src_local else build_connection_string(source_host, entry.get("ssh_user") or "backupadm")
-            commands.append({"label": "Pre-Hook", "cmd": _fmt(cmd, hook_conn)})
+            commands.append({"label": "Pre-Hook", "cmd": _fmt(cmd, conn)})
 
     # Borg Backup
     compression = _s("compression", "auto,zstd")
     base_cmd = [
         "BORG_PASSPHRASE=***",
-        _borg_bin(), "create",
+        _borg_bin_for(entry.get("source_remote_id")), "create",
         "--verbose", "--stats", "--compression", compression,
         "--exclude-caches",
     ]
@@ -80,8 +108,7 @@ def preview(job_id) -> list[dict]:
             hooks = [l for l in hooks.split("\n") if l]
         cmd = "; ".join(hooks)
         if cmd:
-            hook_conn = "local" if src_local else build_connection_string(source_host, entry.get("ssh_user") or "backupadm")
-            commands.append({"label": "Post-Hook", "cmd": _fmt(cmd, hook_conn)})
+            commands.append({"label": "Post-Hook", "cmd": _fmt(cmd, conn)})
 
     # Borg Prune
     keep_daily   = _s("keep_daily",   "7")
@@ -91,7 +118,7 @@ def preview(job_id) -> list[dict]:
     keep_within  = _s("keep_within",  "7")
     prune_cmd = [
         "BORG_PASSPHRASE=***",
-        _borg_bin(), "prune",
+        _borg_bin_for(entry.get("source_remote_id")), "prune",
         f"--keep-daily={keep_daily}", f"--keep-weekly={keep_weekly}",
         f"--keep-monthly={keep_monthly}", f"--keep-yearly={keep_yearly}",
     ]
@@ -102,17 +129,15 @@ def preview(job_id) -> list[dict]:
 
     # Borg Compact
     if _s("compact_after_prune", "1") in ("1", "true", True):
-        compact_cmd = ["BORG_PASSPHRASE=***", _borg_bin(), "compact", repo]
+        compact_cmd = ["BORG_PASSPHRASE=***", _borg_bin_for(entry.get("source_remote_id")), "compact", repo]
         commands.append({"label": "Borg Compact", "cmd": _fmt(compact_cmd, conn)})
 
     return commands
 
 
 def run():
-    for job_id, entry in _get_config().items():
-        if not entry.get("enabled", False):
-            continue
-        run_single(job_id, entry)
+    from core.modules.scheduler.job_runner import run_all
+    run_all("borg", _get_config(), run_single)
 
 
 def run_single(job_id, entry=None):
@@ -122,35 +147,44 @@ def run_single(job_id, entry=None):
         log("ERROR", f"Borg-Eintrag '{job_id}' nicht gefunden")
         return
 
-    set_log_context("borg", job_id)
-    try:
+    with log_context("borg", job_id):
         log("INFO", f"=== Borg '{entry.get('description', job_id)}' gestartet ===")
-        src_local = _src_local(entry)
+
+        try:
+            source_host, ssh_user, ssh_port = _get_host_info(entry, "source")
+        except ValueError as e:
+            log("ERROR", str(e))
+            return
+
+        try:
+            target_host, target_ssh_user, target_ssh_port = _get_host_info(entry, "target")
+        except ValueError:
+            target_host = None
+            target_ssh_user = None
+
+        src_local = is_local(source_host)
         hosts = []
-        if not src_local and entry.get("source_host") and not is_local(entry.get("source_host")):
-            hosts.append(entry.get("source_host"))
-        if entry.get("target_host") and not is_local(entry.get("target_host")):
-            hosts.append(entry.get("target_host"))
+        if not src_local:
+            hosts.append((source_host, ssh_user))
+        if target_host and not is_local(target_host):
+            hosts.append((target_host, target_ssh_user))
         if not require_hosts(hosts):
             return
         if entry.get("pre"):
-            _hook("pre", entry)
-        _backup(entry)
+            _hook("pre", entry, source_host, ssh_user)
+        _backup(entry, source_host, ssh_user, target_host, target_ssh_user)
         if entry.get("post"):
-            _hook("post", entry)
-        _prune(entry)
+            _hook("post", entry, source_host, ssh_user)
+        _prune(entry, source_host, ssh_user, target_host, target_ssh_user)
         if _s("compact_after_prune", "1") in ("1", "true", True):
-            _compact(entry)
-        log("INFO", f"=== Borg '{entry.get('description', job_id)}' abgeschlossen ===")
+            _compact(entry, source_host, ssh_user, target_host, target_ssh_user)
         from modules.borg import cache as _cache
         _cache.update(job_id, entry)
-    finally:
-        clear_log_context()
+        _patch_item("borg", job_id, last_run=datetime.now().strftime("%d.%m.%Y %H:%M"))
+        log("INFO", f"=== Borg '{entry.get('description', job_id)}' abgeschlossen ===")
 
 
-def _hook(phase: str, entry):
-    host       = entry.get("source_host")
-    ssh_user   = entry.get("ssh_user") or "backupadm"
+def _hook(phase: str, entry, host: str, ssh_user: str):
     connection = build_connection_string(host, ssh_user)
     hooks = entry.get(phase) or []
     if isinstance(hooks, str):
@@ -187,41 +221,39 @@ def _local_fqdn() -> str:
     return socket.gethostname()
 
 
-def _repo(source_host: str, target_host: str, target_path: str, src_local: bool = False) -> str:
+def _repo(source_host: str, target_host: str, target_path: str, src_local: bool = False, ssh_user: str = None, target_ssh_user: str = None) -> str:
     """
     Borg-Repository-Pfad aus Sicht des ausführenden Hosts (source_host).
 
     source lokal  + target lokal   →  /pfad
-    source lokal  + target remote  →  backupadm@target:/pfad
-    source remote + target lokal   →  backupadm@backup01.fqdn:/pfad
-    source remote + target remote  →  backupadm@target:/pfad
+    source lokal  + target remote  →  target_ssh_user@target:/pfad
+    source remote + target lokal   →  ssh_user@backup01.fqdn:/pfad
+    source remote + target remote  →  target_ssh_user@target:/pfad
     """
     if is_local(target_host):
         if src_local or is_local(source_host):
             return target_path
         else:
-            return f"backupadm@{_local_fqdn()}:{target_path}"
+            return f"{ssh_user}@{_local_fqdn()}:{target_path}"
     else:
-        return f"backupadm@{target_host}:{target_path}"
+        return f"{target_ssh_user}@{target_host}:{target_path}"
 
 
-def _backup(entry):
-    source_host  = entry.get("source_host")
-    target_host  = entry.get("target_host")
-    src_local    = _src_local(entry)
-    # Borg läuft immer als backupadm – ssh_user gilt nur für Hooks
-    connection   = build_connection_string(source_host, "backupadm") if not src_local else "local"
+def _backup(entry, source_host: str, ssh_user: str, target_host: str, target_ssh_user: str = None):
+    src_local    = is_local(source_host)
+    connection   = build_connection_string(source_host, ssh_user) if not src_local else "local"
     archive_name = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    env = _borg_env()
+    env  = _borg_env()
+    borg = _borg_bin_for(entry.get("source_remote_id"))
 
-    repo    = _repo(source_host, target_host, entry.get("target_path"), src_local)
+    repo    = _repo(source_host, target_host, entry.get("target_path"), src_local, ssh_user, target_ssh_user)
     archive = f"{repo}::{archive_name}"
     src     = f"{entry.get('source_path')}/./"
 
     compression = _s("compression", "auto,zstd")
     base_cmd = [
-        _borg_bin(), "create",
+        borg, "create",
         "--verbose", "--stats", "--compression", compression,
         "--exclude-caches",
     ]
@@ -249,16 +281,14 @@ def _backup(entry):
             log("ERROR", e.stderr.strip() if e.stderr else "Unbekannter Fehler.")
 
 
-def _prune(entry):
-    source_host = entry.get("source_host")
-    target_host = entry.get("target_host")
-    src_local   = _src_local(entry)
-    # Borg läuft immer als backupadm – ssh_user gilt nur für Hooks
-    connection  = build_connection_string(source_host, "backupadm") if not src_local else "local"
+def _prune(entry, source_host: str, ssh_user: str, target_host: str, target_ssh_user: str = None):
+    src_local  = is_local(source_host)
+    connection = build_connection_string(source_host, ssh_user) if not src_local else "local"
 
-    env = _borg_env()
+    env  = _borg_env()
+    borg = _borg_bin_for(entry.get("source_remote_id"))
 
-    repo = _repo(source_host, target_host, entry.get("target_path"), src_local)
+    repo = _repo(source_host, target_host, entry.get("target_path"), src_local, ssh_user, target_ssh_user)
 
     keep_daily   = _s("keep_daily",   "7")
     keep_weekly  = _s("keep_weekly",  "4")
@@ -267,7 +297,7 @@ def _prune(entry):
     keep_within  = _s("keep_within",  "7")
 
     base_cmd = [
-        _borg_bin(), "prune",
+        borg, "prune",
         f"--keep-daily={keep_daily}", f"--keep-weekly={keep_weekly}",
         f"--keep-monthly={keep_monthly}", f"--keep-yearly={keep_yearly}",
     ]
@@ -287,16 +317,15 @@ def _prune(entry):
         log("ERROR", e.stderr.strip() if e.stderr else "Unbekannter Fehler.")
 
 
-def _compact(entry):
-    source_host = entry.get("source_host")
-    target_host = entry.get("target_host")
-    src_local   = _src_local(entry)
-    connection  = build_connection_string(source_host, "backupadm") if not src_local else "local"
+def _compact(entry, source_host: str, ssh_user: str, target_host: str, target_ssh_user: str = None):
+    src_local  = is_local(source_host)
+    connection = build_connection_string(source_host, ssh_user) if not src_local else "local"
 
-    env = _borg_env()
+    env  = _borg_env()
+    borg = _borg_bin_for(entry.get("source_remote_id"))
 
-    repo     = _repo(source_host, target_host, entry.get("target_path"), src_local)
-    base_cmd = [_borg_bin(), "compact", repo]
+    repo     = _repo(source_host, target_host, entry.get("target_path"), src_local, ssh_user, target_ssh_user)
+    base_cmd = [borg, "compact", repo]
 
     if src_local:
         cmd = base_cmd

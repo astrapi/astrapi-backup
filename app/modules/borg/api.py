@@ -2,27 +2,27 @@
 import json
 import subprocess
 import threading
-import yaml
 from urllib.parse import quote as _urlquote
 from pathlib import Path, PurePosixPath
-from fastapi import APIRouter, HTTPException, Request, Header, Query
-from fastapi.responses import HTMLResponse, Response, StreamingResponse
-from api.storage import (
-    load_config, get_item, delete_item, save_item, next_item_id,
+from fastapi import APIRouter, HTTPException, Request, Query
+from fastapi.responses import HTMLResponse, StreamingResponse
+from api.storage import get_item
+from modules.borg.storage import (
     get_archive_cache, save_archive_list_cache,
     get_file_cache, archive_is_cached, save_file_cache_for_archive,
     get_stats_cache, save_stats_cache,
 )
-from api.routers.run import get_running
 from api.templates import templates
-from helpers.cmd import is_local
-from helpers.logger import log
-from modules.borg.jobs import _borg_bin, _borg_env, preview as _preview_borg
+from core.system.cmd import is_local
+from core.system.logger import log
+from modules.borg.utils import borg_bin as _borg_bin, borg_env as _borg_env
+from modules.borg.jobs import preview as _preview_borg
+from core.ui.htmx_crud_router import make_htmx_crud_router
 
 KEY = "borg"
-router = APIRouter()
-
 _SCHEMA_PATH = Path(__file__).parent / "schema.yaml"
+
+router = make_htmx_crud_router(KEY, _SCHEMA_PATH, preview_fn=_preview_borg)
 
 # Verhindert parallele save_file_cache_for_archive-Threads für dieselbe (item_id, archive)-Kombination
 _file_cache_building: set[tuple[str, str]] = set()
@@ -79,12 +79,7 @@ def _load_archive_entries(repo_path: str, archive: str, env: dict, timeout: int 
         return []
 
 
-def _fmt_size(n: int) -> str:
-    for u in ("B", "KB", "MB", "GB", "TB"):
-        if n < 1024:
-            return f"{n:.1f} {u}"
-        n /= 1024
-    return f"{n:.1f} PB"
+from core.system.format import fmt_bytes as _fmt_size
 
 
 def _sanitize_path(path: str) -> str:
@@ -165,135 +160,6 @@ def _dir_view(entries: list[dict], cur: str) -> tuple[list, list]:
     dirs.sort(key=lambda d: d["name"].lower())
     files.sort(key=lambda f: f["name"].lower())
     return dirs, files
-
-
-def _load_schema() -> dict:
-    try:
-        with open(_SCHEMA_PATH) as f:
-            return yaml.safe_load(f) or {}
-    except FileNotFoundError:
-        raise HTTPException(500, f"Schema-Datei nicht gefunden: {_SCHEMA_PATH}")
-    except yaml.YAMLError as e:
-        raise HTTPException(500, f"Schema-Datei fehlerhaft: {e}")
-
-
-def _list_response(request: Request):
-    return templates.TemplateResponse(
-        "partials/list_wrapper_inner.html",
-        {
-            "request":          request,
-            "cfg":              load_config(KEY),
-            "module":           KEY,
-            "content_template": f"{KEY}/partials/list.html",
-            "container_id":     f"tab-{KEY}",
-            "loading_id":       f"{KEY}-loading",
-            "running":          get_running(),
-        },
-    )
-
-
-def _clean(data: dict) -> dict:
-    return {
-        k: v for k, v in data.items()
-        if v is not None
-        and not (isinstance(v, str) and v.strip() == "")
-        and not (isinstance(v, list) and len(v) == 0)
-    }
-
-
-def _extract_lists(schema, payload):
-    """Gibt (bereinigtes payload, list_values) zurück."""
-    fields = schema.get("fields", [])
-    list_fields = [f["name"] for f in fields if f.get("type") == "list"]
-    lists: dict = {n: [] for n in list_fields}
-    for k, v in payload.items():
-        for ln in list_fields:
-            if k.startswith(f"{ln}_"):
-                try:
-                    idx = int(k[len(ln) + 1:])
-                    lists[ln].append((idx, v))
-                except ValueError:
-                    pass
-    for n in list_fields:
-        lists[n] = [v for _, v in sorted(lists[n])]
-    prefixes = tuple(f"{n}_" for n in list_fields)
-    clean_payload = {k: v for k, v in payload.items() if not any(k.startswith(p) for p in prefixes)}
-    # Fehlende Nicht-Listen-Felder auffüllen
-    for f in fields:
-        if f["name"] not in clean_payload and f.get("type") != "list":
-            clean_payload[f["name"]] = ""
-    for n in list_fields:
-        clean_payload[n] = lists[n]
-    return clean_payload
-
-
-@router.post("/create")
-async def create_one(request: Request):
-    form    = await request.form()
-    payload = dict(form)
-    payload["enabled"] = payload.get("enabled") in ("on", "1", True)
-    payload = _extract_lists(_load_schema(), payload)
-    save_item(KEY, next_item_id(KEY), _clean(payload))
-    if request.headers.get("HX-Request") == "true":
-        return _list_response(request)
-    return payload
-
-
-@router.patch("/{item_id}/edit")
-async def patch_one(item_id: str, request: Request):
-    iid      = int(item_id)
-    existing = get_item(KEY, iid)
-    if existing is None:
-        raise HTTPException(404, "Item not found")
-    form    = await request.form()
-    payload = dict(form)
-    payload["enabled"] = payload.get("enabled") in ("on", "1", True)
-    payload  = _extract_lists(_load_schema(), payload)
-    existing.update(payload)
-    save_item(KEY, iid, _clean(existing))
-    if request.headers.get("HX-Request") == "true":
-        return _list_response(request)
-    return existing
-
-
-@router.delete("/{item_id}/delete")
-def delete_one(request: Request, item_id: str, hx_request: str | None = Header(None)):
-    if not delete_item(KEY, item_id):
-        raise HTTPException(404, "Item not found")
-    if hx_request:
-        return _list_response(request)
-    return Response(status_code=204)
-
-
-@router.post("/{item_id}/toggle")
-def toggle_item(request: Request, item_id: str, hx_request: str | None = Header(None)):
-    cfg = load_config(KEY)
-    key = item_id
-    if key not in cfg:
-        try:
-            key = int(item_id)
-        except ValueError:
-            pass
-    if key not in cfg:
-        raise HTTPException(404, "Item not found")
-    cfg[key]["enabled"] = not cfg[key].get("enabled", False)
-    save_item(KEY, key, cfg[key])
-    if hx_request:
-        return _list_response(request)
-    return {"status": "ok", "item": key, "enabled": cfg[key]["enabled"]}
-
-
-
-@router.get("/{item_id}/preview")
-def preview_item(item_id: str, request: Request):
-    entry = get_item(KEY, item_id)
-    if entry is None:
-        raise HTTPException(404, "Item not found")
-    return templates.TemplateResponse("partials/preview_modal.html", {
-        "request":     request,
-        "description": entry.get("description", item_id),
-        "commands":    _preview_borg(item_id),
-    })
 
 
 # ── Archiv-Browser ────────────────────────────────────────────────────────────

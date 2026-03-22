@@ -18,8 +18,8 @@ fields:
     column: 1
     row: 2
   - name: node
-    type: text
+    type: select
     label: Node
-    max: 50
+    options_from_settings: nodes
     column: 2
     row: 2

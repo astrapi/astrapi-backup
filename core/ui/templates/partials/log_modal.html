@@ -82,17 +82,19 @@
     <!-- ── STATISCHER MODUS ───────────────────────────────── -->
     {% if dates %}
       <div class="inline-cluster" style="margin-bottom:10px; gap:10px;">
-        <label style="font-size:13px; color:var(--text-2); font-weight:500;">Datum:</label>
-        <select class="form-select" style="width:auto; min-width:160px;"
+        <label style="font-size:13px; color:var(--text-2); font-weight:500;">Run:</label>
+        <select class="form-select" style="width:auto; min-width:200px;"
                 id="log-date-select">
-          {% for date in dates %}
-            <option value="{{ date }}" {{ 'selected' if date == selected else '' }}>
-              {{ date }}{% if loop.first %} (aktuell){% endif %}
+          {% for run in dates %}
+            {% set val = run.id if run is mapping else run %}
+            {% set lbl = run.label if run is mapping else run %}
+            <option value="{{ val }}" {{ 'selected' if val == selected else '' }}>
+              {{ lbl }}{% if loop.first %} (aktuell){% endif %}
             </option>
           {% endfor %}
         </select>
         <span class="mono-inline">
-          {{ dates|length }} Datei{{ 'en' if dates|length != 1 else '' }}
+          {{ dates|length }} Run{{ 'S' if dates|length != 1 else '' }}
         </span>
       </div>
     {% endif %}

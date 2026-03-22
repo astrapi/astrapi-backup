@@ -1,8 +1,8 @@
 id_field: id
 fields:
-  - name: description
+  - name: host
     type: text
-    label: Beschreibung
+    label: Host
     max: 50
     column: 1
     row: 1
@@ -12,12 +12,6 @@ fields:
     label: Aktiviert
     column: 2
     row: 1
-  - name: host
-    type: text
-    label: Host
-    max: 50
-    column: 1
-    row: 2
   - name: namespace
     type: select
     label: PBS Namespace

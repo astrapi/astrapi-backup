@@ -2,12 +2,12 @@
 import os
 import subprocess
 
-from helpers.logger import log, set_log_context, clear_log_context
-from helpers.reachability import require_hosts
-from helpers.cmd import run_cmd, build_connection_string, is_local
+from core.system.logger import log, log_context
+from core.system.reachability import require_hosts
+from core.system.cmd import run_cmd, build_connection_string, is_local
 from core.ui.settings_registry import get_module as _get_module_setting, get as _get_global_setting
 
-from api.storage import load_config as _load_config
+from api.storage import load_config as _load_config, get_entry as _get_entry, patch_item as _patch_item
 def _get_config(): return _load_config("proxmox_hosts")
 
 _FALLBACK_SOURCES = [
@@ -24,22 +24,40 @@ def _default_sources() -> list[str]:
     return parsed if parsed else list(_FALLBACK_SOURCES)
 
 
+def _get_proxmox_host_info(entry: dict) -> tuple[str, str, int]:
+    """Get host info from remote device or legacy host field"""
+    if entry.get("remote_id"):
+        from core.modules.remotes.engine import get_remote_ssh
+        try:
+            return get_remote_ssh(entry["remote_id"])
+        except ValueError as e:
+            log("ERROR", str(e))
+            raise
+    elif entry.get("host"):
+        return (entry["host"], entry.get("ssh_user"), 22)
+    else:
+        raise ValueError("Job missing: neither 'remote_id' nor 'host' configured")
+
+
 def preview(item_id) -> list[dict]:
     """Gibt den Befehl zurück, der bei run_single ausgeführt würde."""
-    entry = _get_config().get(item_id) or _get_config().get(
-        int(item_id) if str(item_id).isdigit() else item_id)
+    entry = _get_entry(_get_config(), item_id)
     if not entry:
         return []
 
-    host       = entry.get("host", item_id)
-    connection = build_connection_string(host)
+    try:
+        host, ssh_user, ssh_port = _get_proxmox_host_info(entry)
+    except ValueError as e:
+        return [{"label": "Error", "cmd": str(e)}]
+
+    connection = build_connection_string(host, ssh_user)
 
     pxar_sources = _default_sources()
     pxar_sources += entry.get("source", [])
 
     pbs_repo            = _get_module_setting("proxmox_hosts", "pbs_repository", "")
     ssh_connect_timeout = _get_global_setting("ssh_connect_timeout", 10)
-    namespace           = entry.get("namespace", "host")
+    namespace           = "host"
 
     cmd_parts = [
         f"PBS_REPOSITORY={pbs_repo}", "PBS_PASSWORD=***", "PBS_FINGERPRINT=***",
@@ -59,30 +77,31 @@ def preview(item_id) -> list[dict]:
 
 
 def run():
-    for item_id, entry in _get_config().items():
-        if not entry.get("enabled", False):
-            continue
-        run_single(item_id, entry)
+    from core.modules.scheduler.job_runner import run_all
+    run_all("proxmox_hosts", _get_config(), run_single)
 
 
 def run_single(item_id, entry=None):
     if entry is None:
-        entry = _get_config().get(item_id) or _get_config().get(
-            int(item_id) if str(item_id).isdigit() else item_id) or {}
-    set_log_context("proxmox_hosts", item_id)
-    try:
-        host = entry.get("host", item_id)
-        log("INFO", f"=== Host '{entry.get('description', host)}' gestartet ===")
-        if not require_hosts([host]):
+        entry = _get_entry(_get_config(), item_id) or {}
+    with log_context("proxmox_hosts", item_id):
+        try:
+            host, ssh_user, ssh_port = _get_proxmox_host_info(entry)
+        except ValueError as e:
+            log("ERROR", str(e))
             return
-        _backup(host, entry)
+
+        log("INFO", f"=== Host '{entry.get('description', host)}' gestartet ===")
+        if not require_hosts([host], user=ssh_user):
+            return
+        _backup(host, ssh_user, entry)
+        from datetime import datetime
+        _patch_item("proxmox_hosts", item_id, last_run=datetime.now().strftime("%d.%m.%Y %H:%M"))
         log("INFO", f"=== Host '{entry.get('description', host)}' abgeschlossen ===")
-    finally:
-        clear_log_context()
 
 
-def _backup(host, entry):
-    connection = build_connection_string(host)
+def _backup(host, ssh_user: str, entry):
+    connection = build_connection_string(host, ssh_user)
 
     pxar_sources = _default_sources()
     pxar_sources += entry.get("source", [])
@@ -94,7 +113,7 @@ def _backup(host, entry):
     env["PBS_PASSWORD"]    = _get_module_setting("proxmox_hosts", "pbs_password", "")
     env["PBS_FINGERPRINT"] = _get_module_setting("proxmox_hosts", "pbs_fingerprint", "")
 
-    namespace = entry.get("namespace", "host")
+    namespace = "host"
     base_cmd = [
         "sudo", "--preserve-env=PBS_REPOSITORY,PBS_PASSWORD,PBS_FINGERPRINT",
         "/usr/bin/proxmox-backup-client", "backup", *pxar_sources,

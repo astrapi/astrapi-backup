@@ -56,11 +56,10 @@ class ModuleRegistry:
 
 
 # Modul-level Singleton – wird von load_modules() befüllt; von FastAPI-Templates genutzt
-_mod_registry_instance = ModuleRegistry()
+_instance = ModuleRegistry()
 
 # Rückwärtskompatibilität: Code der direkt auf _mod_registry zugreift
-# benutzt weiterhin das interne dict via diesen Alias
-_mod_registry: dict = _mod_registry_instance._registry
+_mod_registry: dict = _instance._registry
 
 
 # ── Laden ─────────────────────────────────────────────────────────────────────
@@ -74,37 +73,49 @@ def _load_from_dir(modules_dir: Path, pkg_prefix: str) -> dict:
         return found
 
     for entry in sorted(modules_dir.iterdir()):
-        if not entry.is_dir() or entry.name.startswith("_"):
+        if entry.name.startswith("_"):
             continue
-        init_file = entry / "__init__.py"
-        if not init_file.exists():
+
+        if entry.is_dir():
+            py_file = entry / "__init__.py"
+            name = entry.name
+            mod_root = entry
+        elif entry.is_file() and entry.suffix == ".py":
+            py_file = entry
+            name = entry.stem
+            mod_root = None
+        else:
             continue
+
+        if not py_file.exists():
+            continue
+
         try:
             spec = importlib.util.spec_from_file_location(
-                f"{pkg_prefix}.{entry.name}", init_file
+                f"{pkg_prefix}.{name}", py_file
             )
             mod = importlib.util.module_from_spec(spec)
-            pkg_name = f"{pkg_prefix}.{entry.name}"
-            sys.modules[pkg_name] = mod
+            sys.modules[f"{pkg_prefix}.{name}"] = mod
             spec.loader.exec_module(mod)
             instance = getattr(mod, "module", None)
             if instance is None or not isinstance(instance, Module):
-                warnings.warn(f"Modul '{entry.name}' ({pkg_prefix}): keine Module-Instanz gefunden")
+                warnings.warn(f"Modul '{name}' ({pkg_prefix}): keine Module-Instanz gefunden")
                 continue
-            # module_root nur setzen wenn dieses Verzeichnis Templates hat
-            # oder noch kein module_root gesetzt ist (z.B. app re-exportiert Core-Instanz)
-            if instance.module_root is None or (entry / "templates").exists():
-                instance.module_root = entry
-            # settings.yaml nachladen wenn das Modul es nicht selbst gesetzt hat
-            if not instance.settings_schema:
-                settings_yaml = entry / "settings.yaml"
-                if settings_yaml.exists():
-                    import yaml as _yaml
-                    with open(settings_yaml, encoding="utf-8") as _f:
-                        instance.settings_schema = _yaml.safe_load(_f) or []
+            if mod_root is not None:
+                # module_root nur setzen wenn dieses Verzeichnis Templates hat
+                # oder noch kein module_root gesetzt ist (z.B. app re-exportiert Core-Instanz)
+                if instance.module_root is None or (mod_root / "templates").exists():
+                    instance.module_root = mod_root
+                # settings.yaml nachladen wenn das Modul es nicht selbst gesetzt hat
+                if not instance.settings_schema:
+                    settings_yaml = mod_root / "settings.yaml"
+                    if settings_yaml.exists():
+                        import yaml as _yaml
+                        with open(settings_yaml, encoding="utf-8") as _f:
+                            instance.settings_schema = _yaml.safe_load(_f) or []
             found[instance.key] = instance
         except Exception as e:
-            warnings.warn(f"Modul '{entry.name}' ({pkg_prefix}) konnte nicht geladen werden: {e}")
+            warnings.warn(f"Modul '{name}' ({pkg_prefix}) konnte nicht geladen werden: {e}")
 
     return found
 
@@ -117,10 +128,23 @@ def load_modules(app_root: Path) -> list:
     app/overrides/   – Module die Core-Module überschreiben/ergänzen
     app/modules/      – reine App-Module
     Reihenfolge im Ergebnis: core zuerst, dann app-exklusive.
+
+    Core-Module können per Einstellung deaktiviert werden:
+      core.module.<key>.enabled = "0"  →  Modul wird nicht geladen
     """
     core_mods = _load_from_dir(CORE_MOD_DIR,              "core.modules")
     ext_mods  = _load_from_dir(app_root / "overrides",   "app.overrides")
     app_mods  = _load_from_dir(app_root / "modules",      "app.modules")
+
+    # Deaktivierte Core-Module herausfiltern (Einstellung: core.module.<key>.enabled != "0")
+    try:
+        from core.ui.settings_registry import get as _settings_get
+        core_mods = {
+            k: v for k, v in core_mods.items()
+            if _settings_get(f"core.module.{k}.enabled", "1") != "0"
+        }
+    except Exception:
+        pass
 
     # module_root erben: Overrides ohne eigene Templates übernehmen Core-Pfad
     def _inherit_root(overrides: dict, base: dict) -> None:
@@ -141,7 +165,7 @@ def load_modules(app_root: Path) -> list:
     for key in sorted({**ext_mods, **app_mods}):
         if key not in seen:
             ordered.append(merged[key]); seen.add(key)
-    _mod_registry_instance.update({m.key: m for m in ordered})
+    _instance.update({m.key: m for m in ordered})
     return ordered
 
 
@@ -203,6 +227,9 @@ def _yaml_to_nav_items(yaml_path: "Path | None", modules: dict, raw: list = None
             continue
 
         mod   = modules.get(key)
+        # Modul-Einträge ohne explizite URL überspringen wenn Modul nicht geladen
+        if mod is None and not entry.get("url"):
+            continue
         group = entry.get("group", "")
 
         if group != current_group:
@@ -293,6 +320,38 @@ def build_nav_items(modules: list, app_root: Path) -> list[dict]:
 
     _set_default(items)
     return items
+
+
+def list_available_core_modules() -> list:
+    """Gibt alle verfügbaren Core-Module mit key, label und enabled-Status zurück.
+
+    Liest die modul.yaml für den Anzeigenamen. Der enabled-Status kommt aus der
+    Settings-Registry (core.module.<key>.enabled != '0' → aktiv).
+    """
+    import yaml as _yaml
+    try:
+        from core.ui.settings_registry import get as _settings_get
+    except Exception:
+        def _settings_get(k, d=None): return d
+
+    result = []
+    if not CORE_MOD_DIR.exists():
+        return result
+    for entry in sorted(CORE_MOD_DIR.iterdir()):
+        if not entry.is_dir() or entry.name.startswith("_"):
+            continue
+        key = entry.name
+        enabled = _settings_get(f"core.module.{key}.enabled", "1") != "0"
+        label = key.replace("_", " ").title()
+        modul_yaml = entry / "modul.yaml"
+        if modul_yaml.exists():
+            try:
+                data = _yaml.safe_load(modul_yaml.read_text(encoding="utf-8")) or {}
+                label = data.get("label", label)
+            except Exception:
+                pass
+        result.append({"key": key, "label": label, "enabled": enabled})
+    return result
 
 
 def _set_default(items: list[dict]) -> None:

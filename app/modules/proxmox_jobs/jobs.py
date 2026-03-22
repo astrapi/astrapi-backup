@@ -1,26 +1,46 @@
 # modules/proxmox_jobs.py
 import subprocess
 
-from helpers.logger import log, set_log_context, clear_log_context
-from helpers.reachability import require_hosts
-from helpers.cmd import run_cmd, build_connection_string
-from api.storage import load_config as _load_config
+from core.system.logger import log, log_context
+from core.system.reachability import require_hosts
+from core.system.cmd import run_cmd, build_connection_string
+from api.storage import load_config as _load_config, get_entry as _get_entry, patch_item as _patch_item
+
 def _get_config(): return _load_config("proxmox_jobs")
+
+
+def _get_proxmox_host_info(entry: dict) -> tuple[str, str, int]:
+    """Get proxmox host info from remote device or legacy host field"""
+    if entry.get("remote_id"):
+        from core.modules.remotes.engine import get_remote_ssh
+        try:
+            return get_remote_ssh(entry["remote_id"])
+        except ValueError as e:
+            log("ERROR", str(e))
+            raise
+    elif entry.get("host"):
+        return (entry["host"], entry.get("ssh_user"), 22)
+    else:
+        raise ValueError("Job missing: neither 'remote_id' nor 'host' configured")
 
 
 def preview(item_id) -> list[dict]:
     """Gibt den Befehl zurück, der bei run_single ausgeführt würde."""
-    job = _get_config().get(item_id) or _get_config().get(
-        int(item_id) if str(item_id).isdigit() else item_id)
+    job = _get_entry(_get_config(), item_id)
     if job is None:
         return []
 
     job_name = job.get("job")
     job_type = job.get("type")
-    host     = job.get("host")
-    if not job_name or not job_type or not host:
+    if not job_name or not job_type:
         return []
-    connection = build_connection_string(host)
+
+    try:
+        host, ssh_user, ssh_port = _get_proxmox_host_info(job)
+    except ValueError as e:
+        return [{"label": "Error", "cmd": str(e)}]
+
+    connection = build_connection_string(host, ssh_user)
 
     cmd_parts = ["sudo", "/usr/sbin/proxmox-backup-manager",
                  f"{job_type}-job", "run", job_name]
@@ -35,39 +55,50 @@ def preview(item_id) -> list[dict]:
 
 
 def run():
-    for item_id, job in _get_config().items():
-        if not job.get("enabled", False):
-            continue
-        run_single(item_id, job)
+    from core.modules.scheduler.job_runner import run_all
+    run_all("proxmox_jobs", _get_config(), run_single,
+            desc_fn=lambda iid, e: e.get("description", e.get("job", iid)))
+
+
+def run_by_type(job_type: str):
+    """Führt alle aktivierten Jobs eines bestimmten Typs sequenziell aus."""
+    from core.modules.scheduler.job_runner import run_all
+    filtered = {iid: e for iid, e in _get_config().items() if e.get("type") == job_type}
+    run_all("proxmox_jobs", filtered, run_single,
+            desc_fn=lambda iid, e: e.get("description", e.get("job", iid)))
 
 
 def run_single(item_id, job=None):
     if job is None:
-        job = _get_config().get(item_id) or _get_config().get(
-            int(item_id) if str(item_id).isdigit() else item_id)
+        job = _get_entry(_get_config(), item_id)
     if job is None:
         log("ERROR", f"Proxmox-Job '{item_id}' nicht gefunden")
         return
-    set_log_context("proxmox_jobs", item_id)
-    try:
+    with log_context("proxmox_jobs", item_id):
         job_name = job.get("job")
         job_type = job.get("type")
-        host     = job.get("host")
-        if not job_name or not job_type or not host:
-            log("ERROR", f"Proxmox-Job '{item_id}': Pflichtfelder (job, type, host) fehlen")
+        if not job_name or not job_type:
+            log("ERROR", f"Proxmox-Job '{item_id}': Pflichtfelder (job, type) fehlen")
             return
+
+        try:
+            host, ssh_user, ssh_port = _get_proxmox_host_info(job)
+        except ValueError as e:
+            log("ERROR", str(e))
+            return
+
         desc = job.get("description", job_name)
         log("INFO", f"=== Job '{desc}' ({job_type}) gestartet ===")
-        if not require_hosts([host]):
+        if not require_hosts([host], user=ssh_user):
             return
-        _run(job_type, job_name, host)
+        _run(job_type, job_name, host, ssh_user)
+        from datetime import datetime
+        _patch_item("proxmox_jobs", item_id, last_run=datetime.now().strftime("%d.%m.%Y %H:%M"))
         log("INFO", f"=== Job '{desc}' abgeschlossen ===")
-    finally:
-        clear_log_context()
 
 
-def _run(job_type, job_name, host):
-    connection = build_connection_string(host)
+def _run(job_type, job_name, host, ssh_user):
+    connection = build_connection_string(host, ssh_user)
     cmd = ["sudo", "/usr/sbin/proxmox-backup-manager",
            f"{job_type}-job", "run", job_name]
     try:
