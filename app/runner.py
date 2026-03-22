@@ -2,8 +2,9 @@
 import subprocess
 import time
 from datetime import datetime
-from helpers.logger import log, set_log_context, clear_log_context
-from helpers.notify import notify_ntfy
+from core.system.logger import log, set_log_context, clear_log_context
+from core.system.cmd import build_connection_string
+from core.modules.notify.engine import send_simple as notify_ntfy
 
 _running_jobs: set = set()
 
@@ -34,11 +35,11 @@ def _wait_for_backup02():
         ssh_user = e.get("ssh_user") or "root"
         if not host:
             continue
+        conn = build_connection_string(host, ssh_user)
         log("INFO", f"→ Warte bis {host} erreichbar ist …")
         while True:
             result = subprocess.run(
-                ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5",
-                 f"{ssh_user}@{host}", "echo ok"],
+                ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", conn, "echo ok"],
                 capture_output=True, text=True,
             )
             if result.returncode == 0 and "ok" in result.stdout:

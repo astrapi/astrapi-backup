@@ -1,47 +1,54 @@
-- type: section
-  label: PBS
+modal_width: 720
 
-- key: pbs_repository
-  label: PBS Repository
-  type: text
-  placeholder: "backup@pbs!token-name@pbs.example.com:datastore"
-  description: "PBS_REPOSITORY im Format: user@pbs!token-name@host:datastore"
-  mono: true
-  default: ""
+fields:
+  - type: section
+    label: PBS
+    cols: 2
 
-- key: pbs_password
-  label: PBS Passwort / Token-Secret
-  type: password
-  placeholder: "••••••••"
-  description: Passwort oder API-Token-Secret für die PBS-Authentifizierung
-  default: ""
+  - key: pbs_repository
+    label: PBS Repository
+    type: text
+    placeholder: "backup@pbs!token-name@pbs.example.com:datastore"
+    description: "PBS_REPOSITORY im Format: user@pbs!token-name@host:datastore"
+    mono: true
+    default: ""
+    span: 2
 
-- key: pbs_fingerprint
-  label: PBS Fingerprint
-  type: text
-  placeholder: "AB:CD:EF:..."
-  description: TLS-Fingerprint des PBS-Servers
-  mono: true
-  default: ""
+  - key: pbs_password
+    label: PBS Passwort / Token-Secret
+    type: password
+    placeholder: "••••••••"
+    description: Passwort oder API-Token-Secret für die PBS-Authentifizierung
+    default: ""
 
-- key: pbs_namespaces
-  label: PBS Namespaces
-  type: list
-  description: "Verfügbare PBS-Namespaces. Wird als Auswahl im Job-Dialog angeboten."
-  default:
-    - host
+  - key: pbs_fingerprint
+    label: PBS Fingerprint
+    type: text
+    placeholder: "AB:CD:EF:..."
+    description: TLS-Fingerprint des PBS-Servers
+    mono: true
+    default: ""
 
-- type: section
-  label: Backup-Quellen
+  - key: pbs_namespaces
+    label: PBS Namespaces
+    type: list
+    description: "Verfügbare PBS-Namespaces. Wird als Auswahl im Job-Dialog angeboten."
+    default:
+      - host
+    span: 2
 
-- key: default_sources
-  label: Standard-Backup-Quellen
-  type: list
-  description: "Quellen die für jeden Host gesichert werden (Format: name.pxar:/pfad)."
-  mono: true
-  default:
-    - "etc.pxar:/etc"
-    - "home.pxar:/home"
-    - "opt.pxar:/opt"
-    - "root.pxar:/root"
-    - "local.pxar:/usr/local"
+  - type: section
+    label: Backup-Quellen
+    cols: 1
+
+  - key: default_sources
+    label: Standard-Backup-Quellen
+    type: list
+    description: "Quellen die für jeden Host gesichert werden (Format: name.pxar:/pfad)."
+    mono: true
+    default:
+      - "etc.pxar:/etc"
+      - "home.pxar:/home"
+      - "opt.pxar:/opt"
+      - "root.pxar:/root"
+      - "local.pxar:/usr/local"

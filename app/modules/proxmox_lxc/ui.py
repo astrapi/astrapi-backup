@@ -14,6 +14,21 @@ def _load_schema():
         return yaml.safe_load(f)
 
 
+def _resolve_fields(fields: list) -> list:
+    """Ersetzt options_from_settings durch echte Werte aus den Modul-Settings."""
+    from core.ui.settings_registry import get_module as _get_module
+    result = []
+    for field in fields:
+        if "options_from_settings" in field:
+            key = field["options_from_settings"]
+            nodes = _get_module(KEY, key, []) or []
+            field = dict(field)
+            field["options"] = [{"value": n, "label": n} for n in nodes if n]
+            del field["options_from_settings"]
+        result.append(field)
+    return result
+
+
 def _list_ctx():
     from api.storage import load_config
     from api.routers.run import get_running
@@ -42,7 +57,9 @@ def create_modal():
     submit_url   = f"/api/{KEY}/create?container_id={container_id}&loading_id={loading_id}"
     return render_template(
         "partials/create_edit/create_edit_modal.html",
-        schema=schema["fields"], item=None, method="post", title="Neu",
+        schema=_resolve_fields(schema["fields"]),
+        modal_width=schema.get("modal_width", 620),
+        item=None, method="post", title="Neu",
         submit_url=submit_url, container_id=container_id, loading_id=loading_id,
     )
 
@@ -57,7 +74,9 @@ def edit_modal(item):
     submit_url = f"/api/{KEY}/{item}/edit?container_id={container_id}&loading_id={loading_id}"
     return render_template(
         "partials/create_edit/create_edit_modal.html",
-        schema=schema["fields"], item=values, method="patch", title=f"Bearbeiten: {item}",
+        schema=_resolve_fields(schema["fields"]),
+        modal_width=schema.get("modal_width", 620),
+        item=values, method="patch", title=f"Bearbeiten: {item}",
         submit_url=submit_url, container_id=container_id, loading_id=loading_id,
     )
 
@@ -74,6 +93,7 @@ def toggle_modal(item):
         description=description, verb=verb,
         confirm_url=f"/api/{KEY}/{item}/toggle",
         method="post",
+        reload_url=f"/ui/{KEY}/content",
         container_id=container_id, loading_id=loading_id,
     )
 

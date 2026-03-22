@@ -7,9 +7,11 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 
-from helpers.logger import (get_log_dates, read_log,
-                             log_path, set_tee_context, clear_tee_context,
-                             set_log_context, clear_log_context)
+from core.system.logger import set_tee_context, clear_tee_context, set_active_log_id, clear_active_log_id
+from core.system.activity_log import (
+    history_start, history_finish,
+    get_log_lines, get_latest_activity_log_id, list_runs_for_item,
+)
 from api.storage import load_config
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -52,7 +54,7 @@ def make_run_router(module: str) -> APIRouter:
       GET  /api/{module}/status
       GET  /api/{module}/{item_id}/logs
       GET  /api/{module}/{item_id}/logs/stream
-      GET  /api/{module}/{item_id}/logs/{date}
+      GET  /api/{module}/{item_id}/logs/{log_id}
     """
     router = APIRouter(tags=[module])
 
@@ -84,11 +86,11 @@ def make_run_router(module: str) -> APIRouter:
 
         def _execute():
             import time
-            from api.storage import history_start, history_finish
-            desc = _item_description(module, item_id)
+            desc    = _item_description(module, item_id)
             hist_id = history_start(module, item_id, desc, "debug" if debug else "run")
-            t0 = time.time()
+            t0      = time.time()
             set_tee_context(module, log_id)
+            set_active_log_id(hist_id)
             status = "ok"
             try:
                 _dispatch_single(module, item_id)
@@ -96,9 +98,20 @@ def make_run_router(module: str) -> APIRouter:
                 status = "error"
             finally:
                 duration = int(time.time() - t0)
+                # Status aus Log-Zeilen ableiten falls kein Exception-Fehler
+                if status == "ok":
+                    levels = {r["level"] for r in get_log_lines(hist_id)}
+                    if "ERROR" in levels:
+                        status = "error"
+                    elif "WARNING" in levels:
+                        status = "warning"
                 history_finish(hist_id, status, duration)
+                clear_active_log_id()
                 clear_tee_context()
                 _mark_done(module, item_id)
+                if not debug:
+                    from core.modules.scheduler.job_runner import _notify
+                    _notify(module, desc, status, duration)
 
         threading.Thread(target=_execute, daemon=True).start()
 
@@ -116,45 +129,40 @@ def make_run_router(module: str) -> APIRouter:
         trigger = json.dumps({"openLogModal": {"module": module, "itemId": log_id}})
         return HTMLResponse(list_html, headers={"HX-Trigger": trigger})
 
-    # ── SSE: Live-Log-Stream ──────────────────────────────────────────
+    # ── SSE: Live-Log-Stream (DB-basiert) ─────────────────────────────
 
     @router.get("/{item_id}/logs/stream")
     async def stream_log_ep(item_id: str):
         async def event_generator():
-            lp = log_path(module, item_id)
-            waited = 0.0
-            while not lp.exists() and waited < 15:
-                await asyncio.sleep(0.3)
-                waited += 0.3
-                lp = log_path(module, item_id)
 
-            if not lp.exists():
+            # Warte bis activity_log-Eintrag existiert (Job startet im Thread)
+            act_log_id = None
+            waited     = 0.0
+            while act_log_id is None and waited < 15:
+                act_log_id = get_latest_activity_log_id(module, item_id)
+                if act_log_id is None:
+                    await asyncio.sleep(0.3)
+                    waited += 0.3
+
+            if act_log_id is None:
                 yield "event: done\ndata: \n\n"
                 return
 
-            sent_lines      = 0
+            last_id        = 0
             idle_after_done = 0.0
 
             while True:
-                lines = []
-                try:
-                    with lp.open("r", encoding="utf-8") as f:
-                        lines = [l.rstrip() for l in f.readlines()]
-                except OSError:
-                    pass
-
-                for line in lines[sent_lines:]:
-                    if not line:
-                        continue
-                    level = "info"
-                    if "WARNING:" in line: level = "warning"
-                    elif "ERROR:"   in line: level = "error"
-                    elif "DEBUG:"   in line: level = "debug"
-                    safe = line.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                rows = get_log_lines(act_log_id, after_id=last_id)
+                for row in rows:
+                    last_id = row["id"]
+                    level   = row["level"].lower()
+                    safe    = (row["line"]
+                               .replace("&", "&amp;")
+                               .replace("<", "&lt;")
+                               .replace(">", "&gt;"))
                     yield f"data: <div class=\"log-line log-{level}\">{safe}</div>\n\n"
-                sent_lines = len(lines)
 
-                running_key = item_id.removesuffix("_debug") if item_id.endswith("_debug") else item_id
+                running_key  = item_id.removesuffix("_debug") if item_id.endswith("_debug") else item_id
                 still_running = _is_running(module, running_key) or _is_running(module, item_id)
 
                 if not still_running:
@@ -173,13 +181,18 @@ def make_run_router(module: str) -> APIRouter:
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
 
-    # ── Log-Endpunkte ─────────────────────────────────────────────────
+    # ── Log-Endpunkte (DB-basiert) ────────────────────────────────────
 
     @router.get("/{item_id}/logs", response_class=HTMLResponse)
     def get_logs(item_id: str, request: Request, live: int = 0):
-        dates    = get_log_dates(module, item_id)
-        selected = dates[0] if dates else None
-        lines    = read_log(module, item_id, selected) if selected else []
+        runs       = list_runs_for_item(module, item_id)
+        act_log_id = runs[0]["id"] if runs else None
+        lines      = [r["line"] for r in get_log_lines(act_log_id)] if act_log_id else []
+
+        # "dates" = Liste von Runs für den Datum-Wähler im Modal
+        dates    = [{"id": str(r["id"]), "label": r["started_at"] or str(r["id"])} for r in runs]
+        selected = str(act_log_id) if act_log_id else None
+
         return _get_templates().TemplateResponse(
             "partials/log_modal.html",
             {
@@ -190,11 +203,12 @@ def make_run_router(module: str) -> APIRouter:
             },
         )
 
-    @router.get("/{item_id}/logs/{date}", response_class=HTMLResponse)
-    def get_log_by_date(item_id: str, date: str, request: Request):
+    @router.get("/{item_id}/logs/{log_id}", response_class=HTMLResponse)
+    def get_log_by_id(item_id: str, log_id: str, request: Request):
+        lines = [r["line"] for r in get_log_lines(int(log_id))] if log_id.isdigit() else []
         return _get_templates().TemplateResponse(
             "partials/log_content.html",
-            {"request": request, "lines": read_log(module, item_id, date), "date": date},
+            {"request": request, "lines": lines, "date": log_id},
         )
 
     return router
@@ -215,17 +229,11 @@ def _item_description(module: str, item_id: str) -> str:
 
 
 def _dispatch_single(module: str, item_id: str) -> None:
-    fn = {
-        "borg":          lambda: __import__("modules.borg",          fromlist=["run_single"]).run_single(item_id),
-        "rsync":         lambda: __import__("modules.rsync",         fromlist=["run_single"]).run_single(item_id),
-        "proxmox_lxc":   lambda: __import__("modules.proxmox_lxc",   fromlist=["run_single"]).run_single(item_id),
-        "proxmox_hosts": lambda: __import__("modules.proxmox_hosts", fromlist=["run_single"]).run_single(item_id),
-        "proxmox_jobs":  lambda: __import__("modules.proxmox_jobs",  fromlist=["run_single"]).run_single(item_id),
-    }.get(module)
-    if fn:
-        fn()
-    else:
-        from helpers.logger import log
+    import importlib
+    try:
+        mod = importlib.import_module(f"modules.{module}.jobs")
+    except ModuleNotFoundError:
+        from core.system.logger import log
         log("ERROR", f"Unbekanntes Modul: {module}")
-
-
+        return
+    mod.run_single(item_id)

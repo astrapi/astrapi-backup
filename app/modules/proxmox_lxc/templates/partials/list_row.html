@@ -1,0 +1,6 @@
+{% set _raw = resolve_remote_host(item_data.node) if item_data.node else None %}
+{% set _node = _raw.split('.')[0] if _raw else (item_data.node or '—') %}
+<td>{{ item_data.vmid or '—' }}</td>
+<td class="col-name" title="{{ _raw or item_data.node or '' }}">{{ _node }}</td>
+<td style="white-space:nowrap">{{ item_data.last_run or '—' }}</td>
+{% set _status = last_run_status(module, item_name) %}<td>{% if _status %}<span class="status-badge status-{{ 'ok' if _status == 'ok' else 'err' }}">{{ 'OK' if _status == 'ok' else 'Fehler' }}</span>{% else %}—{% endif %}</td>

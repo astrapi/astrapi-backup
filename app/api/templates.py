@@ -19,9 +19,10 @@ _base_loaders: list = [
 # PrefixLoader für jedes Modul das ein templates/-Unterverzeichnis hat
 # → render_template("borg/partials/list.html") → modules/borg/templates/partials/list.html
 _prefix_loaders: list = []
-_modules_dir = _APP_ROOT / "modules"
-if _modules_dir.is_dir():
-    for _mod_dir in sorted(_modules_dir.iterdir()):
+for _search_root in (_APP_ROOT / "modules", _PROJECT_ROOT / "core" / "modules"):
+    if not _search_root.is_dir():
+        continue
+    for _mod_dir in sorted(_search_root.iterdir()):
         if not _mod_dir.is_dir() or _mod_dir.name.startswith("_"):
             continue
         _tpl_dir = _mod_dir / "templates"
@@ -31,6 +32,10 @@ if _modules_dir.is_dir():
             )
 
 templates.env.loader = ChoiceLoader(_prefix_loaders + _base_loaders)
+
+# Jinja2-Instanz für core-Module bereitstellen
+from core.ui.fastapi_templates import configure as _configure_fastapi_templates
+_configure_fastapi_templates(templates)
 
 
 # ── Template-Globals: Funktionen die list_wrapper.html braucht ────────────────
@@ -54,6 +59,37 @@ def _module_card_actions(key: str) -> list:
     return m.card_actions if m else []
 
 
+def _col_widths(module_key: str) -> str:
+    from core.ui.settings_registry import get as settings_get
+    return settings_get(f"ui.col_widths.{module_key}", "{}")
+
+
+def _resolve_remote_host(remote_id) -> str:
+    if not remote_id:
+        return "—"
+    try:
+        from core.modules.remotes.engine import get_remote
+        r = get_remote(remote_id)
+        return r.get("host") or "—" if r else "—"
+    except Exception:
+        return "—"
+
+
+def _last_run_status(module: str, item_id) -> str | None:
+    try:
+        from core.system.activity_log import list_runs_for_item
+        runs = list_runs_for_item(module, str(item_id), limit=5)
+        for run in runs:
+            if run.get("status") != "running":
+                return run.get("status")
+    except Exception:
+        pass
+    return None
+
+
 templates.env.globals["module_label"]        = _module_label
 templates.env.globals["module_has_settings"] = _module_has_settings
 templates.env.globals["module_card_actions"] = _module_card_actions
+templates.env.globals["col_widths"]          = _col_widths
+templates.env.globals["resolve_remote_host"] = _resolve_remote_host
+templates.env.globals["last_run_status"]     = _last_run_status

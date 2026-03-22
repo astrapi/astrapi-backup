@@ -150,12 +150,18 @@ def load_modul(module_dir: Path, key: str, api_router, ui_blueprint) -> "Module"
         with open(yaml_path, encoding="utf-8") as f:
             cfg = yaml.safe_load(f) or {}
 
-    # settings_template automatisch setzen wenn Datei vorhanden
+    # settings.yaml laden (dict-Format mit modal_width + fields, oder Legacy-Liste)
     settings_yaml = module_dir / "settings.yaml"
     settings_schema: list = []
+    settings_modal_width: int = 480
     if settings_yaml.exists():
         with open(settings_yaml, encoding="utf-8") as f:
-            settings_schema = yaml.safe_load(f) or []
+            raw = yaml.safe_load(f) or {}
+        if isinstance(raw, dict):
+            settings_schema = raw.get("fields", [])
+            settings_modal_width = raw.get("modal_width", 480)
+        else:
+            settings_schema = raw  # Legacy: flache Liste
 
     # Defaults aus settings.yaml extrahieren; modul.yaml settings_defaults haben Vorrang
     schema_defaults = {
@@ -166,14 +172,32 @@ def load_modul(module_dir: Path, key: str, api_router, ui_blueprint) -> "Module"
     merged_defaults = {**schema_defaults, **cfg.get("settings_defaults", {})}
 
     return Module(
-        key               = key,
-        label             = cfg.get("label",       key.capitalize()),
-        icon              = cfg.get("icon",         "list"),
-        api_router        = api_router,
-        ui_blueprint      = ui_blueprint,
-        nav_group         = cfg.get("nav_group",    "Module"),
-        nav_default       = bool(cfg.get("nav_default", False)),
-        settings_defaults = merged_defaults,
-        settings_schema   = settings_schema,
-        card_actions      = _expand_card_actions(cfg.get("card_actions", []), key),
+        key                  = key,
+        label                = cfg.get("label",       key.capitalize()),
+        icon                 = cfg.get("icon",         "list"),
+        api_router           = api_router,
+        ui_blueprint         = ui_blueprint,
+        nav_group            = cfg.get("nav_group",    "Module"),
+        nav_default          = bool(cfg.get("nav_default", False)),
+        settings_defaults    = merged_defaults,
+        settings_schema      = settings_schema,
+        settings_modal_width = settings_modal_width,
+        card_actions         = _expand_card_actions(cfg.get("card_actions", []), key),
+        module_root          = module_dir,
     )
+
+
+def reload_settings(mod: "Module") -> None:
+    """Liest settings.yaml neu ein und aktualisiert mod in-place (für Dev-Hot-Reload)."""
+    if mod.module_root is None:
+        return
+    settings_yaml = mod.module_root / "settings.yaml"
+    if not settings_yaml.exists():
+        return
+    with open(settings_yaml, encoding="utf-8") as f:
+        raw = yaml.safe_load(f) or {}
+    if isinstance(raw, dict):
+        mod.settings_schema = raw.get("fields", [])
+        mod.settings_modal_width = raw.get("modal_width", 480)
+    else:
+        mod.settings_schema = raw

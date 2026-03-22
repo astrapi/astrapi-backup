@@ -1,0 +1,128 @@
+{# activity_log/partials/rows.html – tbody-Inhalt, auch via HTMX #}
+{% if not entries %}
+<tr>
+  <td colspan="8" style="padding:40px 14px; text-align:center; color:var(--text-3);">
+    Keine Einträge gefunden.
+  </td>
+</tr>
+{% else %}
+{% for e in entries %}
+<tr style="border-bottom:{% if not loop.last %}1px solid var(--border-s){% else %}none{% endif %};
+           transition:background 80ms;"
+    onmouseover="this.style.background='var(--card-hi)'"
+    onmouseout="this.style.background=''">
+
+  {# Zeitpunkt #}
+  <td style="padding:8px 14px; color:var(--text-3); white-space:nowrap; font-size:12px;">
+    {{ e.created_at }}
+  </td>
+
+  {# Typ #}
+  <td style="padding:8px 14px; white-space:nowrap;">
+    <span style="font-family:var(--mono); font-size:10px; padding:2px 6px;
+                 border-radius:4px; background:rgba(255,255,255,0.07); color:var(--text-2);">
+      {% if e.log_type == 'job' %}job
+      {% elif e.log_type == 'scheduler' %}sched
+      {% elif e.log_type == 'error' %}err
+      {% elif e.log_type == 'warning' %}warn
+      {% else %}sys{% endif %}
+    </span>
+  </td>
+
+  {# Modul #}
+  <td style="padding:8px 14px; white-space:nowrap;">
+    <span style="font-family:var(--mono); font-size:11px; padding:1px 6px;
+                 border-radius:4px; background:rgba(255,255,255,0.07); color:var(--text-2);">
+      {{ e.module }}
+    </span>
+  </td>
+
+  {# Beschreibung #}
+  <td style="padding:8px 14px; color:var(--text); max-width:280px;
+             overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+    {{ e.description }}
+  </td>
+
+  {# Status #}
+  <td style="padding:8px 14px; white-space:nowrap;">
+    {% if e.status == 'ok' %}
+    <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--g);">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M20 6L9 17l-5-5"/>
+      </svg>OK
+    </span>
+    {% elif e.status == 'error' %}
+    <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--err);">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>Fehler
+    </span>
+    {% elif e.status == 'warning' %}
+    <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; color:#f59e0b;">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M12 2L2 20h20L12 2z"/>
+      </svg>Warnung
+    </span>
+    {% elif e.status == 'running' %}
+    <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; color:#60a5fa;">
+      <span style="animation:pulse 1.2s infinite;">●</span> läuft
+    </span>
+    {% else %}
+    <span style="font-size:12px; color:var(--text-3);">{{ e.status }}</span>
+    {% endif %}
+  </td>
+
+  {# Dauer #}
+  <td style="padding:8px 14px; font-family:var(--mono); font-size:12px; color:var(--text-2); white-space:nowrap;">
+    {{ e.duration_fmt }}
+  </td>
+
+  {# Bytes #}
+  <td style="padding:8px 14px; font-family:var(--mono); font-size:12px; color:var(--text-2); white-space:nowrap;">
+    {{ e.bytes_fmt }}
+  </td>
+
+  {# Aktionen #}
+  <td style="padding:8px 14px; text-align:right; white-space:nowrap;">
+    {# Job-Log via activity_log_lines #}
+    {% if e.log_type == 'job' and e.item_id and e.module %}
+    <button class="btn-icon btn-icon-log" title="Log anzeigen"
+            hx-get="/api/{{ e.module }}/{{ e.item_id }}/logs"
+            hx-target="body" hx-swap="beforeend">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+      </svg>
+    </button>
+    {% elif e.log_type == 'scheduler' %}
+    {# Scheduler-Log via activity_log_lines #}
+    <button class="btn-icon btn-icon-log" title="Log anzeigen"
+            hx-get="/api/activity_log/{{ e.id }}/log"
+            hx-target="body" hx-swap="beforeend">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+      </svg>
+    </button>
+    {% elif e.full_log %}
+    {# Fallback: ältere Einträge mit full_log-Text #}
+    <button class="btn-icon btn-icon-log" title="Log anzeigen"
+            hx-get="/api/activity_log/{{ e.id }}/log"
+            hx-target="body" hx-swap="beforeend">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+      </svg>
+    </button>
+    {% endif %}
+    <button class="btn-icon" title="Details"
+            hx-get="/api/activity_log/{{ e.id }}/detail"
+            hx-target="body" hx-swap="beforeend">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
+      </svg>
+    </button>
+  </td>
+</tr>
+{% endfor %}
+{% endif %}

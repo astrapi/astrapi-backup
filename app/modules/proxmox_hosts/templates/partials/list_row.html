@@ -1,0 +1,4 @@
+{% set host = resolve_remote_host(item_data.remote_id) if item_data.remote_id else (item_data.host or '—') %}
+<td class="col-name" title="{{ host }}">{{ host }}</td>
+<td style="white-space:nowrap">{{ item_data.last_run or '—' }}</td>
+{% set _status = last_run_status(module, item_name) %}<td>{% if _status %}<span class="status-badge status-{{ 'ok' if _status == 'ok' else 'err' }}">{{ 'OK' if _status == 'ok' else 'Fehler' }}</span>{% else %}—{% endif %}</td>

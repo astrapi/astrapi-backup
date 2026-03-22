@@ -12,16 +12,24 @@ import time
 
 _START_TIME: float = time.time()
 _health_fn = None
+_app_name: str = "App"
 
 
-def configure(health_fn=None) -> None:
-    """Registriert eine Health-Check-Funktion.
+def configure(health_fn=None, app_name: str = None) -> None:
+    """Registriert eine Health-Check-Funktion und optionalen App-Namen.
 
     health_fn: callable () -> (ok: bool, details: dict)
+    app_name:  Anzeigename der App (z.B. "BackupCtl") – wird u.a. für Benachrichtigungen genutzt
     """
-    global _health_fn
+    global _health_fn, _app_name
     if health_fn is not None:
         _health_fn = health_fn
+    if app_name is not None:
+        _app_name = app_name
+
+
+def get_app_name() -> str:
+    return _app_name
 
 
 def get_status() -> dict:

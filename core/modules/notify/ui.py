@@ -4,9 +4,14 @@ import uuid
 
 from flask import Blueprint, render_template, request
 
-from .storage import store, job_store, KEY
+from .engine import (
+    KEY,
+    list_channels, get_channel, create_channel, update_channel,
+    list_jobs, get_job, create_job, update_job,
+    get_registered_backends, get_registered_sources,
+    test_channel as _test_channel, test_job as _test_job,
+)
 from .schema import ALL_EVENTS
-from .engine import get_registered_backends, get_registered_sources
 
 bp = Blueprint(f"{KEY}_ui", __name__)
 
@@ -25,8 +30,8 @@ def _ctx(**extra) -> dict:
     return dict(
         key=KEY,
         label="Benachrichtigungen",
-        channels=store.list(),
-        jobs=job_store.list(),
+        channels=list_channels(),
+        jobs=list_jobs(),
         container_id=_CONTAINER_ID,
         loading_id=_LOADING_ID,
         **extra,
@@ -118,7 +123,7 @@ def create_modal(backend: str):
 
 @bp.route(f"/ui/{KEY}/<channel_id>/edit")
 def edit_modal(channel_id: str):
-    channel = store.get(channel_id)
+    channel = get_channel(channel_id)
     if channel is None:
         return "Kanal nicht gefunden", 404
     return render_template(
@@ -133,7 +138,7 @@ def edit_modal(channel_id: str):
 
 @bp.route(f"/ui/{KEY}/<channel_id>/delete")
 def delete_modal(channel_id: str):
-    channel = store.get(channel_id) or {}
+    channel = get_channel(channel_id) or {}
     return render_template(
         "partials/confirm_modal.html",
         description=channel.get("label", channel_id),
@@ -148,7 +153,7 @@ def delete_modal(channel_id: str):
 
 @bp.route(f"/ui/{KEY}/<channel_id>/toggle")
 def toggle_modal(channel_id: str):
-    channel = store.get(channel_id) or {}
+    channel = get_channel(channel_id) or {}
     enabled = request.args.get("enabled", "True")
     verb    = "deaktivieren" if enabled == "True" else "aktivieren"
     return render_template(
@@ -170,7 +175,7 @@ def create_apply():
     channel_id = f"ch-{uuid.uuid4().hex[:8]}"
     data = _parse_channel_form()
     try:
-        store.create(channel_id, data)
+        create_channel(channel_id, data)
     except KeyError:
         return "ID bereits vergeben", 409
     return render_template(f"{KEY}/partials/list.html", **_ctx())
@@ -180,7 +185,7 @@ def create_apply():
 def edit_apply(channel_id: str):
     data = _parse_channel_form()
     try:
-        store.update(channel_id, data)
+        update_channel(channel_id, data)
     except KeyError:
         return "Kanal nicht gefunden", 404
     return render_template(f"{KEY}/partials/list.html", **_ctx())
@@ -189,9 +194,8 @@ def edit_apply(channel_id: str):
 # ── Kanal-Test ────────────────────────────────────────────────────────────────
 
 @bp.route(f"/ui/{KEY}/<channel_id>/test", methods=["POST"])
-def test_channel(channel_id: str):
-    from .engine import test_channel as _test
-    ok, msg = _test(channel_id)
+def test_channel_view(channel_id: str):
+    ok, msg = _test_channel(channel_id)
     return _test_badge(ok, msg)
 
 
@@ -209,13 +213,13 @@ def create_job_modal():
         all_events=ALL_EVENTS,
         all_sources=module_sources,
         scheduler_sources=scheduler_sources,
-        all_channels=store.list(),
+        all_channels=list_channels(),
     )
 
 
 @bp.route(f"/ui/{KEY}/jobs/<job_id>/edit")
 def edit_job_modal(job_id: str):
-    job = job_store.get(job_id)
+    job = get_job(job_id)
     if job is None:
         return "Job nicht gefunden", 404
     module_sources, scheduler_sources = _split_sources()
@@ -223,18 +227,18 @@ def edit_job_modal(job_id: str):
         f"{KEY}/partials/job_modal.html",
         job=job,
         job_id=job_id,
-        title=f"Job bearbeiten",
+        title="Job bearbeiten",
         submit_url=f"/ui/{KEY}/jobs/{job_id}/update",
         all_events=ALL_EVENTS,
         all_sources=module_sources,
         scheduler_sources=scheduler_sources,
-        all_channels=store.list(),
+        all_channels=list_channels(),
     )
 
 
 @bp.route(f"/ui/{KEY}/jobs/<job_id>/delete")
 def delete_job_modal(job_id: str):
-    job = job_store.get(job_id) or {}
+    job = get_job(job_id) or {}
     return render_template(
         "partials/confirm_modal.html",
         description=job.get("label", job_id),
@@ -249,7 +253,7 @@ def delete_job_modal(job_id: str):
 
 @bp.route(f"/ui/{KEY}/jobs/<job_id>/toggle")
 def toggle_job_modal(job_id: str):
-    job     = job_store.get(job_id) or {}
+    job     = get_job(job_id) or {}
     enabled = request.args.get("enabled", "True")
     verb    = "deaktivieren" if enabled == "True" else "aktivieren"
     return render_template(
@@ -271,7 +275,7 @@ def create_job_apply():
     job_id = f"job-{uuid.uuid4().hex[:8]}"
     data   = _parse_job_form()
     try:
-        job_store.create(job_id, data)
+        create_job(job_id, data)
     except KeyError:
         return "ID bereits vergeben", 409
     return render_template(f"{KEY}/partials/list.html", **_ctx())
@@ -281,7 +285,7 @@ def create_job_apply():
 def edit_job_apply(job_id: str):
     data = _parse_job_form()
     try:
-        job_store.update(job_id, data)
+        update_job(job_id, data)
     except KeyError:
         return "Job nicht gefunden", 404
     return render_template(f"{KEY}/partials/list.html", **_ctx())
@@ -290,9 +294,8 @@ def edit_job_apply(job_id: str):
 # ── Job-Test ──────────────────────────────────────────────────────────────────
 
 @bp.route(f"/ui/{KEY}/jobs/<job_id>/test", methods=["POST"])
-def test_job(job_id: str):
-    from .engine import test_job as _test
-    ok, msg = _test(job_id)
+def test_job_view(job_id: str):
+    ok, msg = _test_job(job_id)
     return _test_badge(ok, msg)
 
 

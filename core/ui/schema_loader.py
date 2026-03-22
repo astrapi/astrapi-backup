@@ -35,6 +35,7 @@ def load_schema(schema_path: str) -> dict:
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
     return {
-        "id_field": data.get("id_field"),
-        "fields":   data.get("fields", []),
+        "id_field":    data.get("id_field"),
+        "fields":      data.get("fields", []),
+        "modal_width": data.get("modal_width", 620),
     }

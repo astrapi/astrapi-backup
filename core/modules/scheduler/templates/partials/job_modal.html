@@ -35,46 +35,28 @@
           {% endif %}
           hx-target="#main-content"
           hx-swap="innerHTML"
-          hx-on::before-request="if(!schedJobValidate(this)) event.preventDefault();"
-          hx-on::after-request="if(event.detail.successful){this.closest('.ds-modal-backdrop').remove()}"
           style="display:flex; flex-direction:column; gap:14px;">
 
-      <!-- Job-ID (nur Neu-Anlage) -->
-      {% if is_new %}
+      <!-- Name (volle Breite) -->
       <div class="form-group">
-        <label class="form-label">Job-ID <span class="required-mark">*</span></label>
-        <input type="text" name="job_id" class="form-input"
-               value="{{ job.job_id if job else '' }}"
-               placeholder="z.B. nightly_sync"
-               pattern="[a-z0-9_]+" title="Nur Kleinbuchstaben, Ziffern und Unterstriche"
+        <label class="form-label">Name <span class="required-mark">*</span></label>
+        <input type="text" name="label" class="form-input"
+               value="{{ job.label if job else '' }}"
+               placeholder="z.B. Nightly Sync"
                data-required="true">
         <span class="form-error"></span>
-        <span style="font-size:11px; color:var(--text-3); margin-top:3px; display:block;">
-          Nur Kleinbuchstaben, Ziffern und Unterstriche. Nicht mehr änderbar.
-        </span>
       </div>
-      {% endif %}
 
-      <!-- Label + Cron nebeneinander -->
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-        <div class="form-group">
-          <label class="form-label">Label <span class="required-mark">*</span></label>
-          <input type="text" name="label" class="form-input"
-                 value="{{ job.label if job else '' }}"
-                 placeholder="z.B. Nightly Sync"
-                 data-required="true">
-          <span class="form-error"></span>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Cron-Ausdruck <span class="required-mark">*</span></label>
-          <input type="text" name="cron" id="cron-input" class="form-input"
-                 value="{{ job.cron if job else '' }}"
-                 placeholder="0 2 * * *"
-                 data-required="true"
-                 autocomplete="off"
-                 oninput="cronUpdate(this.value)">
-          <span class="form-error"></span>
-        </div>
+      <!-- Cron-Ausdruck -->
+      <div class="form-group">
+        <label class="form-label">Cron-Ausdruck <span class="required-mark">*</span></label>
+        <input type="text" name="cron" id="cron-input" class="form-input"
+               value="{{ job.cron if job else '' }}"
+               placeholder="0 2 * * *"
+               data-required="true"
+               autocomplete="off"
+               oninput="cronUpdate(this.value)">
+        <span class="form-error"></span>
       </div>
 
       <!-- Cron-Helper -->
@@ -131,11 +113,11 @@
           {% endfor %}
         </div>
 
-        <!-- Verfügbare Aktionen -->
+        <!-- Verfügbare Aktionen (alphabetisch sortiert) -->
         <div style="display:flex; flex-wrap:wrap; gap:5px; align-items:center;">
           <span style="font-size:11px; color:var(--text-3);">Hinzufügen:</span>
           {% set sel = job.steps if job and job.steps else [] %}
-          {% for key, label in actions.items() %}
+          {% for key, label in actions.items() | sort(attribute='1') %}
           <button type="button"
                   id="sched-add-{{ key | replace('.', '_') }}"
                   class="btn btn-ghost btn-sm"
@@ -163,44 +145,11 @@
         {% endif %}
       </div>
 
-      <!-- Benachrichtigungen -->
-      {% set ns_on = job.notify_start if job else True %}
-      {% set ne_on = job.notify_end    if job else True %}
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-        <label class="toggle-field">
-          <input type="hidden" name="notify_start" value="0">
-          <input type="checkbox" name="notify_start" value="1" id="sched-notify-start"
-                 style="display:none;" {{ 'checked' if ns_on else '' }}>
-          <button type="button"
-                  class="toggle-switch {{ 'toggle-on' if ns_on else 'toggle-off' }}"
-                  onclick="
-                    var cb=document.getElementById('sched-notify-start');
-                    cb.checked=!cb.checked;
-                    this.classList.toggle('toggle-on',cb.checked);
-                    this.classList.toggle('toggle-off',!cb.checked);
-                    this.nextElementSibling.textContent=cb.checked?'Start-Notify an':'Start-Notify aus';
-                  "><span class="toggle-knob"></span></button>
-          <span class="toggle-field-label">{{ 'Start-Notify an' if ns_on else 'Start-Notify aus' }}</span>
-        </label>
-        <label class="toggle-field">
-          <input type="hidden" name="notify_end" value="0">
-          <input type="checkbox" name="notify_end" value="1" id="sched-notify-end"
-                 style="display:none;" {{ 'checked' if ne_on else '' }}>
-          <button type="button"
-                  class="toggle-switch {{ 'toggle-on' if ne_on else 'toggle-off' }}"
-                  onclick="
-                    var cb=document.getElementById('sched-notify-end');
-                    cb.checked=!cb.checked;
-                    this.classList.toggle('toggle-on',cb.checked);
-                    this.classList.toggle('toggle-off',!cb.checked);
-                    this.nextElementSibling.textContent=cb.checked?'Ende-Notify an':'Ende-Notify aus';
-                  "><span class="toggle-knob"></span></button>
-          <span class="toggle-field-label">{{ 'Ende-Notify an' if ne_on else 'Ende-Notify aus' }}</span>
-        </label>
-      </div>
+      <!-- Benachrichtigungen werden immer gesendet (Start + Ende) -->
 
       {{ modal_footer(enabled=job.enabled if job else False, enabled_id='sched-enabled',
-                      save_label='Erstellen' if is_new else 'Speichern') }}
+                      save_label='Erstellen' if is_new else 'Speichern',
+                      save_type='button', save_id='sched-job-save') }}
 
     </form>
   </div>
@@ -405,6 +354,18 @@
   // Initial-Erklärung beim Öffnen
   var initialCron = document.getElementById('cron-input');
   if (initialCron && initialCron.value) cronUpdate(initialCron.value);
+
+  // Speichern: Validierung + Schließen nach Erfolg
+  document.getElementById('sched-job-save').addEventListener('click', function () {
+    if (!schedJobValidate(form)) return;
+    htmx.trigger(form, 'submit');
+    form.addEventListener('htmx:afterRequest', function handler(e) {
+      if (e.detail.successful) {
+        document.getElementById('scheduler-job-modal').remove();
+      }
+      form.removeEventListener('htmx:afterRequest', handler);
+    });
+  });
 
 })();
 </script>

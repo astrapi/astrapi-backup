@@ -1,12 +1,12 @@
 """
-core/ui/storage.py  –  AstrapiFlaskUi V3  Zentrale Storage-Klasse
+core/ui/storage.py  –  SQLite-backed Key-Value Store für alle Module.
 
-Generischer YAML-backed Key-Value Store für alle Module.
-Daten werden in app/data/<collection>.yaml gespeichert.
+Daten werden in der zentralen SQLite-Datenbank in der Tabelle `kvstore`
+gespeichert (Werte als JSON).  Ersetzt den früheren YAML-basierten Speicher.
 
 Verwendung in einem Modul:
-    from core.ui.storage import YamlStorage
-    store = YamlStorage("hosts")          # → app/data/hosts.yaml
+    from core.ui.storage import SqliteStorage
+    store = SqliteStorage("hosts")
 
     store.list()                          # dict aller Einträge
     store.get("web-01")                   # einzelner Eintrag oder None
@@ -15,46 +15,64 @@ Verwendung in einem Modul:
     store.delete("web-01")               # löschen
     store.toggle("web-01")               # enabled-Flag umschalten
 
-Schreibzugriff ausschließlich über API-Endpunkte —
-nie direkt aus Templates oder anderen UI-Schichten aufrufen.
-
-Init (einmalig beim App-Start notwendig):
-    YamlStorage.init(app_root)
+Rückwärtskompatibilität: YamlStorage ist ein Alias für SqliteStorage.
+Bestehende YAML-Dateien werden beim ersten Zugriff automatisch migriert.
 """
 
 from __future__ import annotations
 
+import json
 import threading
 from pathlib import Path
 from typing import Any, Callable
-import yaml
 
 
 class StorageNotInitialized(RuntimeError):
     pass
 
 
-class YamlStorage:
-    """Generischer YAML-backed Storage für eine Collection.
+class SqliteStorage:
+    """SQLite-backed Storage für eine Collection.
 
     Args:
-        collection: Name der Collection (= Dateiname ohne .yaml)
-        seed_data:  Optionale Startdaten wenn die Datei noch nicht existiert
-
-    Beispiel:
-        store = YamlStorage("hosts", seed_data={"web-01": {...}})
+        collection: Name der Collection (= früherer YAML-Dateiname ohne .yaml)
+        seed_data:  Optionale Startdaten wenn die Collection leer ist
     """
 
+    # Wird von init() gesetzt; nur für YAML-Migration benötigt
     _DATA_DIR: Path | None = None
 
     @classmethod
     def init(cls, app_root: Path) -> None:
-        """Setzt das Datenverzeichnis. Muss vor der ersten Nutzung aufgerufen werden.
-
+        """Setzt das Datenverzeichnis und migriert alle vorhandenen YAML-Dateien.
         Wird automatisch von core/ui/app.py beim Start aufgerufen.
         """
         cls._DATA_DIR = app_root / "data"
         cls._DATA_DIR.mkdir(parents=True, exist_ok=True)
+        cls._migrate_all_yaml()
+
+    @classmethod
+    def _migrate_all_yaml(cls) -> None:
+        """Migriert alle *.yaml-Dateien im Datenverzeichnis nach SQLite."""
+        if cls._DATA_DIR is None:
+            return
+        for yaml_path in sorted(cls._DATA_DIR.glob("*.yaml")):
+            if yaml_path.name == "settings.yaml":
+                continue  # wird von settings_registry migriert
+            collection = yaml_path.stem
+            try:
+                from core.system.db import kv_list, kv_set_many
+                if kv_list(collection):
+                    yaml_path.rename(yaml_path.with_suffix(".yaml.migrated"))
+                    continue
+                import yaml as _yaml
+                raw = _yaml.safe_load(yaml_path.read_text(encoding="utf-8")) or {}
+                if raw:
+                    kv_set_many(collection, {k: json.dumps(v) for k, v in raw.items()})
+                yaml_path.rename(yaml_path.with_suffix(".yaml.migrated"))
+                print(f"[storage] Migriert: {collection} ({len(raw)} Einträge) → SQLite")
+            except Exception as e:
+                print(f"[storage] YAML-Migration fehlgeschlagen für {collection}: {e}")
 
     @classmethod
     def reset(cls) -> None:
@@ -65,17 +83,25 @@ class YamlStorage:
         self.collection = collection
         self._seed      = seed_data or {}
         self._lock      = threading.Lock()
+        self._migrated  = False
 
-    @property
-    def _path(self) -> Path:
-        if YamlStorage._DATA_DIR is None:
-            raise StorageNotInitialized(
-                "YamlStorage.init(app_root) wurde noch nicht aufgerufen. "
-                "Stelle sicher dass core.ui.create() vor der ersten Storage-Nutzung läuft."
-            )
-        return YamlStorage._DATA_DIR / f"{self.collection}.yaml"
+    # ── YAML-Migration ────────────────────────────────────────────
 
-    # ── Lesen ─────────────────────────────────────────────────────────────────
+    def _maybe_migrate(self) -> None:
+        """Fallback-Migration falls init() noch nicht aufgerufen wurde."""
+        if self._migrated or SqliteStorage._DATA_DIR is None:
+            self._migrated = True
+            return
+        # _migrate_all_yaml() wurde bereits in init() für alle YAMLs aufgerufen
+        self._migrated = True
+
+    # ── Lesen ─────────────────────────────────────────────────────
+
+    def _load_all(self) -> dict:
+        """Gibt alle Einträge der Collection als dict zurück."""
+        from core.system.db import kv_list
+        raw = kv_list(self.collection)
+        return {k: json.loads(v) for k, v in raw.items()}
 
     def list(
         self,
@@ -83,26 +109,13 @@ class YamlStorage:
         offset: int = 0,
         limit: int | None = None,
     ) -> dict:
-        """Gibt Einträge zurück, optional gefiltert und paginiert.
-
-        Args:
-            filter_fn: Optionale Funktion (key, value) -> bool.
-                       Nur Einträge für die True zurückgegeben wird erscheinen im Ergebnis.
-            offset:    Anzahl Einträge die übersprungen werden (Standard: 0).
-            limit:     Maximale Anzahl zurückgegebener Einträge (Standard: alle).
-
-        Beispiele:
-            store.list()                                        # alle
-            store.list(filter_fn=lambda k, v: v.get("enabled"))  # nur aktive
-            store.list(offset=20, limit=10)                    # Seite 3 à 10
-        """
+        self._maybe_migrate()
         with self._lock:
-            if not self._path.exists():
-                if self._seed:
-                    self._write(self._seed)
+            data = self._load_all()
+            if not data and self._seed:
+                from core.system.db import kv_set_many
+                kv_set_many(self.collection, {k: json.dumps(v) for k, v in self._seed.items()})
                 data = dict(self._seed)
-            else:
-                data = self._read()
 
         if filter_fn is not None:
             data = {k: v for k, v in data.items() if filter_fn(k, v)}
@@ -113,92 +126,83 @@ class YamlStorage:
         return data
 
     def get(self, key: str) -> dict | None:
-        """Gibt einen einzelnen Eintrag zurück, oder None wenn nicht gefunden."""
-        with self._lock:
-            return self._read().get(key)
+        self._maybe_migrate()
+        from core.system.db import kv_get
+        raw = kv_get(self.collection, key)
+        return json.loads(raw) if raw is not None else None
 
     def exists(self, key: str) -> bool:
-        with self._lock:
-            return key in self._read()
+        self._maybe_migrate()
+        from core.system.db import kv_get
+        return kv_get(self.collection, key) is not None
 
-    # ── Schreiben (nur über API-Endpunkte aufrufen) ───────────────────────────
+    # ── Schreiben ─────────────────────────────────────────────────
 
     def create(self, key: str, values: dict) -> dict:
-        """Legt einen neuen Eintrag an. Wirft KeyError wenn key bereits existiert."""
+        self._maybe_migrate()
         with self._lock:
-            data = self._read()
-            if key in data:
+            from core.system.db import kv_get, kv_set
+            if kv_get(self.collection, key) is not None:
                 raise KeyError(f"'{key}' existiert bereits in '{self.collection}'")
-            data[key] = values
-            self._write(data)
-            return data[key]
+            kv_set(self.collection, key, json.dumps(values))
+        return values
 
     def update(self, key: str, values: dict) -> dict:
-        """Aktualisiert einen vorhandenen Eintrag. Wirft KeyError wenn nicht gefunden."""
+        self._maybe_migrate()
         with self._lock:
-            data = self._read()
-            if key not in data:
+            from core.system.db import kv_get, kv_set
+            raw = kv_get(self.collection, key)
+            if raw is None:
                 raise KeyError(f"'{key}' nicht gefunden in '{self.collection}'")
-            data[key].update(values)
-            self._write(data)
-            return data[key]
+            existing = json.loads(raw)
+            existing.update(values)
+            kv_set(self.collection, key, json.dumps(existing))
+        return existing
 
     def upsert(self, key: str, values: dict) -> dict:
-        """Legt an oder aktualisiert – create + update kombiniert."""
+        self._maybe_migrate()
         with self._lock:
-            data = self._read()
-            if key in data:
-                data[key].update(values)
+            from core.system.db import kv_get, kv_set
+            raw = kv_get(self.collection, key)
+            if raw is not None:
+                existing = json.loads(raw)
+                existing.update(values)
             else:
-                data[key] = values
-            self._write(data)
-            return data[key]
+                existing = values
+            kv_set(self.collection, key, json.dumps(existing))
+        return existing
 
     def delete(self, key: str) -> None:
-        """Löscht einen Eintrag. Wirft KeyError wenn nicht gefunden."""
+        self._maybe_migrate()
         with self._lock:
-            data = self._read()
-            if key not in data:
+            from core.system.db import kv_get, kv_delete
+            if kv_get(self.collection, key) is None:
                 raise KeyError(f"'{key}' nicht gefunden in '{self.collection}'")
-            del data[key]
-            self._write(data)
+            kv_delete(self.collection, key)
 
     def toggle(self, key: str, field: str = "enabled", default: bool = True) -> bool:
-        """Schaltet ein Boolean-Feld um. Gibt den neuen Wert zurück.
-
-        ``default`` bestimmt den angenommenen Zustand wenn das Feld fehlt:
-          True  – für Datensätze die per Default aktiv sind (Hosts, Tasks, …)
-          False – für Automatisierungseinträge die explizit aktiviert werden müssen
-        """
+        self._maybe_migrate()
         with self._lock:
-            data = self._read()
-            if key not in data:
+            from core.system.db import kv_get, kv_set
+            raw = kv_get(self.collection, key)
+            if raw is None:
                 raise KeyError(f"'{key}' nicht gefunden in '{self.collection}'")
-            current = bool(data[key].get(field, default))
-            data[key][field] = not current
-            self._write(data)
-            return data[key][field]
-
-    # ── Interne Helfer ────────────────────────────────────────────────────────
-
-    def _read(self) -> dict:
-        if not self._path.exists():
-            return {}
-        with open(self._path, encoding="utf-8") as f:
-            return yaml.safe_load(f) or {}
-
-    def _write(self, data: dict) -> None:
-        with open(self._path, "w", encoding="utf-8") as f:
-            yaml.dump(data, f, allow_unicode=True, default_flow_style=False)
+            data = json.loads(raw)
+            current = bool(data.get(field, default))
+            data[field] = not current
+            kv_set(self.collection, key, json.dumps(data))
+        return data[field]
 
     def __repr__(self) -> str:
-        return f"YamlStorage(collection={self.collection!r}, path={self._path})"
+        return f"SqliteStorage(collection={self.collection!r})"
+
+
+# Rückwärtskompatibilität
+YamlStorage = SqliteStorage
 
 
 def init(app_root: Path) -> None:
-    """Setzt das Datenverzeichnis. Muss vor der ersten Nutzung aufgerufen werden.
-
+    """Setzt das Datenverzeichnis für YAML-Migration.
     Wird automatisch von core/ui/app.py beim Start aufgerufen.
-    Shim für YamlStorage.init(app_root).
     """
-    YamlStorage.init(app_root)
+    SqliteStorage.init(app_root)
