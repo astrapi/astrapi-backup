@@ -17,7 +17,7 @@ from core.system.db import (
     _conn,
     get_setting, set_setting,
     register_table, create_all_registered_tables,
-    load_config, get_item, save_item, delete_item, next_item_id, get_entry,
+    load_config, get_item, save_item, delete_item, next_item_id, get_entry, patch_item,
 )
 from core.system.activity_log import (
     log_activity, update_activity_log,
@@ -37,17 +37,19 @@ _APP_TABLES = {
     "borg": {
         "ddl": """
             CREATE TABLE IF NOT EXISTS borg (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                enabled     INTEGER NOT NULL DEFAULT 1,
-                description TEXT    NOT NULL DEFAULT '',
-                source_host TEXT    NOT NULL DEFAULT '',
-                source_path TEXT    NOT NULL DEFAULT '',
-                target_host TEXT    NOT NULL DEFAULT '',
-                target_path TEXT    NOT NULL DEFAULT '',
-                ssh_user    TEXT,
-                pre_hooks   TEXT,
-                post_hooks  TEXT,
-                exclude     TEXT
+                id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                enabled          INTEGER NOT NULL DEFAULT 1,
+                description      TEXT    NOT NULL DEFAULT '',
+                source_remote_id TEXT,
+                source_host      TEXT    NOT NULL DEFAULT '',
+                source_path      TEXT    NOT NULL DEFAULT '',
+                target_remote_id TEXT,
+                target_host      TEXT    NOT NULL DEFAULT '',
+                target_path      TEXT    NOT NULL DEFAULT '',
+                ssh_user         TEXT,
+                pre_hooks        TEXT,
+                post_hooks       TEXT,
+                exclude          TEXT
             )""",
         "list_fields": ["pre_hooks", "post_hooks", "exclude"],
         "col_in":  {"pre_hooks": "pre", "post_hooks": "post"},
@@ -57,13 +59,15 @@ _APP_TABLES = {
     "rsync": {
         "ddl": """
             CREATE TABLE IF NOT EXISTS rsync (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                enabled     INTEGER NOT NULL DEFAULT 1,
-                description TEXT    NOT NULL DEFAULT '',
-                source_host TEXT    NOT NULL DEFAULT '',
-                source_path TEXT    NOT NULL DEFAULT '',
-                target_host TEXT    NOT NULL DEFAULT '',
-                target_path TEXT    NOT NULL DEFAULT ''
+                id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                enabled          INTEGER NOT NULL DEFAULT 1,
+                description      TEXT    NOT NULL DEFAULT '',
+                source_remote_id TEXT,
+                source_host      TEXT    NOT NULL DEFAULT '',
+                source_path      TEXT    NOT NULL DEFAULT '',
+                target_remote_id TEXT,
+                target_host      TEXT    NOT NULL DEFAULT '',
+                target_path      TEXT    NOT NULL DEFAULT ''
             )""",
     },
 
@@ -74,6 +78,7 @@ _APP_TABLES = {
                 vmid        INTEGER NOT NULL,
                 description TEXT    NOT NULL DEFAULT '',
                 node        TEXT    NOT NULL DEFAULT '',
+                remote_id   TEXT,
                 enabled     INTEGER NOT NULL DEFAULT 1
             )""",
     },
@@ -86,6 +91,7 @@ _APP_TABLES = {
                 description    TEXT    NOT NULL DEFAULT '',
                 enabled        INTEGER NOT NULL DEFAULT 1,
                 namespace      TEXT    NOT NULL DEFAULT 'host',
+                remote_id      TEXT,
                 extra_sources  TEXT
             )""",
         "list_fields": ["extra_sources"],
@@ -100,6 +106,7 @@ _APP_TABLES = {
                 job         TEXT    NOT NULL DEFAULT '',
                 description TEXT    NOT NULL DEFAULT '',
                 host        TEXT    NOT NULL DEFAULT '',
+                remote_id   TEXT,
                 type        TEXT    NOT NULL DEFAULT '',
                 enabled     INTEGER NOT NULL DEFAULT 1
             )""",
@@ -158,12 +165,45 @@ def _migrate_proxmox_hosts_columns() -> None:
         print("[storage] Migration: proxmox_hosts.namespace hinzugefügt")
 
 
+def _migrate_remote_id_columns() -> None:
+    """Fügt remote_id / source_remote_id / target_remote_id zu bestehenden Tabellen hinzu."""
+    con = _conn()
+    migrations = [
+        ("borg",          "source_remote_id", "ALTER TABLE borg          ADD COLUMN source_remote_id TEXT"),
+        ("borg",          "target_remote_id", "ALTER TABLE borg          ADD COLUMN target_remote_id TEXT"),
+        ("rsync",         "source_remote_id", "ALTER TABLE rsync         ADD COLUMN source_remote_id TEXT"),
+        ("rsync",         "target_remote_id", "ALTER TABLE rsync         ADD COLUMN target_remote_id TEXT"),
+        ("proxmox_jobs",  "remote_id",        "ALTER TABLE proxmox_jobs  ADD COLUMN remote_id        TEXT"),
+        ("proxmox_lxc",   "remote_id",        "ALTER TABLE proxmox_lxc   ADD COLUMN remote_id        TEXT"),
+        ("proxmox_hosts", "remote_id",        "ALTER TABLE proxmox_hosts ADD COLUMN remote_id        TEXT"),
+    ]
+    for table, col, sql in migrations:
+        existing = {row[1] for row in con.execute(f"PRAGMA table_info({table})").fetchall()}
+        if col not in existing:
+            con.execute(sql)
+    con.commit()
+
+
+def _migrate_last_run_columns() -> None:
+    """Fügt last_run und last_status TEXT zu allen Job-Tabellen hinzu."""
+    con = _conn()
+    for table in ("borg", "rsync", "proxmox_jobs", "proxmox_lxc", "proxmox_hosts"):
+        existing = {row[1] for row in con.execute(f"PRAGMA table_info({table})").fetchall()}
+        if "last_run" not in existing:
+            con.execute(f"ALTER TABLE {table} ADD COLUMN last_run TEXT")
+        if "last_status" not in existing:
+            con.execute(f"ALTER TABLE {table} ADD COLUMN last_status TEXT")
+    con.commit()
+
+
 def init_db() -> None:
     _configure_db(DB_PATH)
     _register_app_tables()
     create_all_registered_tables()
     _migrate_remotes_columns()
     _migrate_proxmox_hosts_columns()
+    _migrate_remote_id_columns()
+    _migrate_last_run_columns()
     _migrate_all_yaml()
 
 

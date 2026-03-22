@@ -64,7 +64,32 @@ def _col_widths(module_key: str) -> str:
     return settings_get(f"ui.col_widths.{module_key}", "{}")
 
 
+def _resolve_remote_host(remote_id) -> str:
+    if not remote_id:
+        return "—"
+    try:
+        from core.modules.remotes.engine import get_remote
+        r = get_remote(remote_id)
+        return r.get("host") or "—" if r else "—"
+    except Exception:
+        return "—"
+
+
+def _last_run_status(module: str, item_id) -> str | None:
+    try:
+        from core.system.activity_log import list_runs_for_item
+        runs = list_runs_for_item(module, str(item_id), limit=5)
+        for run in runs:
+            if run.get("status") != "running":
+                return run.get("status")
+    except Exception:
+        pass
+    return None
+
+
 templates.env.globals["module_label"]        = _module_label
 templates.env.globals["module_has_settings"] = _module_has_settings
 templates.env.globals["module_card_actions"] = _module_card_actions
 templates.env.globals["col_widths"]          = _col_widths
+templates.env.globals["resolve_remote_host"] = _resolve_remote_host
+templates.env.globals["last_run_status"]     = _last_run_status

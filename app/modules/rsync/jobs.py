@@ -3,10 +3,41 @@ import subprocess
 from core.system.logger import log, log_context
 from core.system.reachability import require_hosts
 from core.system.cmd import run_cmd, build_connection_string, is_local
-from api.storage import load_config as _load_config, get_entry as _get_entry
+from api.storage import load_config as _load_config, get_entry as _get_entry, patch_item as _patch_item
 from core.ui.settings_registry import get_module as _get_module_setting, get as _get_global_setting
 
 def _get_config(): return _load_config("rsync")
+
+
+def _get_host_info(entry: dict, host_type: str = "source") -> tuple[str, str, int]:
+    """
+    Resolve host/ssh_user/ssh_port from Remote Device OR legacy fields.
+
+    Tries:
+    1. New way: {host_type}_remote_id → Remote Device
+    2. Old way: {host_type}_host field
+    """
+    remote_id_key = f"{host_type}_remote_id"
+    host_key = f"{host_type}_host"
+
+    if remote_id_key in entry and entry[remote_id_key]:
+        from core.modules.remotes.engine import get_remote_ssh
+        try:
+            return get_remote_ssh(entry[remote_id_key])
+        except ValueError as e:
+            log("ERROR", str(e))
+            raise
+
+    elif host_key in entry and entry[host_key]:
+        host = entry[host_key]
+        ssh_user = entry.get("ssh_user")
+        return (host, ssh_user, 22)
+
+    else:
+        raise ValueError(
+            f"Job missing: neither '{remote_id_key}' nor '{host_key}' configured"
+        )
+
 
 def preview(job_id) -> list[dict]:
     """Gibt den Befehl zurück, der bei run_single ausgeführt würde."""
@@ -14,13 +45,22 @@ def preview(job_id) -> list[dict]:
     if entry is None:
         return []
 
-    source_host = entry.get("source_host", "")
-    source_path = entry.get("source_path", "")
-    target_host = entry.get("target_host", "")
-    target_path = entry.get("target_path", "")
-    if not source_host or not source_path or not target_host or not target_path:
+    try:
+        source_host, ssh_user, ssh_port = _get_host_info(entry, "source")
+    except ValueError:
         return []
-    connection  = build_connection_string(source_host)
+
+    try:
+        target_host, target_ssh_user, target_ssh_port = _get_host_info(entry, "target")
+    except ValueError:
+        return []
+
+    source_path = entry.get("source_path", "")
+    target_path = entry.get("target_path", "")
+    if not source_path or not target_path:
+        return []
+
+    connection = build_connection_string(source_host, ssh_user)
 
     if is_local(target_host) or target_host == source_host:
         target = target_path
@@ -38,7 +78,7 @@ def preview(job_id) -> list[dict]:
         cmd_parts.append("--delete")
     if rsync_compress:
         cmd_parts.append("-z")
-    cmd_str   = " ".join(cmd_parts)
+    cmd_str = " ".join(cmd_parts)
 
     if connection == "local":
         full_cmd = cmd_str
@@ -47,9 +87,11 @@ def preview(job_id) -> list[dict]:
 
     return [{"label": "Rsync", "cmd": full_cmd}]
 
+
 def run():
     from core.modules.scheduler.job_runner import run_all
     run_all("rsync", _get_config(), run_single)
+
 
 def run_single(job_id, entry=None):
     if entry is None:
@@ -59,18 +101,30 @@ def run_single(job_id, entry=None):
         return
     with log_context("rsync", job_id):
         log("INFO", f"=== Rsync '{entry.get('description', job_id)}' gestartet ===")
-        hosts = [h for h in {entry.get("source_host"), entry.get("target_host")}
-                 if h and not is_local(h)]
+
+        try:
+            source_host, ssh_user, ssh_port = _get_host_info(entry, "source")
+        except ValueError as e:
+            log("ERROR", str(e))
+            return
+
+        try:
+            target_host, target_ssh_user, target_ssh_port = _get_host_info(entry, "target")
+        except ValueError as e:
+            log("ERROR", str(e))
+            return
+
+        hosts = [(h, u) for h, u in [(source_host, ssh_user), (target_host, target_ssh_user)] if h and not is_local(h)]
         if not require_hosts(hosts):
             return
-        _rsync(entry)
+        _rsync(entry, source_host, ssh_user, target_host)
+        from datetime import datetime
+        _patch_item("rsync", job_id, last_run=datetime.now().strftime("%d.%m.%Y %H:%M"))
         log("INFO", f"=== Rsync '{entry.get('description', job_id)}' abgeschlossen ===")
 
 
-def _rsync(entry):
-    source_host = entry.get("source_host", "")
+def _rsync(entry, source_host: str, ssh_user: str, target_host: str):
     source_path = entry.get("source_path", "")
-    target_host = entry.get("target_host", "")
     target_path = entry.get("target_path", "")
 
     if not source_host or not target_host:
@@ -84,7 +138,7 @@ def _rsync(entry):
         return
 
     # rsync wird immer auf dem Source-Host ausgeführt
-    connection = build_connection_string(source_host)
+    connection = build_connection_string(source_host, ssh_user)
 
     # SSH ConnectTimeout
     ssh_connect_timeout = _get_global_setting("ssh_connect_timeout", 10)
@@ -99,16 +153,27 @@ def _rsync(entry):
     else:
         target = f"{target_host}:{target_path}"
 
-    cmd = ["rsync", "-av", "--itemize-changes", source_path, target]
+    src_label = source_path if connection == "local" else f"{connection}:{source_path}"
+    log("INFO", f"Quelle : {src_label}")
+    log("INFO", f"Ziel   : {target}")
+
+    cmd = ["rsync", "-av", "--itemize-changes", "--stats", source_path, target]
     if rsync_delete:
         cmd.append("--delete")
     if rsync_compress:
         cmd.append("-z")
 
+    log("INFO", f"Befehl : {' '.join(cmd)}")
+
     try:
-        run_cmd(cmd, connection, ssh_connect_timeout=ssh_connect_timeout)
+        result = run_cmd(cmd, connection, ssh_connect_timeout=ssh_connect_timeout)
+        for line in (result.stdout or "").splitlines():
+            if line.strip():
+                log("INFO", line)
         log("INFO", "Rsync erfolgreich.")
     except subprocess.CalledProcessError as e:
         log("WARNING", "Rsync fehlgeschlagen:")
+        for line in (e.stdout or "").splitlines():
+            if line.strip():
+                log("INFO", line)
         log("ERROR", e.stderr.strip() if e.stderr else "Unbekannter Fehler.")
-

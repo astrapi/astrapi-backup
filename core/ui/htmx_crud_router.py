@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Callable
 
 from fastapi import APIRouter, HTTPException, Request, Header, Response
+from fastapi.responses import HTMLResponse
 
 
 def make_htmx_crud_router(
@@ -57,7 +58,7 @@ def make_htmx_crud_router(
         from api.templates import templates
         from api.storage import load_config
         from api.routers.run import get_running
-        return templates.TemplateResponse(
+        content = templates.TemplateResponse(
             "partials/list_wrapper_inner.html",
             {
                 "request":          request,
@@ -68,7 +69,11 @@ def make_htmx_crud_router(
                 "loading_id":       f"{key}-loading",
                 "running":          get_running(),
             },
-        )
+        ).body.decode()
+        return HTMLResponse(content, headers={
+            "HX-Retarget": f"#tab-{key}",
+            "HX-Reswap":   "innerHTML",
+        })
 
     def _clean(data: dict) -> dict:
         return {

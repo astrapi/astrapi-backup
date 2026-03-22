@@ -163,6 +163,27 @@ def create(
         def col_widths(module_key: str) -> str:
             return settings_get(f"ui.col_widths.{module_key}", "{}")
 
+        def resolve_remote_host(remote_id) -> str:
+            if not remote_id:
+                return "—"
+            try:
+                from core.modules.remotes.engine import get_remote
+                r = get_remote(remote_id)
+                return r.get("host") or "—" if r else "—"
+            except Exception:
+                return "—"
+
+        def last_run_status(module: str, item_id) -> str | None:
+            try:
+                from core.system.activity_log import list_runs_for_item
+                runs = list_runs_for_item(module, str(item_id), limit=5)
+                for run in runs:
+                    if run.get("status") != "running":
+                        return run.get("status")
+            except Exception:
+                pass
+            return None
+
         from core.ui.settings_registry import get as _srget
         _light = _srget("LIGHT_MODE", _light_default)
         return {
@@ -180,6 +201,8 @@ def create(
             "module_label":         module_label,
             "module_card_actions":  module_card_actions,
             "col_widths":           col_widths,
+            "resolve_remote_host":  resolve_remote_host,
+            "last_run_status":      last_run_status,
         }
 
     # ── Navigation aus Modulen + optionaler items.yaml ────────────────────────
@@ -374,10 +397,11 @@ def _register_module_settings_routes(app: Flask, modules: list) -> None:
             for field in mod.settings_schema
             if "key" in field
         }
+        from core.ui.field_resolver import resolve_options_endpoint
         return render_template(
             "partials/settings_modal.html",
             mod=mod,
-            schema=mod.settings_schema,
+            schema=resolve_options_endpoint(mod.settings_schema),
             values=current_values,
         )
 

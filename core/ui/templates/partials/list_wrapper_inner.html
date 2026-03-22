@@ -29,10 +29,6 @@
   </div>
   <div class="page-header-actions">
     {% if cfg and has_run_buttons | default(True) %}
-    {{ ui.run_all_button(module=module, container_id=container_id) }}
-    {{ ui.run_debug_all_button(module=module, container_id=container_id) }}
-    {{ ui.enable_all_button(module=module, container_id=container_id) }}
-    {{ ui.disable_all_button(module=module, container_id=container_id) }}
     {% endif %}
 
     {{ ui.add_button(module=module, container_id=container_id, loading_id=loading_id) }}
@@ -78,15 +74,16 @@
       <!-- Card Header -->
       <div class="card-header">
         <div class="card-title">
-          {{ item_data.description or item_name }}
+          {{ item_data.description or item_data.host or item_name }}
           {% if is_running %}
-            <span class="run-badge">{{ 'Debug' if run_mode == 'debug' else 'läuft' }}</span>
+            <span class="run-badge">läuft</span>
           {% endif %}
         </div>
         {% if has_toggle | default(True) %}
+        {% set _display_name = item_data.description or item_data.host or item_name %}
         {{ ui.toggle_switch(module=module, item=item_name, container_id=container_id,
                             loading_id=loading_id, enabled=item_data.enabled,
-                            description=item_data.description) }}
+                            description=_display_name) }}
         {% endif %}
       </div>
 
@@ -107,7 +104,7 @@
         </div>
         <div class="card-footer-actions">
           {{ ui.edit_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id) }}
-          {{ ui.delete_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id, description=item_data.description) }}
+          {{ ui.delete_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id, description=item_data.description or item_data.host or item_name) }}
         </div>
       </div>
 
@@ -129,15 +126,18 @@
 
 {# ── Tabellen-Ansicht ─────────────────────────────────────────────────────── #}
 <div class="ds-list-table-wrap" x-show="view === 'list'" style="display:none;">
+<div class="ds-list-table-wrap-scroll">
 {% if cfg %}
   {% set _card_actions = module_card_actions(module) %}
-  {% set _actions_width = (_card_actions|length + 2) * 34 %}
+  {% set _run_actions = _card_actions | selectattr('style', 'equalto', 'run') | list %}
+  {% set _menu_actions = _card_actions | rejectattr('style', 'equalto', 'run') | list %}
+  {% set _actions_width = (_run_actions|length + 2) * 34 + 4 %}
   {% set _name_fixed = {'rsync': false} %}
   <table class="ds-list-table" data-module="{{ module }}" data-col-widths="{{ col_widths(module) | e }}">
     <thead>
       <tr>
         <th class="col-toggle"></th>
-        <th class="col-name"{% if _name_fixed.get(module, true) %} style="width:250px"{% endif %}>Name</th>
+        <th class="col-name sortable"{% if _name_fixed.get(module, true) %} style="width:250px"{% endif %}>Name</th>
         {% include module + '/partials/list_header.html' ignore missing %}
         <th class="col-actions" style="width:{{ _actions_width }}px"></th>
       </tr>
@@ -153,21 +153,31 @@
             {% if has_toggle | default(True) %}
             {{ ui.toggle_switch(module=module, item=item_name, container_id=container_id,
                                 loading_id=loading_id, enabled=item_data.enabled,
-                                description=item_data.description) }}
+                                description=item_data.description or item_data.host or item_name) }}
             {% endif %}
           </td>
           <td class="col-name">
-            {{ item_data.description or item_name }}
+            {{ item_data.description or item_data.host or item_name }}
             {% if is_running %}
-              <span class="run-badge">{{ 'Debug' if run_mode == 'debug' else 'läuft' }}</span>
+              <span class="run-badge">läuft</span>
             {% endif %}
           </td>
           {% include module + '/partials/list_row.html' ignore missing %}
           <td class="col-actions">
             <div class="table-actions">
-              {% for action in _card_actions %}{{ ui.card_action_button(action, item_name, item_data, container_id, loading_id) }}{% endfor %}
+              {% for action in _run_actions %}{{ ui.card_action_button(action, item_name, item_data, container_id, loading_id) }}{% endfor %}
               {{ ui.edit_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id) }}
-              {{ ui.delete_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id, description=item_data.description) }}
+              <div class="table-ctx-menu"
+                   x-data="{open: false, pos: {top:0, right:0}, toggle(btn){ const r=btn.getBoundingClientRect(); this.pos={top: r.bottom+2, right: window.innerWidth-r.right}; this.open=!this.open; }}"
+                   @click.outside="open = false">
+                <button type="button" class="btn-icon" @click="toggle($el)" title="Weitere Aktionen" :class="{'active': open}">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+                </button>
+                <div class="table-ctx-dropdown" x-show="open" :style="'top:'+pos.top+'px;right:'+pos.right+'px'" @click="open = false">
+                  {% for action in _menu_actions %}{{ ui.card_action_button(action, item_name, item_data, container_id, loading_id) }}{% endfor %}
+                  {{ ui.delete_button(module=module, item=item_name, container_id=container_id, loading_id=loading_id, description=item_data.description or item_data.host or item_name) }}
+                </div>
+              </div>
             </div>
           </td>
         </tr>
@@ -186,6 +196,7 @@
     <div class="empty-state-sub">Erstelle den ersten Eintrag mit „Neu"</div>
   </div>
 {% endif %}
+</div>{# /ds-list-table-wrap-scroll #}
 </div>
 
 </div>{# /x-data #}

@@ -563,22 +563,24 @@ input,select,textarea { font-family:var(--font); }
 .ds-list-table-wrap {
   border:1px solid var(--border-s);
   border-radius:var(--rad);
-  overflow-x:auto;
+  overflow:hidden;
+  background:var(--card);
+  box-shadow:var(--sh);
 }
+.ds-list-table-wrap-scroll { overflow-x:auto; }
 .ds-list-table {
   width:100%; border-collapse:collapse;
   table-layout:fixed;
   min-width:520px;
-  font-size:13px;
+  font-size:12.5px;
 }
 .ds-list-table thead tr {
-  background:var(--card);
   border-bottom:1px solid var(--border-s);
 }
 .ds-list-table thead th {
-  padding:8px 12px;
+  padding:9px 14px;
   text-align:left; font-weight:600;
-  font-size:11px; text-transform:uppercase; letter-spacing:0.06em;
+  font-size:11px; text-transform:uppercase; letter-spacing:0.05em;
   color:var(--text-3); white-space:nowrap;
 }
 .ds-list-table tbody tr {
@@ -591,28 +593,31 @@ input,select,textarea { font-family:var(--font); }
 .ds-list-table tbody tr.on:hover  { background:var(--card-hi); }
 .ds-list-table tbody tr.off:hover { background:var(--card-off-hi); }
 .ds-list-table tbody td {
-  padding:7px 12px; vertical-align:middle; text-align:left;
-  border-right:1px solid var(--border-s);
+  padding:8px 14px; vertical-align:middle; text-align:left;
 }
-.ds-list-table tbody td:last-child { border-right:none; }
 .ds-list-table tbody tr.on  td { color:var(--text); }
 .ds-list-table tbody tr.off td { color:var(--text-off); }
 
 .ds-list-table .col-toggle  { width:66px; padding-left:14px; }
 .ds-list-table .col-name    { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:500; }
-.ds-list-table thead th     { position:relative; border-right:1px solid var(--border-s); }
-.ds-list-table thead th:last-child { border-right:none; }
+.ds-list-table thead th     { position:relative; }
 .col-resize-handle {
   position:absolute; top:0; right:0;
   width:8px; height:100%;
   cursor:col-resize; user-select:none;
 }
 .col-resize-handle:hover, .col-resize-handle.resizing { border-right:2px solid var(--accent, var(--border)); }
-.ds-list-table .col-actions {
-  padding:0;
-  border-left:1px solid var(--border-s);
+.ds-list-table thead th.sortable {
+  cursor:pointer; user-select:none; padding-right:22px;
 }
-.ds-list-table thead .col-actions { border-left:none; }
+.ds-list-table thead th.sortable::after {
+  content:'⇅'; position:absolute; right:10px; top:50%; transform:translateY(-50%);
+  font-size:11px; opacity:0.28; pointer-events:none;
+}
+.ds-list-table thead th.sort-asc::after  { content:'▲'; opacity:0.75; font-size:9px; }
+.ds-list-table thead th.sort-desc::after { content:'▼'; opacity:0.75; font-size:9px; }
+.ds-list-table thead th.sortable:hover::after { opacity:0.55; }
+.ds-list-table .col-actions { padding:0; }
 .ds-list-table .table-actions {
   display:flex; align-items:center; justify-content:flex-end; gap:2px;
   padding:0 10px;
@@ -624,14 +629,28 @@ input,select,textarea { font-family:var(--font); }
 .ds-list-table .col-actions .btn-icon:hover { background:var(--sel); border-color:var(--border-s); }
 .ds-list-table .col-actions .btn-icon svg { width:16px !important; height:16px !important; }
 .ds-list-table .empty-state { padding:40px; }
+.status-badge {
+  display:inline-block; padding:1px 7px; border-radius:20px;
+  font-size:11px; font-weight:600; letter-spacing:0.02em; white-space:nowrap;
+}
+.status-ok  { background:var(--ok-bg,  #d1fae5); color:var(--ok,  #065f46); }
+.status-err { background:var(--err-bg, #fee2e2); color:var(--err, #991b1b); }
+:root:not(.light-mode) .status-ok  { background:#052e16; color:#4ade80; }
+:root:not(.light-mode) .status-err { background:#2d0a0a; color:#f87171; }
+.table-ctx-menu { position:relative; }
+.table-ctx-dropdown {
+  position:fixed;
+  background:var(--card); border:1px solid var(--border-s);
+  border-radius:var(--rad); box-shadow:var(--sh);
+  display:flex; flex-direction:row; gap:2px; padding:4px;
+  z-index:200; white-space:nowrap;
+}
+.ds-list-table .col-actions .btn-icon.active { background:var(--sel); border-color:var(--border-s); }
 
 /* Dark-mode: Tabellen-Trennlinien auf dunklen Hintergründen sichtbarer machen */
-:root .ds-list-table-wrap                  { border-color: rgba(255,255,255,0.13); }
-:root .ds-list-table thead tr              { border-bottom-color: rgba(255,255,255,0.13); }
-:root .ds-list-table thead th              { border-right-color: rgba(255,255,255,0.13); }
-:root .ds-list-table tbody tr              { border-bottom-color: rgba(255,255,255,0.13); }
-:root .ds-list-table tbody td              { border-right-color: rgba(255,255,255,0.13); }
-:root .ds-list-table .col-actions          { border-left-color: rgba(255,255,255,0.13); }
+:root:not(.light-mode) .ds-list-table-wrap       { border-color: rgba(255,255,255,0.13); }
+:root:not(.light-mode) .ds-list-table thead tr   { border-bottom-color: rgba(255,255,255,0.13); }
+:root:not(.light-mode) .ds-list-table tbody tr   { border-bottom-color: rgba(255,255,255,0.13); }
 
 /* ════════════════════════ VIEW TOGGLE ═══════════════════════════ */
 .view-toggle {
