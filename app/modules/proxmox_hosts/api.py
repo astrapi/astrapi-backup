@@ -9,7 +9,11 @@ _SCHEMA_PATH = Path(__file__).parent / "schema.yaml"
 
 
 def _derive_description(payload: dict) -> dict:
-    payload["description"] = payload.get("host", "")
+    remote_id = payload.get("remote_id")
+    if remote_id:
+        from core.modules.remotes.engine import get_remote
+        r = get_remote(remote_id)
+        payload["description"] = r.get("description", "") if r else ""
     return payload
 
 

@@ -2,15 +2,6 @@ modal_width: 720
 
 fields:
   - type: section
-    label: Nodes
-    cols: 1
-
-  - key: nodes
-    label: Verfügbare Nodes
-    type: list
-    description: "Proxmox-Nodes die als Auswahl in den Jobeinstellungen erscheinen (z.B. pve01)"
-
-  - type: section
     label: vzdump
     cols: 2
 
@@ -41,28 +32,3 @@ fields:
     default: "{{guestname}}"
     description: Template für die Backup-Notiz in Proxmox (--notes-template)
 
-  - key: fleecing
-    label: Fleecing
-    type: checkbox
-    checkbox_label: Fleecing aktivieren (--fleecing 1)
-    default: false
-    description: Schnelleres Snapshot-Backup mit Copy-on-Write (erfordert zusätzlichen Storage)
-
-  - type: section
-    label: PBS
-    cols: 2
-
-  - key: pbs_password
-    label: PBS Passwort / Token-Secret
-    type: password
-    placeholder: "••••••••"
-    description: Passwort oder API-Token-Secret für die PBS-Authentifizierung
-    default: ""
-
-  - key: pbs_fingerprint
-    label: PBS Fingerprint
-    type: text
-    placeholder: "AB:CD:EF:..."
-    description: TLS-Fingerprint des PBS-Servers
-    mono: true
-    default: ""

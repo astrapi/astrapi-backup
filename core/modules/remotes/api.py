@@ -115,7 +115,7 @@ def shutdown_item(request: Request, item_id: str, hx_request: str | None = Heade
     if item is None:
         raise HTTPException(404, "Item not found")
     host     = item.get("host", "")
-    ssh_user = item.get("ssh_user") or "root"
+    ssh_user = item.get("ssh_user")
     if not host:
         raise HTTPException(400, "Kein Hostname konfiguriert")
     try:
@@ -131,3 +131,10 @@ def shutdown_item(request: Request, item_id: str, hx_request: str | None = Heade
     if hx_request:
         return _list_response(request)
     return {"status": "ok", "host": host}
+
+
+@router.get("/for-select")
+def remotes_for_select():
+    """Returns all enabled remotes for job form dropdowns"""
+    from .engine import get_all_remotes_for_select
+    return {"options": get_all_remotes_for_select()}

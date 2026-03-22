@@ -21,10 +21,11 @@ fields:
       - sync
     column: 1
     row: 2
-  - name: host
-    type: text
-    label: Host
-    max: 50
+  - name: remote_id
+    type: select
+    label: Proxmox Host
+    options_endpoint: /api/remotes/for-select
+    required: true
     column: 2
     row: 2
   - name: job

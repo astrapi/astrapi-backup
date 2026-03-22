@@ -20,6 +20,7 @@ fields:
   - name: node
     type: select
     label: Node
-    options_from_settings: nodes
+    options_endpoint: /api/remotes/for-select
     column: 2
     row: 2
+    required: true

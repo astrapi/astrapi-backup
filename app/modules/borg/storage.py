@@ -78,6 +78,55 @@ def save_archive_cache(item_id: str, archives: list, file_map: dict) -> None:
     con.commit()
 
 
+def get_cached_archive_names(item_id: str) -> set[str]:
+    """Gibt die Namen aller bereits gecachten Archive zurück."""
+    _init_archive_cache()
+    rows = _conn().execute(
+        "SELECT archive AS name FROM borg_file_cache WHERE item_id=? GROUP BY archive",
+        (item_id,),
+    ).fetchall()
+    return {r["name"] for r in rows}
+
+
+def delete_file_cache_for_archives(item_id: str, archive_names: set[str]) -> None:
+    """Löscht Dateieinträge für mehrere Archive (z.B. veraltete nach Borg prune)."""
+    if not archive_names:
+        return
+    _init_archive_cache()
+    con = _conn()
+    con.executemany(
+        "DELETE FROM borg_file_cache WHERE item_id=? AND archive=?",
+        [(item_id, name) for name in archive_names],
+    )
+    con.commit()
+
+
+def save_archive_cache_incremental(item_id: str, archives: list, new_file_map: dict) -> None:
+    """Aktualisiert Archivliste und fügt nur neue Dateieinträge ein.
+
+    Vorhandene Einträge für bekannte Archive bleiben unangetastet.
+    Veraltete Archive werden vorher über delete_file_cache_for_archives entfernt.
+    """
+    _init_archive_cache()
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    con = _conn()
+    con.execute("DELETE FROM borg_archive_cache WHERE item_id=?", (item_id,))
+    con.executemany(
+        "INSERT INTO borg_archive_cache (item_id, name, time, cached_at) VALUES (?,?,?,?)",
+        [(item_id, a["name"], a.get("time", ""), now) for a in archives],
+    )
+    for archive_name, entries in new_file_map.items():
+        con.executemany(
+            "INSERT INTO borg_file_cache (item_id, archive, path, type, size, mtime, mode) "
+            "VALUES (?,?,?,?,?,?,?)",
+            [(item_id, archive_name,
+              e.get("path", ""), e.get("type", ""),
+              e.get("size", 0), e.get("mtime", ""), e.get("mode", ""))
+             for e in entries],
+        )
+    con.commit()
+
+
 def get_archive_cache(item_id: str) -> tuple:
     """Gibt (archives, cached_at) zurück. archives neueste zuerst."""
     _init_archive_cache()

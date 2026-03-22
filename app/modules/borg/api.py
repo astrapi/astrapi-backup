@@ -1,5 +1,6 @@
 # modules/borg/api.py
 import json
+import shlex
 import subprocess
 import threading
 from urllib.parse import quote as _urlquote
@@ -13,10 +14,10 @@ from modules.borg.storage import (
     get_stats_cache, save_stats_cache,
 )
 from api.templates import templates
-from core.system.cmd import is_local
+from core.system.cmd import is_local, build_connection_string
 from core.system.logger import log
 from modules.borg.utils import borg_bin as _borg_bin, borg_env as _borg_env
-from modules.borg.jobs import preview as _preview_borg
+from modules.borg.jobs import preview as _preview_borg, _get_host_info as _job_get_host_info
 from core.ui.htmx_crud_router import make_htmx_crud_router
 
 KEY = "borg"
@@ -29,21 +30,58 @@ _file_cache_building: set[tuple[str, str]] = set()
 _file_cache_building_lock = threading.Lock()
 
 
-def _repo_path(entry: dict) -> str:
-    """Repo-Pfad aus Server-Perspektive (direkt auf dem Backupserver)."""
-    target_host = entry.get("target_host", "")
-    target_path = entry.get("target_path", "")
-    if is_local(target_host):
-        return target_path
-    return f"backupadm@{target_host}:{target_path}"
-
-
-def _list_archives(repo_path: str, env: dict) -> tuple[list, str | None]:
+def _get_target_info(entry: dict) -> tuple[str, str]:
+    """Gibt (ssh_connection, lokaler_repo_pfad) zurück für Borg-Befehle auf dem Ziel-Host."""
     try:
-        r = subprocess.run(
-            [_borg_bin(), "list", "--json", repo_path],
-            capture_output=True, text=True, timeout=60, env=env
-        )
+        target_host, target_ssh_user, _ = _job_get_host_info(entry, "target")
+    except ValueError:
+        target_host = None
+        target_ssh_user = None
+    target_path = entry.get("target_path", "")
+    if not target_host or is_local(target_host):
+        return "local", target_path
+    return build_connection_string(target_host, target_ssh_user), target_path
+
+
+def _repo_path(entry: dict) -> str:
+    """Repo-Pfad für Anzeige."""
+    _, path = _get_target_info(entry)
+    return path
+
+
+def _borg_cmd_str(cmd_args: list, env: dict) -> str:
+    """Baut einen sicheren Shell-Befehl mit gequoteten Argumenten."""
+    passphrase = env.get("BORG_PASSPHRASE", "")
+    parts = [f"BORG_PASSPHRASE={shlex.quote(passphrase)}", shlex.quote(_borg_bin())]
+    parts += [shlex.quote(a) for a in cmd_args]
+    return " ".join(parts)
+
+
+def _borg_run(cmd_args: list, connection: str, env: dict, timeout: int = 60) -> subprocess.CompletedProcess:
+    """Führt einen Borg-Befehl auf dem Ziel-Host aus (lokal oder per SSH)."""
+    cmd_str = _borg_cmd_str(cmd_args, env)
+    if connection == "local":
+        return subprocess.run(["bash", "-c", cmd_str], capture_output=True, text=True, timeout=timeout, env=env)
+    return subprocess.run(
+        ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", connection, cmd_str],
+        capture_output=True, text=True, timeout=timeout,
+    )
+
+
+def _borg_popen(cmd_args: list, connection: str, env: dict) -> subprocess.Popen:
+    """Öffnet einen Borg-Prozess auf dem Ziel-Host (für Streaming)."""
+    cmd_str = _borg_cmd_str(cmd_args, env)
+    if connection == "local":
+        return subprocess.Popen(["bash", "-c", cmd_str], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+    return subprocess.Popen(
+        ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", connection, cmd_str],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+    )
+
+
+def _list_archives(repo_path: str, env: dict, connection: str = "local") -> tuple[list, str | None]:
+    try:
+        r = _borg_run(["list", "--json", repo_path], connection, env)
         if r.returncode == 0:
             archives = json.loads(r.stdout).get("archives", [])
             archives.sort(key=lambda a: a.get("time", ""), reverse=True)
@@ -53,12 +91,9 @@ def _list_archives(repo_path: str, env: dict) -> tuple[list, str | None]:
         return [], str(e)
 
 
-def _load_archive_entries(repo_path: str, archive: str, env: dict, timeout: int = 60) -> list[dict]:
+def _load_archive_entries(repo_path: str, archive: str, env: dict, timeout: int = 60, connection: str = "local") -> list[dict]:
     try:
-        r = subprocess.run(
-            [_borg_bin(), "list", "--json-lines", f"{repo_path}::{archive}"],
-            capture_output=True, text=True, timeout=timeout, env=env
-        )
+        r = _borg_run(["list", "--json-lines", f"{repo_path}::{archive}"], connection, env, timeout)
         if r.returncode != 0:
             log("WARNING", f"[borg] list --json-lines fehlgeschlagen (rc={r.returncode}): {r.stderr.strip()[:300]}")
             return []
@@ -102,13 +137,10 @@ def _validate_path_in_cache(item_id: str, archive: str, path: str) -> None:
         raise HTTPException(404, f"Pfad nicht im Archiv gefunden: {path}")
 
 
-def _repo_info(repo_path: str, env: dict) -> tuple[dict | None, str | None]:
+def _repo_info(repo_path: str, env: dict, connection: str = "local") -> tuple[dict | None, str | None]:
     """Ruft borg info --json für ein Repo auf und gibt das geparste Dict zurück."""
     try:
-        r = subprocess.run(
-            [_borg_bin(), "info", "--json", repo_path],
-            capture_output=True, text=True, timeout=60, env=env,
-        )
+        r = _borg_run(["info", "--json", repo_path], connection, env)
         if r.returncode == 0:
             return json.loads(r.stdout), None
         return None, r.stderr.strip()
@@ -207,14 +239,14 @@ def refresh_archives(item_id: str, request: Request):
     if entry is None:
         raise HTTPException(404, "Item not found")
     env  = _borg_env()
-    repo = _repo_path(entry)
-    archives, live_error = _list_archives(repo, env)
+    connection, repo = _get_target_info(entry)
+    archives, live_error = _list_archives(repo, env, connection)
     if not live_error and archives:
         cached_at = save_archive_list_cache(item_id, archives)
         error = None
         # Datei-Cache aller Archive im Hintergrund aufbauen
         from modules.borg import cache as _borg_cache
-        _borg_cache.update(item_id, entry)
+        _borg_cache.update_async(item_id, entry)
     else:
         archives, cached_at = get_archive_cache(item_id)
         error = live_error
@@ -242,8 +274,8 @@ def browse_archive(item_id: str, archive: str, request: Request, path: str = "")
         cached  = False
     if not entries and not cached:
         env  = _borg_env()
-        repo = _repo_path(entry)
-        entries = _load_archive_entries(repo, archive, env)
+        connection, repo = _get_target_info(entry)
+        entries = _load_archive_entries(repo, archive, env, connection=connection)
         if entries:
             key = (item_id, archive)
             with _file_cache_building_lock:
@@ -294,20 +326,20 @@ def download_archive_file(item_id: str, archive: str, path: str):
     clean    = _sanitize_path(path)
     _validate_path_in_cache(item_id, archive, clean)
     env      = _borg_env()
-    repo     = _repo_path(entry)
+    connection, repo = _get_target_info(entry)
     filename = PurePosixPath(clean).name
 
     def _stream():
-        proc = subprocess.Popen(
-            [_borg_bin(), "extract", "--stdout", f"{repo}::{archive}", clean],
-            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env
-        )
+        proc = _borg_popen(["extract", "--stdout", f"{repo}::{archive}", clean], connection, env)
         try:
             while chunk := proc.stdout.read(65536):
                 yield chunk
         finally:
             proc.stdout.close()
-            proc.wait()
+            rc = proc.wait()
+            if rc != 0:
+                stderr = proc.stderr.read().decode(errors="replace").strip()
+                log("WARNING", f"[download] borg extract rc={rc}: {stderr}")
 
     return StreamingResponse(
         _stream(),
@@ -328,7 +360,7 @@ def download_bundle(item_id: str, archive: str, path: list[str] = Query(default=
     if entry is None:
         raise HTTPException(404, "Item not found")
     env  = _borg_env()
-    repo = _repo_path(entry)
+    connection, repo = _get_target_info(entry)
 
     clean = []
     for p in path:
@@ -352,12 +384,8 @@ def download_bundle(item_id: str, archive: str, path: list[str] = Query(default=
     else:
         filename = f"{archive}.tar"
 
-    cmd = [_borg_bin(), "extract", "--stdout", f"{repo}::{archive}", *clean]
-
     def _stream():
-        proc = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env
-        )
+        proc = _borg_popen(["extract", "--stdout", f"{repo}::{archive}", *clean], connection, env)
         try:
             while chunk := proc.stdout.read(65536):
                 yield chunk
@@ -445,8 +473,8 @@ def refresh_stats(item_id: str, request: Request):
     if entry is None:
         raise HTTPException(404, "Item not found")
     env  = _borg_env()
-    repo = _repo_path(entry)
-    info, live_error = _repo_info(repo, env)
+    connection, repo = _get_target_info(entry)
+    info, live_error = _repo_info(repo, env, connection)
     if info:
         cached_at = save_stats_cache(item_id, info)
         error = None

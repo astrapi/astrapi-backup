@@ -17,12 +17,20 @@ def check_ssh(host: str, user: str = "backupadm", timeout: int = 5) -> bool:
     return result.returncode == 0 and "ok" in result.stdout
 
 
-def require_hosts(hosts: list[str], user: str = "backupadm") -> bool:
+def require_hosts(hosts: list, user: str = None) -> bool:
+    """
+    hosts: list of str oder list of (host, user) Tupel.
+    user: Fallback-User wenn hosts eine str-Liste ist.
+    """
     all_ok = True
-    for host in hosts:
-        if is_local(host):          # lokaler Host braucht keinen SSH-Test
+    for entry in hosts:
+        if isinstance(entry, tuple):
+            host, host_user = entry
+        else:
+            host, host_user = entry, user
+        if is_local(host):
             continue
-        if not check_ssh(host, user):
+        if not check_ssh(host, host_user):
             log("WARNING", f"Host nicht erreichbar: {host}")
             log("ERROR", f"SSH-Verbindung zu '{host}' fehlgeschlagen – Ausführung abgebrochen")
             all_ok = False

@@ -150,6 +150,19 @@
   </div>
   {% endif %}
 
+  {# ── SSH-Key ──────────────────────────────────────────────────────────────── #}
+  <div>
+    <div class="ds-card on">
+      <div class="card-body" style="padding:16px;">
+        <div style="font-weight:600; margin-bottom:12px;">SSH-Key</div>
+        <div hx-get="/ui/settings/ssh-key"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+        </div>
+      </div>
+    </div>
+  </div>
+
   </div>{# ── Ende section-stack ── #}
 
 </div>

@@ -1,10 +1,12 @@
 {# templates/partials/lists/borg.html #}
 {% set module = "borg" %}
+{% set src_host = resolve_remote_host(item_data.source_remote_id) if item_data.source_remote_id else (item_data.source_host or '—') %}
+{% set tgt_host = resolve_remote_host(item_data.target_remote_id) if item_data.target_remote_id else (item_data.target_host or '—') %}
 <div class="meta-grid">
-  {% if item_data.source_host or item_data.source_path %}
-  <span class="meta-label">Quelle</span><span class="meta-value">{{ item_data.source_host or '—' }}:{{ item_data.source_path or '—' }}</span>
+  {% if src_host != '—' or item_data.source_path %}
+  <span class="meta-label">Quelle</span><span class="meta-value">{{ src_host }}:{{ item_data.source_path or '—' }}</span>
   {% endif %}
-  {% if item_data.target_host or item_data.target_path %}
-  <span class="meta-label">Ziel</span><span class="meta-value">{{ item_data.target_host or '—' }}:{{ item_data.target_path or '—' }}</span>
+  {% if tgt_host != '—' or item_data.target_path %}
+  <span class="meta-label">Ziel</span><span class="meta-value">{{ tgt_host }}:{{ item_data.target_path or '—' }}</span>
   {% endif %}
 </div>

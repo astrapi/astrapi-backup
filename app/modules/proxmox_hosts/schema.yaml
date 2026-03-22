@@ -1,26 +1,20 @@
 id_field: id
 fields:
-  - name: host
-    type: text
-    label: Host
-    max: 50
-    column: 1
-    row: 1
-    required: true
   - name: enabled
     type: boolean
     label: Aktiviert
     column: 2
     row: 1
-  - name: namespace
+  - name: remote_id
     type: select
-    label: PBS Namespace
-    default: host
+    label: Proxmox Host
+    options_endpoint: /api/remotes/for-select
+    required: true
     column: 1
-    row: 3
-
+    row: 1
   - name: source
     type: list
     label: Zusätzliche Quellen
     column: 1
-    row: 4
+    row: 3
+

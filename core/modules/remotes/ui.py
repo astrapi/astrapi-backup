@@ -24,6 +24,7 @@ def content():
         loading_id=f"{KEY}-loading",
         content_template=f"{KEY}/partials/list.html",
         running={},
+        has_run_buttons=False,
     )
 
 

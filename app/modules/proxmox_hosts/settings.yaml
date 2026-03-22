@@ -29,14 +29,6 @@ fields:
     mono: true
     default: ""
 
-  - key: pbs_namespaces
-    label: PBS Namespaces
-    type: list
-    description: "Verfügbare PBS-Namespaces. Wird als Auswahl im Job-Dialog angeboten."
-    default:
-      - host
-    span: 2
-
   - type: section
     label: Backup-Quellen
     cols: 1

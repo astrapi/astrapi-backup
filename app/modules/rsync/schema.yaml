@@ -7,37 +7,37 @@ fields:
     label: Name
     max: 50
     required: true
-  
+
   - name: enabled
     type: boolean
     label: Aktiviert
 
   - type: section
-    label: Quelle
-    cols: 3
+    label: Quelle / Ziel
+    cols: 1
 
-  - name: source_host
-    type: text
-    label: Source Host
-    max: 50
+  - name: source_remote_id
+    type: select
+    label: Source Server
+    options_endpoint: /api/remotes/for-select
+    required: true
 
   - name: source_path
     type: text
     label: Source Path
     max: 200
-    span: 2
 
-  - type: section
-    label: Ziel
-    cols: 3
+  # - type: section
+  #   label: Ziel
+  #   cols: 2
 
-  - name: target_host
-    type: text
-    label: Target Host
-    max: 50
+  - name: target_remote_id
+    type: select
+    label: Target Server
+    options_endpoint: /api/remotes/for-select
+    required: false
 
   - name: target_path
     type: text
     label: Target Path
     max: 200
-    span: 2

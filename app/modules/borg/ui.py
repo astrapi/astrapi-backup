@@ -14,6 +14,11 @@ def _load_schema():
         return yaml.safe_load(f)
 
 
+def _resolve_fields(fields: list) -> list:
+    from core.ui.field_resolver import resolve_options_endpoint
+    return resolve_options_endpoint(fields)
+
+
 def _list_ctx():
     from api.storage import load_config
     from api.routers.run import get_running
@@ -42,7 +47,7 @@ def create_modal():
     submit_url   = f"/api/{KEY}/create?container_id={container_id}&loading_id={loading_id}"
     return render_template(
         "partials/create_edit/create_edit_modal.html",
-        schema=schema["fields"], item=None, method="post", title="Borg Job anlegen",
+        schema=_resolve_fields(schema["fields"]), item=None, method="post", title="Borg Job anlegen",
         submit_url=submit_url, container_id=container_id, loading_id=loading_id,
     )
 
@@ -60,7 +65,7 @@ def edit_modal(item):
     submit_url = f"/api/{KEY}/{item}/edit?container_id={container_id}&loading_id={loading_id}"
     return render_template(
         "partials/create_edit/create_edit_modal.html",
-        schema=schema["fields"], item=values, method="patch", title="Borg Job bearbeiten",
+        schema=_resolve_fields(schema["fields"]), item=values, method="patch", title="Borg Job bearbeiten",
         submit_url=submit_url, container_id=container_id, loading_id=loading_id,
     )
 

@@ -346,6 +346,7 @@ def _register_settings_routes(app: Flask, modules: list, app_cfg: dict,
 def _register_module_settings_routes(app: Flask, modules: list) -> None:
     """Registriert GET/POST /ui/<key>/settings für Module mit settings_schema."""
     from .settings_registry import get_module, set_many as _set_many
+    from core.system.secrets import set_secret, get_secret_safe
 
     mod_map = {m.key: m for m in modules if m.settings_schema}
     if not mod_map:
@@ -386,14 +387,23 @@ def _register_module_settings_routes(app: Flask, modules: list) -> None:
             for k, v in request.form.to_dict().items():
                 if k in handled:
                     continue
-                if k in password_keys and not v.strip():
-                    continue  # Leeres Passwort-Feld nicht speichern
-                prefixed[f"module.{module_key}.{k}"] = v
+                if k in password_keys:
+                    if v.strip():
+                        set_secret(f"module.{module_key}.{k}", v.strip())
+                    # Leeres Passwort-Feld nicht speichern
+                else:
+                    prefixed[f"module.{module_key}.{k}"] = v
             _set_many(prefixed)
 
+        password_keys_all = {
+            f["key"] for f in mod.settings_schema if f.get("type") == "password"
+        }
         current_values = {
-            field["key"]: get_module(module_key, field["key"],
-                                     field.get("default", ""))
+            field["key"]: (
+                get_secret_safe(f"module.{module_key}.{field['key']}", field.get("default", ""))
+                if field["key"] in password_keys_all
+                else get_module(module_key, field["key"], field.get("default", ""))
+            )
             for field in mod.settings_schema
             if "key" in field
         }

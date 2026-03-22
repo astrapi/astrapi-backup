@@ -6,11 +6,18 @@ fields:
     cols: 1
 
   - key: borg_bin
-    label: Borg-Pfad
+    label: Borg-Pfad (Remote-Default)
     type: text
     placeholder: "/var/lib/backupadm/.venv/bin/borg"
     default: "/var/lib/backupadm/.venv/bin/borg"
-    description: "Absoluter Pfad zur ausführbaren borg-Datei"
+    description: "Standard-Pfad zur borg-Datei auf Remote-Geräten (kann pro Remote überschrieben werden)"
+
+  - key: borg_bin_local
+    label: Borg-Pfad (Lokal)
+    type: text
+    placeholder: "borg"
+    default: ""
+    description: "Pfad zur lokalen borg-Installation. Leer lassen für automatische Suche via 'which borg'"
 
   - type: section
     label: Sicherheit

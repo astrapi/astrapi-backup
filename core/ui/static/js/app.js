@@ -83,6 +83,56 @@ function initAllColResize(root) {
 document.addEventListener('DOMContentLoaded', () => initAllColResize());
 document.body.addEventListener('htmx:afterSwap', e => initAllColResize(e.detail.target));
 
+// ── Tabellen-Sortierung ───────────────────────────────────────────────────────
+function initTableSort(table) {
+    const module = table.dataset.module;
+    const storageKey = module ? `sort:${module}` : null;
+    let saved = {};
+    if (storageKey) {
+        try { saved = JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch {}
+    }
+
+    const headers = Array.from(table.querySelectorAll('thead th.sortable'));
+    if (!headers.length) return;
+
+    function applySort(th, dir, save) {
+        headers.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+        th.classList.add(dir === 'asc' ? 'sort-asc' : 'sort-desc');
+
+        const col = th.cellIndex;
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        rows.sort((a, b) => {
+            const av = (a.cells[col]?.textContent || '').trim();
+            const bv = (b.cells[col]?.textContent || '').trim();
+            const cmp = av.localeCompare(bv, undefined, {numeric: true, sensitivity: 'base'});
+            return dir === 'asc' ? cmp : -cmp;
+        });
+        rows.forEach(r => tbody.appendChild(r));
+        if (save && storageKey) {
+            localStorage.setItem(storageKey, JSON.stringify({col, dir}));
+        }
+    }
+
+    if (saved.col !== undefined) {
+        const th = headers.find(h => h.cellIndex === saved.col);
+        if (th) applySort(th, saved.dir || 'asc', false);
+    }
+
+    headers.forEach(th => {
+        th.addEventListener('click', () => {
+            applySort(th, th.classList.contains('sort-asc') ? 'desc' : 'asc', true);
+        });
+    });
+}
+
+function initAllTableSort(root) {
+    (root || document).querySelectorAll('.ds-list-table[data-module]').forEach(initTableSort);
+}
+
+document.addEventListener('DOMContentLoaded', () => initAllTableSort());
+document.body.addEventListener('htmx:afterSwap', e => initAllTableSort(e.detail.target));
+
 // ── Karten-/Listenansicht Toggle ─────────────────────────────────────────────
 function viewToggle(module) {
     return {

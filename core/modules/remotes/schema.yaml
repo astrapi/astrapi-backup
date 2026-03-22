@@ -1,38 +1,55 @@
+modal_width: 800
 id_field: id
+
 fields:
-  - name:        description
-    type:        text
-    label:       Beschreibung
-    max:         100
-    column:      1
-    row:         1
-
-  - name:        mac
-    type:        text
-    label:       MAC-Adresse
-    placeholder: "aa:bb:cc:dd:ee:ff"
-    max:         17
-    column:      1
-    row:         2
-
-  - name:        host
-    type:        text
-    label:       Hostname / IP
+  - name: host
+    type: text
+    label: Hostname / IP
     placeholder: "server.lan"
-    max:         100
-    column:      2
-    row:         2
+    max: 100
+    column: 1
+    row: 1
 
-  - name:        ssh_user
-    type:        text
-    label:       SSH-Benutzer
-    placeholder: "root"
-    max:         100
-    column:      2
-    row:         3
+  - name: enabled
+    type: boolean
+    label: Aktiviert
+    column: 2
+    row: 1
 
-  - name:        enabled
-    type:        boolean
-    label:       Aktiviert
-    column:      2
-    row:         1
+  - name: mac
+    type: text
+    label: MAC-Adresse (Wake-on-LAN)
+    placeholder: "aa:bb:cc:dd:ee:ff"
+    max: 17
+    column: 1
+    row: 2
+
+  - type: section
+    label: SSH-Authentifizierung (Backups)
+    cols: 2
+
+  - name: ssh_user
+    type: text
+    label: SSH-Benutzer
+    placeholder: "backupadm"
+    max: 50
+    default: backupadm
+    column: 1
+    row: 3
+
+  - name: ssh_port
+    type: number
+    label: SSH-Port
+    default: 22
+    column: 2
+    row: 3
+
+  - type: section
+    label: Borg
+    cols: 1
+
+  - name: borg_bin
+    type: text
+    label: Borg-Pfad
+    placeholder: "/var/lib/backupadm/.venv/bin/borg"
+    max: 200

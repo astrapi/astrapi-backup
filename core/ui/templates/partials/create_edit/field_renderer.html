@@ -60,9 +60,7 @@
       {% if field.required %}data-required="true"{% endif %}
       class="form-select"
     >
-      {% if not field.required %}
-        <option value="" style="color:var(--text-muted);">– bitte wählen –</option>
-      {% endif %}
+      <option value="" style="color:var(--text-muted);">– bitte wählen –</option>
       {% for opt in field.options %}
         {% if opt is mapping %}
           <option value="{{ opt.value }}"

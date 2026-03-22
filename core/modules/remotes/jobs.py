@@ -103,10 +103,12 @@ def register_item_actions(item_id, entry: dict) -> None:
     try:
         from core.modules.scheduler.engine import register_action
         iid  = str(item_id)
-        desc = entry.get("description") or f"Remote #{iid}"
+        desc = entry.get("host") or f"Remote #{iid}"
+        if not entry.get("mac", "").strip():
+            return
         register_action(
             f"remotes.wake.{iid}",
-            f"{desc}: Starten",
+            f"{desc}: Starten (WoL)",
             lambda _id=iid: wake_single(_id),
             source="remotes",
             source_label="Remote-Geräte",

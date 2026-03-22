@@ -201,6 +201,20 @@ def next_item_id(key: str) -> str:
     return str(row["next"])
 
 
+def patch_item(key: str, item_id, **fields) -> None:
+    """Aktualisiert einzelne Felder eines Eintrags ohne die übrigen zu überschreiben."""
+    try:
+        iid = int(item_id)
+    except (ValueError, TypeError):
+        return
+    if not fields:
+        return
+    sets   = ", ".join(f"{k}=?" for k in fields)
+    values = list(fields.values()) + [iid]
+    _conn().execute(f"UPDATE {key} SET {sets} WHERE id=?", values)
+    _conn().commit()
+
+
 def get_entry(config: dict, item_id) -> dict | None:
     """Sucht einen Eintrag im Config-Dict – mit str- und int-Fallback.
 

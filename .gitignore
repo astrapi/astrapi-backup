@@ -100,3 +100,7 @@ config/proxmox.yaml
 data/
 logs/
 .borg/
+
+# Encryption key – must never be committed
+*.key
+app/config/secret.key

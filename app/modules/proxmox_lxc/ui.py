@@ -15,18 +15,19 @@ def _load_schema():
 
 
 def _resolve_fields(fields: list) -> list:
-    """Ersetzt options_from_settings durch echte Werte aus den Modul-Settings."""
+    """Ersetzt options_from_settings und options_endpoint durch echte Werte."""
     from core.ui.settings_registry import get_module as _get_module
+    from core.ui.field_resolver import resolve_options_endpoint
     result = []
     for field in fields:
         if "options_from_settings" in field:
-            key = field["options_from_settings"]
-            nodes = _get_module(KEY, key, []) or []
+            settings_key = field["options_from_settings"]
+            nodes = _get_module(KEY, settings_key, []) or []
             field = dict(field)
             field["options"] = [{"value": n, "label": n} for n in nodes if n]
             del field["options_from_settings"]
         result.append(field)
-    return result
+    return resolve_options_endpoint(result)
 
 
 def _list_ctx():

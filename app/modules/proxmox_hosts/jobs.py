@@ -5,6 +5,7 @@ import subprocess
 from core.system.logger import log, log_context
 from core.system.reachability import require_hosts
 from core.system.cmd import run_cmd, build_connection_string, is_local
+from core.system.secrets import get_secret_safe
 from core.ui.settings_registry import get_module as _get_module_setting, get as _get_global_setting
 
 from api.storage import load_config as _load_config, get_entry as _get_entry, patch_item as _patch_item
@@ -110,7 +111,10 @@ def _backup(host, ssh_user: str, entry):
 
     env = dict(os.environ)
     env["PBS_REPOSITORY"] = _get_module_setting("proxmox_hosts", "pbs_repository", "")
-    env["PBS_PASSWORD"]    = _get_module_setting("proxmox_hosts", "pbs_password", "")
+    env["PBS_PASSWORD"]    = (
+        get_secret_safe("module.proxmox_hosts.pbs_password", "")
+        or _get_module_setting("proxmox_hosts", "pbs_password", "")  # backward compat
+    )
     env["PBS_FINGERPRINT"] = _get_module_setting("proxmox_hosts", "pbs_fingerprint", "")
 
     namespace = "host"

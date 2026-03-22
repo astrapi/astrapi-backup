@@ -15,17 +15,8 @@ def _load_schema():
 
 
 def _enrich_schema(schema: dict) -> dict:
-    """Injiziert dynamische Optionen in Felder die auf Modul-Settings verweisen."""
-    from core.ui.settings_registry import get_module as _get_setting
-    namespaces = _get_setting("proxmox_hosts", "pbs_namespaces", ["host"])
-    if not isinstance(namespaces, list) or not namespaces:
-        namespaces = ["host"]
-    fields = []
-    for field in schema.get("fields", []):
-        if field.get("name") == "namespace":
-            field = {**field, "type": "select", "options": namespaces}
-        fields.append(field)
-    return {**schema, "fields": fields}
+    from core.ui.field_resolver import resolve_options_endpoint
+    return {**schema, "fields": resolve_options_endpoint(schema.get("fields", []))}
 
 
 def _list_ctx():
