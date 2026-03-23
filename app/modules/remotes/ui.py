@@ -1,4 +1,4 @@
-# core/modules/remotes/ui.py
+# app/modules/remotes/ui.py
 from pathlib import Path
 from flask import Blueprint, render_template, request
 import yaml

@@ -30,9 +30,8 @@ urllib3>=2.2            # direkt verwendet für disable_warnings (notify.py)
 # ── System-Monitoring ─────────────────────────────────────────────
 psutil>=6.0             # CPU/RAM/Disk-Metriken in sysinfo
 
-# ── Migration (einmalig, danach entfernbar) ───────────────────────
-python-dotenv>=1.0      # ← NUR für secrets.env→DB-Migration – danach entfernbar
-apispec>=6.0
+# ── OpenAPI / Swagger ─────────────────────────────────────────────
+apispec>=6.0            # OpenAPI-Spec-Generierung (swagger_utils.py)
 
 # ── Tests ─────────────────────────────────────────────────────────
 pytest>=8.0

@@ -1,4 +1,4 @@
-# core/modules/remotes/api.py
+# app/modules/remotes/api.py
 import subprocess
 from fastapi import APIRouter, HTTPException, Request, Header
 

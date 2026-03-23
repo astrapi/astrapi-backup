@@ -167,7 +167,7 @@ def create(
             if not remote_id:
                 return "—"
             try:
-                from core.modules.remotes.engine import get_remote
+                from app.modules.remotes.engine import get_remote
                 r = get_remote(remote_id)
                 return r.get("host") or "—" if r else "—"
             except Exception:

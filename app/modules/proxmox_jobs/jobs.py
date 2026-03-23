@@ -12,7 +12,7 @@ def _get_config(): return _load_config("proxmox_jobs")
 def _get_proxmox_host_info(entry: dict) -> tuple[str, str, int]:
     """Get proxmox host info from remote device or legacy host field"""
     if entry.get("remote_id"):
-        from core.modules.remotes.engine import get_remote_ssh
+        from app.modules.remotes.engine import get_remote_ssh
         try:
             return get_remote_ssh(entry["remote_id"])
         except ValueError as e:

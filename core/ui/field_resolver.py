@@ -19,6 +19,6 @@ def resolve_options_endpoint(fields: list) -> list:
 
 def _fetch_options(endpoint: str) -> list:
     if endpoint == "/api/remotes/for-select":
-        from core.modules.remotes.engine import get_all_remotes_for_select
+        from app.modules.remotes.engine import get_all_remotes_for_select
         return [{"value": r["id"], "label": r["label"]} for r in get_all_remotes_for_select()]
     return []

@@ -1,4 +1,4 @@
-# core/modules/remotes/jobs.py
+# app/modules/remotes/jobs.py
 """Scheduler-Aktionen für das Remotes-Modul.
 
 Jeder Eintrag registriert drei eigene Aktionen:

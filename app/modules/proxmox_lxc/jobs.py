@@ -20,7 +20,7 @@ def _get_proxmox_host_info(entry: dict) -> tuple[str, str, int, str]:
     """
     remote_id = entry.get("node")
     if remote_id:
-        from core.modules.remotes.engine import get_remote_ssh, get_remote
+        from app.modules.remotes.engine import get_remote_ssh, get_remote
         try:
             ssh_host, ssh_user, ssh_port = get_remote_ssh(remote_id)
             node_name = ssh_host.split(".")[0]

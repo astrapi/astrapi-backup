@@ -21,7 +21,7 @@ def _get_host_info(entry: dict, host_type: str = "source") -> tuple[str, str, in
     host_key = f"{host_type}_host"
 
     if remote_id_key in entry and entry[remote_id_key]:
-        from core.modules.remotes.engine import get_remote_ssh
+        from app.modules.remotes.engine import get_remote_ssh
         try:
             return get_remote_ssh(entry[remote_id_key])
         except ValueError as e:
