@@ -102,6 +102,21 @@ def wake_modal(item):
     )
 
 
+@bp.route(f"/ui/{KEY}/<item>/scan-host-key")
+def scan_host_key_modal(item):
+    container_id = request.args.get("container_id", f"tab-{KEY}")
+    loading_id   = request.args.get("loading_id",   f"{KEY}-loading")
+    description  = request.args.get("description", item)
+    return render_template(
+        "partials/confirm_modal.html",
+        description=description, verb="SSH Host Key eintragen (ssh-keyscan)",
+        confirm_url=f"/api/{KEY}/{item}/scan-host-key",
+        method="post",
+        reload_url=f"/ui/{KEY}/content",
+        container_id=container_id, loading_id=loading_id,
+    )
+
+
 @bp.route(f"/ui/{KEY}/<item>/shutdown")
 def shutdown_modal(item):
     container_id = request.args.get("container_id", f"tab-{KEY}")

@@ -81,6 +81,14 @@ _CARD_ACTION_TYPES: dict[str, dict] = {
         "hx_swap":         "beforeend",
         "disabled_if_off": True,
     },
+    "scan-host-key": {
+        "title":     "SSH Host Key eintragen (known_hosts)",
+        "icon":      "shield",
+        "style":     "log",
+        "hx_get":    "",
+        "hx_target": "body",
+        "hx_swap":   "beforeend",
+    },
     "preview": {
         "title":    "Befehlsvorschau",
         "icon":     "terminal",

@@ -10,3 +10,5 @@ card_actions:
     url:  /ui/remotes/{item}/wake?container_id={container_id}&loading_id={loading_id}&description={description}
   - type: power-off
     url:  /ui/remotes/{item}/shutdown?container_id={container_id}&loading_id={loading_id}&description={description}
+  - type: scan-host-key
+    url:  /ui/remotes/{item}/scan-host-key?container_id={container_id}&loading_id={loading_id}&description={description}
