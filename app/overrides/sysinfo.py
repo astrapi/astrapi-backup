@@ -15,24 +15,32 @@ def _run(cmd: list) -> str:
 
 
 def _borg_version() -> str:
-    for p in ["/var/lib/backupadm/.venv/bin/borg", "/usr/local/bin/borg", "/usr/bin/borg"]:
-        if Path(p).exists():
-            v = _run([p, "--version"])
-            return v.replace("borg ", "") if v else "?"
-    v = _run(["borg", "--version"])
+    try:
+        from app.modules.borg.utils import borg_bin_local
+        p = borg_bin_local()
+    except Exception:
+        p = "borg"
+    v = _run([p, "--version"])
     return v.replace("borg ", "") if v else "nicht gefunden"
 
 
-def _app_version() -> str:
+def _read_version_yaml(path: Path) -> str:
     try:
         import yaml as _yaml
-        cfg = Path(__file__).parents[1] / "config.yaml"
-        if cfg.exists():
-            with open(cfg, encoding="utf-8") as f:
-                return str((_yaml.safe_load(f) or {}).get("app", {}).get("version", "?"))
+        if path.exists():
+            with open(path, encoding="utf-8") as f:
+                return str((_yaml.safe_load(f) or {}).get("version", "?"))
     except Exception:
         pass
     return "?"
+
+
+def _app_version() -> str:
+    return _read_version_yaml(Path(__file__).parents[1] / "app.yaml")
+
+
+def _core_version() -> str:
+    return _read_version_yaml(Path(__file__).parents[2] / "core" / "core.yaml")
 
 
 def _db_size() -> str:
@@ -53,26 +61,31 @@ def _db_size() -> str:
     return "—"
 
 
-def _fernet_key() -> str:
-    try:
-        from core.system.secrets import key_location
-        path = key_location()
-        ok = Path(path).exists()
-        return ("✔ " if ok else "✗ fehlt  ") + str(path)
-    except Exception:
-        return "—"
-
-
 def _extra_info() -> dict:
     return {
-        "backupctl":  f"v{_app_version()}",
-        "Borg":       _borg_version(),
-        "DB":         _db_size(),
-        "Fernet-Key": _fernet_key(),
+        "backupctl": _app_version(),
+        "core":      _core_version(),
+        "Borg":      _borg_version(),
+        "DB":        _db_size(),
     }
 
 
+def _discover_services() -> list[str]:
+    try:
+        import yaml as _yaml
+        app_yaml = Path(__file__).parents[1] / "app.yaml"
+        name = str((_yaml.safe_load(app_yaml.read_text()) or {}).get("name", ""))
+        if not name:
+            return []
+        out = _run(["systemctl", "list-units", "--all", "--no-legend", "--plain",
+                    "--type=service", f"{name}*"])
+        return [line.split()[0].removesuffix(".service")
+                for line in out.splitlines() if line.strip()]
+    except Exception:
+        return []
+
+
 configure(
-    services=["backupctl", "borgbackup"],
+    services=_discover_services(),
     extra_info_fn=_extra_info,
 )

@@ -20,7 +20,7 @@ from typing import Optional, Callable
 from .page_factory import register_pages
 from .swagger_utils import register_ui_docs
 from .module_registry import load_modules, register_flask_modules, build_nav_items, list_available_core_modules
-from ..system.version import get_app_version, get_core_version
+from ..system.version import get_app_version, get_app_name, get_display_name, get_core_version
 from .settings_registry import (
     init as settings_init, seed_defaults, set_many, all_settings,
     get as settings_get, set as settings_set,
@@ -102,6 +102,8 @@ def create(
                 break
 
     _app_version  = get_app_version(app_root)
+    _app_name     = get_app_name(app_root)
+    _display_name = get_display_name(app_root)
     _core_version = get_core_version(CORE_ROOT.parent)
 
     light_mode: bool = app_cfg.get("LIGHT_MODE", False)
@@ -187,7 +189,7 @@ def create(
         from core.ui.settings_registry import get as _srget
         _light = _srget("LIGHT_MODE", _light_default)
         return {
-            "app_name":             app_cfg.get("APP_NAME",     "myapp"),
+            "app_name":             _display_name,
             "app_version":          _app_version,
             "core_version":         _core_version,
             "app_logo_svg":         app_cfg.get("APP_LOGO_SVG", None),

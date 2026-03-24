@@ -31,6 +31,7 @@ from core.ui.module_registry import load_modules
 from core.ui.settings_registry import init as settings_init
 from core.system.health import register_health
 from core.system.systemd import sd_notify, start_watchdog
+from core.system.version import get_display_name
 from core.modules.settings.engine import configure as configure_settings
 from app.api.fastapi_app import create as create_api
 
@@ -47,7 +48,7 @@ def _db_check() -> tuple[bool, dict]:
 
 
 def create_app() -> FastAPI:
-    configure_settings(health_fn=_db_check, app_name="BackupCtl")
+    configure_settings(health_fn=_db_check, app_name=get_display_name(APP_ROOT))
 
     # DB zuerst konfigurieren, damit settings_registry + SqliteStorage SQLite nutzen können
     from app.api.storage import init_db
