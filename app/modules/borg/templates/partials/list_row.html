@@ -2,7 +2,8 @@
 {% set tgt_host = resolve_remote_host(item_data.target_remote_id) if item_data.target_remote_id else (item_data.target_host or '—') %}
 {% set src_label = 'Lokal' if src_host == '—' else src_host %}
 {% set tgt_label = 'Lokal' if tgt_host == '—' else tgt_host %}
-<td class="col-name" title="{{ src_label }}:{{ item_data.source_path or '' }}">{{ src_label }}:{{ item_data.source_path or '—' }}</td>
-<td class="col-name" title="{{ tgt_label }}:{{ item_data.target_path or '' }}">{{ tgt_label }}:{{ item_data.target_path or '—' }}</td>
+<td class="col-trunc" title="{{ src_label }}:{{ item_data.source_path or '' }}">{{ src_label }}:{{ item_data.source_path or '—' }}</td>
+<td class="col-trunc" title="{{ tgt_label }}:{{ item_data.target_path or '' }}">{{ tgt_label }}:{{ item_data.target_path or '—' }}</td>
 <td style="white-space:nowrap">{{ item_data.last_run or '—' }}</td>
-{% set _status = last_run_status(module, item_name) %}<td>{% if _status %}<span class="status-badge status-{{ 'ok' if _status == 'ok' else 'err' }}">{{ 'OK' if _status == 'ok' else 'Fehler' }}</span>{% else %}—{% endif %}</td>
+{% import 'partials/components/ui_macros.html' as ui %}
+{% set _status = last_run_status(module, item_name) %}<td>{{ ui.status_inline(_status) }}</td>

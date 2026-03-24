@@ -1,7 +1,7 @@
 <div data-collected-at="{{ info.collected_at }}">
 
 {# ── Gauges: CPU / RAM / Swap / Disk ──────────────────────────────── #}
-<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px;">
+<div class="sysinfo-gauges" style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px;">
 
   {# CPU #}
   <div class="ds-card on" style="padding:16px 18px;">
@@ -74,7 +74,7 @@
 
 
 {# ── Anwendung + Backup-Stack ─────────────────────────────────────── #}
-<div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+<div class="sysinfo-info" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
 
   {# Anwendung #}
   <div class="ds-card on" style="overflow:hidden;">

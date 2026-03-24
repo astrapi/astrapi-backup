@@ -9,11 +9,11 @@
 {% else %}
 
 <div class="page-header">
-  <div class="page-title">System</div>
-  <div style="display:flex; align-items:center; gap:8px;">
-    <span style="font-size:11px; color:var(--text-3); font-family:var(--mono);">
-      Stand: <span id="sysinfo-time">{{ info.collected_at }}</span>
-    </span>
+  <div class="page-header-main">
+    <div class="page-title">System</div>
+    <span class="page-subtitle" style="font-family:var(--mono);">Stand: <span id="sysinfo-time">{{ info.collected_at }}</span></span>
+  </div>
+  <div class="page-header-actions">
     <button class="btn btn-ghost btn-sm"
             hx-get="/ui/sysinfo/metrics"
             hx-target="#sysinfo-metrics"

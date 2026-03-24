@@ -33,29 +33,6 @@
 
     {{ ui.add_button(module=module, container_id=container_id, loading_id=loading_id) }}
 
-    <div class="view-toggle">
-      <button type="button"
-              @click="setView('card')"
-              :class="{active: view === 'card'}"
-              title="Kartenansicht">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-          <rect x="3" y="3" width="8" height="8" rx="1.5"/>
-          <rect x="13" y="3" width="8" height="8" rx="1.5"/>
-          <rect x="3" y="13" width="8" height="8" rx="1.5"/>
-          <rect x="13" y="13" width="8" height="8" rx="1.5"/>
-        </svg>
-      </button>
-      <button type="button"
-              @click="setView('list')"
-              :class="{active: view === 'list'}"
-              title="Listenansicht">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <line x1="3" y1="12" x2="21" y2="12"/>
-          <line x1="3" y1="18" x2="21" y2="18"/>
-        </svg>
-      </button>
-    </div>
   </div>
 </div>
 
@@ -88,13 +65,30 @@
       </div>
 
       <!-- Card Body -->
+      {% set _card_content %}{% include content_template %}{% endset %}
+      {% if _card_content | trim %}
       <div class="card-inner">
         <div class="card-body">
           <div class="card-meta">
-            {% include content_template %}
+            {{ _card_content }}
           </div>
         </div>
       </div>
+      {% endif %}
+
+      <!-- Card Run Info -->
+      {% set _status = last_run_status(module, item_name) %}
+      {% if item_data.last_run or _status %}
+      <div class="card-run-info">
+        <div class="card-run-left">
+          <span>Letzter Lauf:</span>
+          <span class="card-run-date">{{ item_data.last_run or '—' }}</span>
+        </div>
+        {% if _status %}
+        {{ ui.status_inline(_status) }}
+        {% endif %}
+      </div>
+      {% endif %}
 
       <!-- Card Footer -->
       <div class="card-footer">

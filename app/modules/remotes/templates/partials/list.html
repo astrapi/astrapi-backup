@@ -5,8 +5,10 @@
   Variablen: item_name, item_data (aus list_wrapper_inner.html)
 #}
 <div class="meta-grid">
+  {% if item_data.mac %}
   <span class="meta-label">MAC</span>
-  <span class="meta-value" style="font-family:var(--mono); font-size:13px;">{{ item_data.mac or '—' }}</span>
+  <span class="meta-value" style="font-family:var(--mono); font-size:13px;">{{ item_data.mac }}</span>
+  {% endif %}
   <span class="meta-label">Host&nbsp;/&nbsp;IP</span>
   <span class="meta-value">{{ item_data.host or '—' }}</span>
   <span class="meta-label">SSH-Benutzer</span>

@@ -46,6 +46,20 @@
   </button>
 {% endmacro %}
 
+{% macro status_inline(status) %}
+  {% if status == 'ok' %}
+    <span class="status-inline status-inline--ok"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>OK</span>
+  {% elif status == 'error' %}
+    <span class="status-inline status-inline--err"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Fehler</span>
+  {% elif status == 'warning' %}
+    <span class="status-inline status-inline--warning"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 20h20L12 2z"/></svg>Warnung</span>
+  {% elif status == 'running' %}
+    <span class="status-inline status-inline--running"><span style="animation:pulse 1.2s infinite;">●</span>läuft</span>
+  {% elif status %}
+    <span class="status-inline" style="color:var(--text-3);">{{ status }}</span>
+  {% else %}—{% endif %}
+{% endmacro %}
+
 {% macro refresh_button(endpoint="/", container_id=None, loading_id=None) %}
   <button
     hx-get="{{ endpoint }}/list"

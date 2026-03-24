@@ -134,12 +134,17 @@ document.addEventListener('DOMContentLoaded', () => initAllTableSort());
 document.body.addEventListener('htmx:afterSwap', e => initAllTableSort(e.detail.target));
 
 // ── Karten-/Listenansicht Toggle ─────────────────────────────────────────────
-function viewToggle(module) {
+function viewToggle(_module) {
+    const mq = window.matchMedia('(max-width: 767px)');
     return {
-        view: localStorage.getItem(`view:${module}`) || 'card',
-        setView(v) {
-            this.view = v;
-            localStorage.setItem(`view:${module}`, v);
+        view: mq.matches ? 'card' : 'list',
+        _mq: mq,
+        init() {
+            this._mqHandler = (e) => { this.view = e.matches ? 'card' : 'list'; };
+            this._mq.addEventListener('change', this._mqHandler);
+        },
+        destroy() {
+            this._mq.removeEventListener('change', this._mqHandler);
         },
     };
 }

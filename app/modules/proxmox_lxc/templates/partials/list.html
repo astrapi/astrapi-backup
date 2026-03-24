@@ -1,5 +1,6 @@
 {# templates/partials/lists/proxmox_lxc.html #}
+{% set _node = resolve_remote_host(item_data.node) if item_data.node else (item_data.node or '—') %}
 <div class="meta-grid">
   <span class="meta-label">CT-ID</span><span class="meta-value">{{ item_data.vmid or '—' }}</span>
-  <span class="meta-label">Node</span><span class="meta-value">{{ item_data.node or '—' }}</span>
+  <span class="meta-label">Node</span><span class="meta-value">{{ _node }}</span>
 </div>
