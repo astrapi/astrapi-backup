@@ -1,6 +1,3 @@
 {% set _node = resolve_remote_host(item_data.node) if item_data.node else (item_data.node or '—') %}
 <td>{{ item_data.vmid or '—' }}</td>
 <td class="col-trunc">{{ _node }}</td>
-<td style="white-space:nowrap">{{ item_data.last_run or '—' }}</td>
-{% import 'partials/components/ui_macros.html' as ui %}
-{% set _status = last_run_status(module, item_name) %}<td>{{ ui.status_inline(_status) }}</td>

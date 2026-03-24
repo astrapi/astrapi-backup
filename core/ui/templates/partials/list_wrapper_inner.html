@@ -133,6 +133,10 @@
         <th class="col-toggle"></th>
         <th class="col-name sortable"{% if _name_fixed.get(module, true) %} style="width:250px"{% endif %}>Name</th>
         {% include module + '/partials/list_header.html' ignore missing %}
+        {% if has_run_buttons | default(True) %}
+        <th class="sortable" style="width:130px">Letzter Lauf</th>
+        <th style="width:60px">Status</th>
+        {% endif %}
         <th class="col-actions" style="width:{{ _actions_width }}px"></th>
       </tr>
     </thead>
@@ -157,6 +161,10 @@
             {% endif %}
           </td>
           {% include module + '/partials/list_row.html' ignore missing %}
+          {% if has_run_buttons | default(True) %}
+          <td style="white-space:nowrap">{{ item_data.last_run or '—' }}</td>
+          {% set _status = last_run_status(module, item_name) %}<td>{{ ui.status_inline(_status) }}</td>
+          {% endif %}
           <td class="col-actions">
             <div class="table-actions">
               {% for action in _run_actions %}{{ ui.card_action_button(action, item_name, item_data, container_id, loading_id) }}{% endfor %}

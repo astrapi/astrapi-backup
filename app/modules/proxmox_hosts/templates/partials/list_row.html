@@ -1,5 +1,2 @@
 {% set host = resolve_remote_host(item_data.remote_id) if item_data.remote_id else (item_data.host or '—') %}
 <td class="col-trunc" title="{{ host }}">{{ host }}</td>
-<td style="white-space:nowrap">{{ item_data.last_run or '—' }}</td>
-{% import 'partials/components/ui_macros.html' as ui %}
-{% set _status = last_run_status(module, item_name) %}<td>{{ ui.status_inline(_status) }}</td>

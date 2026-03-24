@@ -2,6 +2,3 @@
 <td>{{ item_data.type or '—' }}</td>
 <td class="col-trunc" title="{{ host }}">{{ host }}</td>
 <td class="col-trunc" title="{{ item_data.job or '' }}">{{ item_data.job or '—' }}</td>
-<td style="white-space:nowrap">{{ item_data.last_run or '—' }}</td>
-{% import 'partials/components/ui_macros.html' as ui %}
-{% set _status = last_run_status(module, item_name) %}<td>{{ ui.status_inline(_status) }}</td>
