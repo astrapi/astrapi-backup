@@ -2,7 +2,7 @@
 core/ui/crud_blueprint.py – Generischer Flask CRUD-Blueprint
 
 Erzeugt einen Standard-CRUD-Blueprint mit folgenden Routen:
-  GET  /ui/<key>/content              → Listenpartial
+  GET  /ui/<key>/content              → Listenpartial (list_wrapper.html)
   GET  /ui/<key>/create               → Anlegen-Modal
   GET  /ui/<key>/<item_id>/edit       → Bearbeiten-Modal
   GET  /ui/<key>/<item_id>/delete     → Löschen-Bestätigung
@@ -12,18 +12,22 @@ Erzeugt einen Standard-CRUD-Blueprint mit folgenden Routen:
 
 Verwendung:
     from core.ui.crud_blueprint import make_crud_blueprint
+    from core.ui.store import SqliteTableStore
     from pathlib import Path
-    from .storage import store, KEY
 
-    _DIR = Path(__file__).parent
-    bp = make_crud_blueprint(store, KEY, schema_path=str(_DIR / "schema.yaml"))
+    KEY   = "remotes"
+    store = SqliteTableStore(KEY)
+    _DIR  = Path(__file__).parent
+    bp    = make_crud_blueprint(store, KEY, schema_path=str(_DIR / "schema.yaml"))
 
     # Modulspezifische Extrarouten einfach hinzufügen:
     # @bp.route(f"/ui/{KEY}/<item_id>/run", methods=["POST"])
     # def run_item(item_id: str): ...
 """
 
-from pathlib import Path
+from __future__ import annotations
+
+from typing import Callable
 
 from flask import Blueprint, render_template, request
 
@@ -36,18 +40,34 @@ def make_crud_blueprint(
     schema_path: str,
     label: str | None = None,
     description_field: str = "description",
+    has_run_buttons: bool = False,
+    has_toggle: bool = True,
+    resolve_fields_fn: Callable[[list], list] | None = None,
 ) -> Blueprint:
     """Erstellt einen generischen CRUD-Blueprint für Flask.
 
     Args:
-        store:             YamlStorage-Instanz des Moduls
-        key:               Ressourcenname (z.B. "hosts", "tasks")
+        store:             ModuleStore-Instanz des Moduls (SqliteTableStore oder
+                           SqliteStorage/YamlStorage)
+        key:               Ressourcenname (z.B. "hosts", "remotes")
         schema_path:       Absoluter Pfad zur schema.yaml
         label:             Anzeigename (Standard: key.capitalize())
-        description_field: Feld des Items für die Modal-Beschreibung (Standard: "description")
+        description_field: Feld des Items für die Modal-Beschreibung
+        has_run_buttons:   Ob die Liste Run-Buttons anzeigen soll
+        has_toggle:        Ob Toggle-Aktion verfügbar sein soll
+        resolve_fields_fn: Optionale Funktion zum Anreichern der Schema-Felder
+                           (z.B. options_endpoint auflösen). Wird bei jedem
+                           create_modal / edit_modal aufgerufen.
 
     Returns:
         Flask Blueprint mit allen Standard-UI-Routen
+
+    ID-Handling:
+        Wenn schema["id_field"] None ist (z.B. backupctl-Module mit
+        'id_field: id'), wird beim Anlegen item_id=None übergeben →
+        store.create(None, data) → auto-increment.
+        Wenn schema["id_field"] ein Dict ist, liest das Formular die ID aus
+        id_field["name"] → store.create(item_id, data).
     """
     _label  = label or key.capitalize()
     _c_id   = f"tab-{key}"
@@ -58,13 +78,21 @@ def make_crud_blueprint(
 
     def _ctx(**extra):
         return dict(
-            key=key,
-            label=_label,
-            items=store.list(),
+            cfg=store.list(),
+            module=key,
             container_id=_c_id,
             loading_id=_l_id,
+            content_template=f"{key}/partials/list.html",
+            running={},
+            has_run_buttons=has_run_buttons,
             **extra,
         )
+
+    def _resolved_fields() -> list:
+        fields = schema["fields"]
+        if resolve_fields_fn is not None:
+            return resolve_fields_fn(fields)
+        return fields
 
     def _form_data() -> dict:
         data = {}
@@ -80,13 +108,13 @@ def make_crud_blueprint(
 
     @bp.route(f"/ui/{key}/content")
     def content():
-        return render_template(f"{key}/partials/list.html", **_ctx())
+        return render_template("partials/list_wrapper.html", **_ctx())
 
     @bp.route(f"/ui/{key}/create")
     def create_modal():
         return render_template(
             "partials/create_edit/create_edit_modal.html",
-            schema=schema["fields"],
+            schema=_resolved_fields(),
             id_field=schema["id_field"],
             modal_width=schema["modal_width"],
             item=None,
@@ -106,7 +134,7 @@ def make_crud_blueprint(
             return f"{_label} nicht gefunden", 404
         return render_template(
             "partials/create_edit/create_edit_modal.html",
-            schema=schema["fields"],
+            schema=_resolved_fields(),
             id_field=schema["id_field"],
             modal_width=schema["modal_width"],
             item=item,
@@ -151,14 +179,20 @@ def make_crud_blueprint(
 
     @bp.route(f"/ui/{key}/", methods=["POST"])
     def create_apply():
-        item_id = request.form.get(schema["id_field"]["name"], "").strip()
-        if not item_id:
-            return "ID fehlt", 400
+        id_field = schema["id_field"]
+        if id_field is not None:
+            # Explizite ID aus Formular lesen (astrapi-Stil)
+            item_id = request.form.get(id_field["name"], "").strip()
+            if not item_id:
+                return "ID fehlt", 400
+        else:
+            # Auto-increment (backupctl-Stil: id_field: id oder fehlt)
+            item_id = None
         try:
             store.create(item_id, _form_data())
         except KeyError:
             return "Bereits vorhanden", 409
-        return render_template(f"{key}/partials/list.html", **_ctx())
+        return render_template("partials/list_wrapper.html", **_ctx())
 
     @bp.route(f"/ui/{key}/<item_id>/update", methods=["POST"])
     def edit_apply(item_id: str):
@@ -166,6 +200,6 @@ def make_crud_blueprint(
             store.update(item_id, _form_data())
         except KeyError:
             return "Nicht gefunden", 404
-        return render_template(f"{key}/partials/list.html", **_ctx())
+        return render_template("partials/list_wrapper.html", **_ctx())
 
     return bp
