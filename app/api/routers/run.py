@@ -7,8 +7,8 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 
-from core.system.logger import set_tee_context, clear_tee_context, set_active_log_id, clear_active_log_id
-from core.system.activity_log import (
+from astrapi.core.system.logger import set_tee_context, clear_tee_context, set_active_log_id, clear_active_log_id
+from astrapi.core.system.activity_log import (
     history_start, history_finish,
     get_log_lines, get_latest_activity_log_id, list_runs_for_item,
 )
@@ -110,7 +110,7 @@ def make_run_router(module: str) -> APIRouter:
                 clear_tee_context()
                 _mark_done(module, item_id)
                 if not debug:
-                    from core.modules.scheduler.job_runner import _notify
+                    from astrapi.core.modules.scheduler.job_runner import _notify
                     _notify(module, desc, status, duration)
 
         threading.Thread(target=_execute, daemon=True).start()
@@ -233,7 +233,7 @@ def _dispatch_single(module: str, item_id: str) -> None:
     try:
         mod = importlib.import_module(f"modules.{module}.jobs")
     except ModuleNotFoundError:
-        from core.system.logger import log
+        from astrapi.core.system.logger import log
         log("ERROR", f"Unbekanntes Modul: {module}")
         return
     mod.run_single(item_id)

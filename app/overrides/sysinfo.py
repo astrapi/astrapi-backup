@@ -2,8 +2,8 @@
 import subprocess
 from pathlib import Path
 
-from core.modules.sysinfo import module  # noqa: F401  – wird von der Registry erwartet
-from core.modules.sysinfo.engine import configure
+from astrapi.core.modules.sysinfo import module  # noqa: F401  – wird von der Registry erwartet
+from astrapi.core.modules.sysinfo.engine import configure
 
 
 def _run(cmd: list) -> str:
@@ -44,7 +44,7 @@ def _core_version() -> str:
 
 
 def _db_size() -> str:
-    from core.system.format import fmt_bytes
+    from astrapi.core.system.format import fmt_bytes
     try:
         from api.storage import DB_PATH
         p = Path(DB_PATH)

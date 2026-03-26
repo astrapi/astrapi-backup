@@ -1,9 +1,9 @@
 # app/modules/proxmox_jobs/ui.py
 from pathlib import Path
 
-from core.ui.crud_blueprint import make_crud_blueprint
-from core.ui.store import SqliteTableStore
-from core.ui.field_resolver import resolve_options_endpoint
+from astrapi.core.ui.crud_blueprint import make_crud_blueprint
+from astrapi.core.ui.store import SqliteTableStore
+from astrapi.core.ui.field_resolver import resolve_options_endpoint
 
 KEY   = "proxmox_jobs"
 _DIR  = Path(__file__).parent

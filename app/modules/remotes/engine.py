@@ -3,7 +3,7 @@
 
 def get_remote(remote_id: int | str) -> dict | None:
     """Get a single remote device by ID"""
-    from core.system.db import load_config
+    from astrapi.core.system.db import load_config
     remotes = load_config("remotes") or {}
     return remotes.get(str(remote_id))
 
@@ -43,7 +43,7 @@ def get_remote_ssh(remote_id: int | str) -> tuple[str, str, int]:
 
 def get_all_remotes_for_select() -> list[dict]:
     """Get all enabled remote devices for dropdown selection"""
-    from core.system.db import load_config
+    from astrapi.core.system.db import load_config
     remotes = load_config("remotes") or {}
 
     result = [{"id": "local", "label": "Lokal"}]

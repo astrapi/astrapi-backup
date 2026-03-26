@@ -6,7 +6,7 @@ sowie die backupctl-spezifische Infrastruktur (run/log-streaming).
 """
 from pathlib import Path
 from fastapi import FastAPI
-from core.system.version import get_app_version
+from astrapi.core.system.version import get_app_version
 
 APP_ROOT = Path(__file__).resolve().parents[1]   # = app/
 
@@ -26,17 +26,17 @@ def create(modules: list | None = None) -> FastAPI:
         openapi_url="/api/openapi.json",
     )
 
-    from core.system.logger import configure_log_root
+    from astrapi.core.system.logger import configure_log_root
     configure_log_root(APP_ROOT / "logs")
 
-    from core.system.secrets import configure as configure_secrets
+    from astrapi.core.system.secrets import configure as configure_secrets
     configure_secrets(
         key_path     = Path("/var/lib/backupadm/secret.key"),
         dev_key_path = APP_ROOT / "config" / "secret.key",
     )
 
     # ── Modul-Router registrieren (nur laden wenn nicht übergeben) ────────────────────
-    from core.ui.module_registry import load_modules, register_fastapi_modules
+    from astrapi.core.ui.module_registry import load_modules, register_fastapi_modules
     if modules is None:
         modules = load_modules(APP_ROOT)
     register_fastapi_modules(app, modules)

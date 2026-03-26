@@ -5,7 +5,7 @@ Wird von jobs.py am Ende von run_single() aufgerufen.
 """
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from core.system.logger import log
+from astrapi.core.system.logger import log
 
 # Pro item_id ein Lock – verhindert parallele Cache-Rebuilds für denselben Job
 _locks: dict[str, threading.Lock] = {}

@@ -1,7 +1,7 @@
 # modules/rsync/api.py
 from pathlib import Path
 
-from core.ui.htmx_crud_router import make_htmx_crud_router
+from astrapi.core.ui.htmx_crud_router import make_htmx_crud_router
 from modules.rsync.jobs import preview as _preview
 
 KEY = "rsync"

@@ -12,14 +12,14 @@ import yaml
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from core.system.db import (
+from astrapi.core.system.db import (
     configure as _configure_db,
     _conn,
     get_setting, set_setting,
     register_table, create_all_registered_tables,
     load_config, get_item, save_item, delete_item, next_item_id, get_entry, patch_item,
 )
-from core.system.activity_log import (
+from astrapi.core.system.activity_log import (
     log_activity, update_activity_log,
     list_activity, get_activity_log, clear_activity_log,
     get_latest_activity_log_id, list_runs_for_item,

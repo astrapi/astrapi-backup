@@ -1,10 +1,10 @@
 # app/modules/proxmox_lxc/ui.py
 from pathlib import Path
 
-from core.ui.crud_blueprint import make_crud_blueprint
-from core.ui.store import SqliteTableStore
-from core.ui.field_resolver import resolve_options_endpoint
-from core.ui.settings_registry import get_module as _get_module
+from astrapi.core.ui.crud_blueprint import make_crud_blueprint
+from astrapi.core.ui.store import SqliteTableStore
+from astrapi.core.ui.field_resolver import resolve_options_endpoint
+from astrapi.core.ui.settings_registry import get_module as _get_module
 
 KEY   = "proxmox_lxc"
 _DIR  = Path(__file__).parent

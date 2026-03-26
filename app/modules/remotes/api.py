@@ -3,14 +3,14 @@ import subprocess
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request, Header
 
-from core.system.db import load_config, get_item, delete_item, save_item, next_item_id
+from astrapi.core.system.db import load_config, get_item, delete_item, save_item, next_item_id
 
 KEY = "remotes"
 router = APIRouter(tags=[KEY])
 
 
 def _list_response(request: Request):
-    from core.ui.fastapi_templates import get_templates
+    from astrapi.core.ui.fastapi_templates import get_templates
     return get_templates().TemplateResponse(
         "partials/list_wrapper_inner.html",
         {

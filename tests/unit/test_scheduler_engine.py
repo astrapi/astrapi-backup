@@ -35,7 +35,7 @@ def _create_job(scheduler, job_id="test-job", steps=None, enabled=True, cron="0 
 
 def _get_status(job_id="test-job"):
     """Liest den gespeicherten Laufstatus aus der Storage."""
-    from core.ui.storage import SqliteStorage
+    from astrapi.core.ui.storage import SqliteStorage
     return SqliteStorage("scheduler_status").get(job_id)
 
 
@@ -404,7 +404,7 @@ class TestSyncJobs:
 
     def test_invalid_cron_does_not_crash(self, scheduler, caplog):
         """Ungültiger Cron-Ausdruck wird als Fehler geloggt, Sync läuft weiter."""
-        from core.ui.storage import SqliteStorage
+        from astrapi.core.ui.storage import SqliteStorage
         SqliteStorage("scheduler_jobs").create("bad-cron", {
             "label": "Fehlerhafter Cron",
             "cron": "INVALID_CRON",
@@ -420,7 +420,7 @@ class TestSyncJobs:
 
     def test_empty_cron_not_registered(self, scheduler):
         """Leerer Cron-String → Job wird nicht in APScheduler registriert."""
-        from core.ui.storage import SqliteStorage
+        from astrapi.core.ui.storage import SqliteStorage
         SqliteStorage("scheduler_jobs").create("no-cron", {
             "label": "Kein Cron",
             "cron": "",

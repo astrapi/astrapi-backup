@@ -21,8 +21,8 @@ sys.path.insert(0, str(PROJECT_ROOT))
 @pytest.fixture(autouse=True)
 def fresh_db(tmp_path):
     """Konfiguriert eine frische SQLite-DB für jeden Test und räumt danach auf."""
-    import core.system.db as db
-    from core.ui.storage import SqliteStorage
+    import astrapi.core.system.db as db
+    from astrapi.core.ui.storage import SqliteStorage
 
     # Vorhandene Thread-lokale Verbindung schließen
     if getattr(db._local, "conn", None):
@@ -54,7 +54,7 @@ def fresh_db(tmp_path):
 @pytest.fixture
 def scheduler():
     """Frische, isolierte Scheduler-Instanz (nicht der Modul-Singleton)."""
-    from core.modules.scheduler.engine import Scheduler
+    from astrapi.core.modules.scheduler.engine import Scheduler
     sch = Scheduler()
     yield sch
     sch.reset()

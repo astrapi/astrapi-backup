@@ -3,7 +3,7 @@
 import json
 from datetime import datetime
 
-from core.system.db import _conn
+from astrapi.core.system.db import _conn
 
 
 # ── Archive-Cache ─────────────────────────────────────────────────────────────

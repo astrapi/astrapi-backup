@@ -1,6 +1,6 @@
 from pathlib import Path
-from core.ui.module_loader import load_modul
-from core.system.db import register_table
+from astrapi.core.ui.module_loader import load_modul
+from astrapi.core.system.db import register_table
 
 _DDL = """
     CREATE TABLE IF NOT EXISTS remotes (
@@ -18,7 +18,7 @@ register_table("remotes", _DDL)
 
 def _migrate():
     """Fügt fehlende Spalten zu bestehenden Datenbanken hinzu."""
-    from core.system.db import _conn
+    from astrapi.core.system.db import _conn
     con = _conn()
     existing = {row[1] for row in con.execute("PRAGMA table_info(remotes)").fetchall()}
     if "ssh_port" not in existing:

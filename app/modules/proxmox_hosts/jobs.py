@@ -2,11 +2,11 @@
 import os
 import subprocess
 
-from core.system.logger import log, log_context
-from core.system.reachability import require_hosts
-from core.system.cmd import run_cmd, build_connection_string, is_local
-from core.system.secrets import get_secret_safe
-from core.ui.settings_registry import get_module as _get_module_setting, get as _get_global_setting
+from astrapi.core.system.logger import log, log_context
+from astrapi.core.system.reachability import require_hosts
+from astrapi.core.system.cmd import run_cmd, build_connection_string, is_local
+from astrapi.core.system.secrets import get_secret_safe
+from astrapi.core.ui.settings_registry import get_module as _get_module_setting, get as _get_global_setting
 
 from api.storage import load_config as _load_config, get_entry as _get_entry, patch_item as _patch_item
 def _get_config(): return _load_config("proxmox_hosts")
@@ -78,7 +78,7 @@ def preview(item_id) -> list[dict]:
 
 
 def run():
-    from core.modules.scheduler.job_runner import run_all
+    from astrapi.core.modules.scheduler.job_runner import run_all
     run_all("proxmox_hosts", _get_config(), run_single)
 
 

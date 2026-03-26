@@ -34,7 +34,7 @@ for _search_root in (_APP_ROOT / "modules", _PROJECT_ROOT / "core" / "modules"):
 templates.env.loader = ChoiceLoader(_prefix_loaders + _base_loaders)
 
 # Jinja2-Instanz für core-Module bereitstellen
-from core.ui.fastapi_templates import configure as _configure_fastapi_templates
+from astrapi.core.ui.fastapi_templates import configure as _configure_fastapi_templates
 _configure_fastapi_templates(templates)
 
 
@@ -42,25 +42,25 @@ _configure_fastapi_templates(templates)
 # (entsprechen den Flask-Context-Processor-Funktionen in core/ui/app.py)
 
 def _module_label(key: str) -> str:
-    from core.ui.module_registry import _mod_registry
+    from astrapi.core.ui.module_registry import _mod_registry
     m = _mod_registry.get(key)
     return m.label if m else key.replace("_", " ").title()
 
 
 def _module_has_settings(key: str) -> bool:
-    from core.ui.module_registry import _mod_registry
+    from astrapi.core.ui.module_registry import _mod_registry
     m = _mod_registry.get(key)
     return bool(m and m.settings_schema)
 
 
 def _module_card_actions(key: str) -> list:
-    from core.ui.module_registry import _mod_registry
+    from astrapi.core.ui.module_registry import _mod_registry
     m = _mod_registry.get(key)
     return m.card_actions if m else []
 
 
 def _col_widths(module_key: str) -> str:
-    from core.ui.settings_registry import get as settings_get
+    from astrapi.core.ui.settings_registry import get as settings_get
     return settings_get(f"ui.col_widths.{module_key}", "{}")
 
 
@@ -77,7 +77,7 @@ def _resolve_remote_host(remote_id) -> str:
 
 def _last_run_status(module: str, item_id) -> str | None:
     try:
-        from core.system.activity_log import list_runs_for_item
+        from astrapi.core.system.activity_log import list_runs_for_item
         runs = list_runs_for_item(module, str(item_id), limit=5)
         for run in runs:
             if run.get("status") != "running":

@@ -14,11 +14,11 @@ from modules.borg.storage import (
     get_stats_cache, save_stats_cache,
 )
 from api.templates import templates
-from core.system.cmd import is_local, build_connection_string
-from core.system.logger import log
+from astrapi.core.system.cmd import is_local, build_connection_string
+from astrapi.core.system.logger import log
 from modules.borg.utils import borg_bin as _borg_bin, borg_env as _borg_env
 from modules.borg.jobs import preview as _preview_borg, _get_host_info as _job_get_host_info
-from core.ui.htmx_crud_router import make_htmx_crud_router
+from astrapi.core.ui.htmx_crud_router import make_htmx_crud_router
 
 KEY = "borg"
 _SCHEMA_PATH = Path(__file__).parent / "schema.yaml"
@@ -114,7 +114,7 @@ def _load_archive_entries(repo_path: str, archive: str, env: dict, timeout: int 
         return []
 
 
-from core.system.format import fmt_bytes as _fmt_size
+from astrapi.core.system.format import fmt_bytes as _fmt_size
 
 
 def _sanitize_path(path: str) -> str:

@@ -1,9 +1,9 @@
 # modules/proxmox_jobs.py
 import subprocess
 
-from core.system.logger import log, log_context
-from core.system.reachability import require_hosts
-from core.system.cmd import run_cmd, build_connection_string
+from astrapi.core.system.logger import log, log_context
+from astrapi.core.system.reachability import require_hosts
+from astrapi.core.system.cmd import run_cmd, build_connection_string
 from api.storage import load_config as _load_config, get_entry as _get_entry, patch_item as _patch_item
 
 def _get_config(): return _load_config("proxmox_jobs")
@@ -55,14 +55,14 @@ def preview(item_id) -> list[dict]:
 
 
 def run():
-    from core.modules.scheduler.job_runner import run_all
+    from astrapi.core.modules.scheduler.job_runner import run_all
     run_all("proxmox_jobs", _get_config(), run_single,
             desc_fn=lambda iid, e: e.get("description", e.get("job", iid)))
 
 
 def run_by_type(job_type: str):
     """Führt alle aktivierten Jobs eines bestimmten Typs sequenziell aus."""
-    from core.modules.scheduler.job_runner import run_all
+    from astrapi.core.modules.scheduler.job_runner import run_all
     filtered = {iid: e for iid, e in _get_config().items() if e.get("type") == job_type}
     run_all("proxmox_jobs", filtered, run_single,
             desc_fn=lambda iid, e: e.get("description", e.get("job", iid)))
