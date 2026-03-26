@@ -60,7 +60,7 @@ def create_app() -> FastAPI:
     ui  = create_ui(app_root=APP_ROOT, modules=modules)
 
     import astrapi.core.ui
-    core_static = Path(core.ui.__file__).parent / "static"
+    core_static = Path(astrapi.core.ui.__file__).parent / "static"
     api.mount("/static", StaticFiles(directory=str(core_static)), name="static")
     api.mount("/", WSGIMiddleware(ui))
 
