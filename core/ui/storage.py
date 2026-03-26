@@ -138,16 +138,21 @@ class SqliteStorage:
 
     # ── Schreiben ─────────────────────────────────────────────────
 
-    def create(self, key: str, values: dict) -> dict:
+    def create(self, key: str | None, values: dict) -> str:
+        if key is None:
+            raise ValueError(
+                f"SqliteStorage '{self.collection}' unterstützt kein auto-increment "
+                "(key=None). Bitte einen expliziten Schlüssel übergeben."
+            )
         self._maybe_migrate()
         with self._lock:
             from core.system.db import kv_get, kv_set
             if kv_get(self.collection, key) is not None:
                 raise KeyError(f"'{key}' existiert bereits in '{self.collection}'")
             kv_set(self.collection, key, json.dumps(values))
-        return values
+        return key
 
-    def update(self, key: str, values: dict) -> dict:
+    def update(self, key: str, values: dict) -> None:
         self._maybe_migrate()
         with self._lock:
             from core.system.db import kv_get, kv_set
@@ -157,7 +162,6 @@ class SqliteStorage:
             existing = json.loads(raw)
             existing.update(values)
             kv_set(self.collection, key, json.dumps(existing))
-        return existing
 
     def upsert(self, key: str, values: dict) -> dict:
         self._maybe_migrate()
@@ -172,13 +176,14 @@ class SqliteStorage:
             kv_set(self.collection, key, json.dumps(existing))
         return existing
 
-    def delete(self, key: str) -> None:
+    def delete(self, key: str) -> bool:
         self._maybe_migrate()
         with self._lock:
             from core.system.db import kv_get, kv_delete
             if kv_get(self.collection, key) is None:
                 raise KeyError(f"'{key}' nicht gefunden in '{self.collection}'")
             kv_delete(self.collection, key)
+            return True
 
     def toggle(self, key: str, field: str = "enabled", default: bool = True) -> bool:
         self._maybe_migrate()
