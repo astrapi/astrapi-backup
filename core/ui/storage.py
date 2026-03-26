@@ -139,10 +139,15 @@ class SqliteStorage:
     # ── Schreiben ─────────────────────────────────────────────────
 
     def create(self, key: str | None, values: dict) -> str:
+        """Legt einen neuen Eintrag an.
+
+        key=None ist für YamlStorage nicht sinnvoll (kein auto-increment) und
+        wirft einen ValueError.  Gibt den verwendeten Schlüssel zurück.
+        """
         if key is None:
             raise ValueError(
-                f"SqliteStorage '{self.collection}' unterstützt kein auto-increment "
-                "(key=None). Bitte einen expliziten Schlüssel übergeben."
+                f"YamlStorage '{self.collection}' unterstützt kein auto-increment "
+                "(item_id=None). Bitte einen expliziten Schlüssel übergeben."
             )
         self._maybe_migrate()
         with self._lock:
@@ -183,7 +188,7 @@ class SqliteStorage:
             if kv_get(self.collection, key) is None:
                 raise KeyError(f"'{key}' nicht gefunden in '{self.collection}'")
             kv_delete(self.collection, key)
-            return True
+        return True
 
     def toggle(self, key: str, field: str = "enabled", default: bool = True) -> bool:
         self._maybe_migrate()
