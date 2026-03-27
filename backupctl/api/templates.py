@@ -35,7 +35,7 @@ for _search_root in (_APP_ROOT / "modules", _CORE_MODULES):
 
 # Environment direkt bauen und per env= übergeben – vermeidet den Jinja2 3.1.5+
 # Cache-Key-Bug bei dem globals (dict) unhashbar als LRU-Key verwendet wird.
-_env = Environment(loader=ChoiceLoader(_prefix_loaders + _base_loaders), autoescape=True)
+_env = Environment(loader=ChoiceLoader(_prefix_loaders + _base_loaders), autoescape=True, cache_size=0)
 templates = Jinja2Templates(env=_env)
 
 # Jinja2-Instanz für core-Module bereitstellen
