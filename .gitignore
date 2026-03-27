@@ -36,3 +36,4 @@ logs/
 
 # backupctl-spezifisch
 .borg/
+.release.env
