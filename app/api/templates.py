@@ -4,9 +4,10 @@ from fastapi.templating import Jinja2Templates
 from jinja2 import ChoiceLoader, FileSystemLoader, PrefixLoader
 
 _APP_ROOT       = Path(__file__).resolve().parent.parent          # = app/
-_PROJECT_ROOT   = _APP_ROOT.parent                                # = backupctl/
-_APP_TEMPLATES  = _APP_ROOT      / "templates"
-_CORE_TEMPLATES = _PROJECT_ROOT  / "core" / "ui" / "templates"
+_APP_TEMPLATES  = _APP_ROOT / "templates"
+
+import astrapi.core.ui as _astrapi_core_ui
+_CORE_TEMPLATES = Path(_astrapi_core_ui.__file__).resolve().parent / "templates"
 
 templates = Jinja2Templates(directory=str(_APP_TEMPLATES))
 
@@ -19,7 +20,8 @@ _base_loaders: list = [
 # PrefixLoader für jedes Modul das ein templates/-Unterverzeichnis hat
 # → render_template("borg/partials/list.html") → modules/borg/templates/partials/list.html
 _prefix_loaders: list = []
-for _search_root in (_APP_ROOT / "modules", _PROJECT_ROOT / "core" / "modules"):
+_CORE_MODULES = Path(_astrapi_core_ui.__file__).resolve().parents[1] / "modules"
+for _search_root in (_APP_ROOT / "modules", _CORE_MODULES):
     if not _search_root.is_dir():
         continue
     for _mod_dir in sorted(_search_root.iterdir()):
