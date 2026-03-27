@@ -3,7 +3,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from astrapi.core.system.version import get_app_version
 
-from backupctl._paths import package_dir, log_dir, config_dir
+from backupctl._paths import package_dir, log_dir
 
 APP_ROOT = package_dir()
 
@@ -29,7 +29,7 @@ def create(modules: list | None = None) -> FastAPI:
     from astrapi.core.system.secrets import configure as configure_secrets
     configure_secrets(
         key_path     = Path("/var/lib/backupadm/secret.key"),
-        dev_key_path = config_dir() / "secret.key",
+        dev_key_path = package_dir() / "secret.key",
     )
 
     # ── Modul-Router registrieren (nur laden wenn nicht übergeben) ────────────────────
