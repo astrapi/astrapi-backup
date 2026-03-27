@@ -17,7 +17,7 @@ dependencies = [
     "urllib3>=2.2",
     "psutil>=6.0",
     "apispec>=6.0",
-    "astrapi-core @ git+ssh://git@gitlab.com/astrapi-os/ctl/astrapi-core.git@v26.3.8",
+    "astrapi-core @ git+ssh://git@gitlab.com/astrapi-os/ctl/astrapi-core.git@v26.3.9",
 ]
 
 [project.scripts]

@@ -16,7 +16,7 @@ def main() -> None:
     parser.add_argument("--reload", action="store_true", default=False)
     add_work_dir_argument(parser)
     args = parser.parse_args()
-    apply_work_dir_argument(args)
+    apply_work_dir_argument(args, "backupctl")
 
     import uvicorn
     uvicorn.run(

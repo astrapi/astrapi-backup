@@ -1,10 +1,7 @@
 # backupctl/_paths.py
 from pathlib import Path
 
-from astrapi.core.system.paths import configure as _configure
 from astrapi.core.system.paths import work_dir, db_path, log_dir  # noqa: F401 – re-export
-
-_configure("backupctl")
 
 
 def package_dir() -> Path:
