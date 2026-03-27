@@ -5,20 +5,18 @@ Start:
     backupctl --work-dir /opt/backupctl --port 9998 --reload   # Entwicklung
 """
 import argparse
-import os
-import sys
+
+from astrapi.core.system.paths import add_work_dir_argument, apply_work_dir_argument
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="backupctl")
-    parser.add_argument("--port",     type=int, default=5001)
-    parser.add_argument("--host",     default="0.0.0.0")
-    parser.add_argument("--reload",   action="store_true", default=False)
-    parser.add_argument("--work-dir", required=True,
-                        help="Arbeitsverzeichnis mit data/ und logs/")
+    parser.add_argument("--port",   type=int, default=5001)
+    parser.add_argument("--host",   default="0.0.0.0")
+    parser.add_argument("--reload", action="store_true", default=False)
+    add_work_dir_argument(parser)
     args = parser.parse_args()
-
-    os.environ["BACKUPCTL_WORK_DIR"] = args.work_dir
+    apply_work_dir_argument(args)
 
     import uvicorn
     uvicorn.run(
