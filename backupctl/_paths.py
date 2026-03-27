@@ -1,11 +1,7 @@
 """backupctl._paths – zentrale Laufzeit-Pfade.
 
-Priorität für data_dir():
-  1. Umgebungsvariable BACKUPCTL_DATA_DIR
-  2. /var/lib/backupctl  (Produktion, wenn beschreibbar)
-  3. ./              (Entwicklungs-Fallback, cwd)
-     → DB:   ./data/app.db
-     → Logs: ./logs/
+work_dir() liest BACKUPCTL_WORK_DIR (gesetzt von --work-dir).
+Ist die Variable nicht gesetzt, wird ein RuntimeError ausgelöst.
 """
 import os
 from pathlib import Path
@@ -16,19 +12,19 @@ def package_dir() -> Path:
     return Path(__file__).resolve().parent
 
 
-def data_dir() -> Path:
-    env = os.environ.get("BACKUPCTL_DATA_DIR", "").strip()
-    if env:
-        return Path(env)
-    prod = Path("/var/lib/backupctl")
-    if prod.exists() and os.access(prod, os.W_OK):
-        return prod
-    return Path.cwd()
+def work_dir() -> Path:
+    val = os.environ.get("BACKUPCTL_WORK_DIR", "").strip()
+    if not val:
+        raise RuntimeError(
+            "BACKUPCTL_WORK_DIR nicht gesetzt. "
+            "backupctl mit --work-dir /pfad/zum/verzeichnis starten."
+        )
+    return Path(val)
 
 
 def db_path() -> Path:
-    return data_dir() / "data" / "app.db"
+    return work_dir() / "data" / "app.db"
 
 
 def log_dir() -> Path:
-    return data_dir() / "logs"
+    return work_dir() / "logs"

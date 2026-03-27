@@ -17,7 +17,7 @@ from astrapi.core.system.systemd import sd_notify, start_watchdog
 from astrapi.core.system.version import get_display_name
 from astrapi.core.modules.settings.engine import configure as configure_settings
 
-from backupctl._paths import package_dir, data_dir
+from backupctl._paths import package_dir, work_dir
 from backupctl.api.fastapi_app import create as create_api
 
 _START_TIME = time.time()
@@ -34,14 +34,12 @@ def _db_check() -> tuple[bool, dict]:
 
 def create_app() -> FastAPI:
     _pkg = package_dir()
-    _data = data_dir()
-
     configure_settings(health_fn=_db_check, app_name=get_display_name(_pkg))
 
     from backupctl.api.storage import init_db
     init_db()
 
-    settings_init(_data)
+    settings_init(work_dir())
     modules = load_modules(_pkg)
     api = create_api(modules=modules)
     ui  = create_ui(app_root=_pkg, modules=modules)

@@ -27,9 +27,9 @@ from astrapi.core.system.activity_log import (
     append_log_line, get_log_lines,
 )
 
-from backupctl._paths import db_path as _db_path, data_dir as _data_dir
+from backupctl._paths import db_path as _db_path, work_dir as _work_dir
 DB_PATH    = _db_path()
-CONFIG_DIR = _data_dir() / "config"
+CONFIG_DIR = _work_dir() / "config"
 
 
 # ── App-Tabellen-Konfiguration ─────────────────────────────────────
