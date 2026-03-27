@@ -12,9 +12,9 @@ router = APIRouter(tags=[KEY])
 def _list_response(request: Request):
     from astrapi.core.ui.fastapi_templates import get_templates
     return get_templates().TemplateResponse(
+        request,
         "partials/list_wrapper_inner.html",
         {
-            "request":          request,
             "cfg":              load_config(KEY),
             "module":           KEY,
             "content_template": f"{KEY}/partials/list.html",

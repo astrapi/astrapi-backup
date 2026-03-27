@@ -62,9 +62,10 @@ def make_run_router(module: str) -> APIRouter:
     def module_status(request: Request):
         cfg = load_config(module)
         return _get_templates().TemplateResponse(
+            request,
             "partials/list_wrapper_inner.html",
             {
-                "request": request, "cfg": cfg, "module": module,
+                "cfg": cfg, "module": module,
                 "container_id": f"tab-{module}", "loading_id": f"{module}-loading",
                 "content_template": f"{module}/partials/list.html",
                 "running": get_running(),
@@ -115,9 +116,10 @@ def make_run_router(module: str) -> APIRouter:
 
         cfg = load_config(module)
         list_html = _get_templates().TemplateResponse(
+            request,
             "partials/list_wrapper_inner.html",
             {
-                "request": request, "cfg": cfg, "module": module,
+                "cfg": cfg, "module": module,
                 "container_id": f"tab-{module}", "loading_id": f"{module}-loading",
                 "content_template": f"{module}/partials/list.html",
                 "running": get_running(),
@@ -192,9 +194,10 @@ def make_run_router(module: str) -> APIRouter:
         selected = str(act_log_id) if act_log_id else None
 
         return _get_templates().TemplateResponse(
+            request,
             "partials/log_modal.html",
             {
-                "request": request, "module": module, "item_id": item_id,
+                "module": module, "item_id": item_id,
                 "description": _item_description(module, item_id),
                 "dates": dates, "selected": selected, "lines": lines,
                 "live": bool(live),
@@ -205,8 +208,9 @@ def make_run_router(module: str) -> APIRouter:
     def get_log_by_id(item_id: str, log_id: str, request: Request):
         lines = [r["line"] for r in get_log_lines(int(log_id))] if log_id.isdigit() else []
         return _get_templates().TemplateResponse(
+            request,
             "partials/log_content.html",
-            {"request": request, "lines": lines, "date": log_id},
+            {"lines": lines, "date": log_id},
         )
 
     return router

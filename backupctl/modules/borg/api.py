@@ -206,8 +206,7 @@ def archives_modal(item_id: str, request: Request):
         "Noch kein Cache vorhanden. Bitte zuerst ein Backup ausführen."
         if not cached_at else "Cache ist leer."
     )
-    return templates.TemplateResponse("borg/partials/archives_modal.html", {
-        "request":     request,
+    return templates.TemplateResponse(request, "borg/partials/archives_modal.html", {
         "item_id":     item_id,
         "description": entry.get("description", item_id),
         "repo_path":   _repo_path(entry),
@@ -223,8 +222,7 @@ def archives_list(item_id: str, request: Request):
     if entry is None:
         raise HTTPException(404, "Item not found")
     archives, cached_at = get_archive_cache(item_id)
-    return templates.TemplateResponse("borg/partials/archives_list.html", {
-        "request":   request,
+    return templates.TemplateResponse(request, "borg/partials/archives_list.html", {
         "item_id":   item_id,
         "archives":  archives,
         "cached_at": cached_at,
@@ -250,8 +248,7 @@ def refresh_archives(item_id: str, request: Request):
     else:
         archives, cached_at = get_archive_cache(item_id)
         error = live_error
-    return templates.TemplateResponse("borg/partials/archives_list.html", {
-        "request":   request,
+    return templates.TemplateResponse(request, "borg/partials/archives_list.html", {
         "item_id":   item_id,
         "archives":  archives,
         "cached_at": cached_at,
@@ -304,8 +301,7 @@ def browse_archive(item_id: str, archive: str, request: Request, path: str = "")
     if cur:
         p = str(PurePosixPath(cur).parent)
         parent_path = "" if p == "." else p
-    return templates.TemplateResponse("borg/partials/browse.html", {
-        "request":     request,
+    return templates.TemplateResponse(request, "borg/partials/browse.html", {
         "item_id":     item_id,
         "archive":     archive,
         "path":        cur,
@@ -455,8 +451,7 @@ def stats_modal(item_id: str, request: Request):
     stats = _build_stats(info) if info else None
     if stats:
         stats = _enrich_stats_from_archive_cache(stats, item_id)
-    return templates.TemplateResponse("borg/partials/stats_modal.html", {
-        "request":     request,
+    return templates.TemplateResponse(request, "borg/partials/stats_modal.html", {
         "item_id":     item_id,
         "description": entry.get("description", item_id),
         "repo_path":   _repo_path(entry),
@@ -484,8 +479,7 @@ def refresh_stats(item_id: str, request: Request):
     stats = _build_stats(info) if info else None
     if stats:
         stats = _enrich_stats_from_archive_cache(stats, item_id)
-    return templates.TemplateResponse("borg/partials/stats_content.html", {
-        "request":     request,
+    return templates.TemplateResponse(request, "borg/partials/stats_content.html", {
         "item_id":     item_id,
         "stats":       stats,
         "cached_at":   cached_at,
