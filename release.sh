@@ -40,6 +40,12 @@ if git tag | grep -qx "$TAG"; then
     exit 1
 fi
 
+EXISTING_TAG="$(git tag --points-at HEAD | head -1)"
+if [[ -n "$EXISTING_TAG" ]]; then
+    echo "Fehler: HEAD hat bereits Tag '$EXISTING_TAG'. Bitte erst committen." >&2
+    exit 1
+fi
+
 # ── Tag setzen und pushen ──────────────────────────────────────────────────────
 echo "→ Setze Tag $TAG …"
 git tag "$TAG"
@@ -58,7 +64,7 @@ REGISTRY_URL="https://gitlab.com/api/v4/projects/${GITLAB_PROJECT_ID}/packages/p
 echo "→ Lade hoch nach ${REGISTRY_URL} …"
 twine upload \
     --repository-url "$REGISTRY_URL" \
-    --username "$GITLAB_TOKEN_NAME" \
+    --username "__token__" \
     --password "$GITLAB_TOKEN_SECRET" \
     dist/*
 echo "  ✓ Fertig – backupctl==${VERSION} ist in der Registry"
