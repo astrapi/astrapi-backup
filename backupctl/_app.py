@@ -5,6 +5,9 @@ Wird von backupctl._cli (Console-Script) und direkt von uvicorn importiert:
 """
 import time
 
+from astrapi.core.system.paths import configure as _configure_paths
+_configure_paths("backupctl")
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from a2wsgi import WSGIMiddleware

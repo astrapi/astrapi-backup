@@ -1,7 +1,7 @@
 # api/templates.py – zentrale Jinja2-Instanz mit ChoiceLoader (app/ > module/ > core/)
 from pathlib import Path
 from fastapi.templating import Jinja2Templates
-from jinja2 import ChoiceLoader, FileSystemLoader, PrefixLoader
+from jinja2 import ChoiceLoader, Environment, FileSystemLoader, PrefixLoader
 
 from backupctl._paths import package_dir as _package_dir
 
@@ -10,8 +10,6 @@ _APP_TEMPLATES = _APP_ROOT / "templates"
 
 import astrapi.core.ui as _astrapi_core_ui
 _CORE_TEMPLATES = Path(_astrapi_core_ui.__file__).resolve().parent / "templates"
-
-templates = Jinja2Templates(directory=str(_APP_TEMPLATES))
 
 # Basis-Loader: app/templates/ > core/ui/templates/
 _base_loaders: list = [
@@ -35,7 +33,10 @@ for _search_root in (_APP_ROOT / "modules", _CORE_MODULES):
                 PrefixLoader({_mod_dir.name: FileSystemLoader(str(_tpl_dir))})
             )
 
-templates.env.loader = ChoiceLoader(_prefix_loaders + _base_loaders)
+# Environment direkt bauen und per env= übergeben – vermeidet den Jinja2 3.1.5+
+# Cache-Key-Bug bei dem globals (dict) unhashbar als LRU-Key verwendet wird.
+_env = Environment(loader=ChoiceLoader(_prefix_loaders + _base_loaders), autoescape=True)
+templates = Jinja2Templates(env=_env)
 
 # Jinja2-Instanz für core-Module bereitstellen
 from astrapi.core.ui.fastapi_templates import configure as _configure_fastapi_templates
@@ -91,9 +92,9 @@ def _last_run_status(module: str, item_id) -> str | None:
     return None
 
 
-templates.env.globals["module_label"]        = _module_label
-templates.env.globals["module_has_settings"] = _module_has_settings
-templates.env.globals["module_card_actions"] = _module_card_actions
-templates.env.globals["col_widths"]          = _col_widths
-templates.env.globals["resolve_remote_host"] = _resolve_remote_host
-templates.env.globals["last_run_status"]     = _last_run_status
+_env.globals["module_label"]        = _module_label
+_env.globals["module_has_settings"] = _module_has_settings
+_env.globals["module_card_actions"] = _module_card_actions
+_env.globals["col_widths"]          = _col_widths
+_env.globals["resolve_remote_host"] = _resolve_remote_host
+_env.globals["last_run_status"]     = _last_run_status
