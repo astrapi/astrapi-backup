@@ -38,7 +38,11 @@ def _read_version_yaml(path: Path) -> str:
 
 
 def _app_version() -> str:
-    return _read_version_yaml(_package_dir() / "app.yaml")
+    try:
+        from importlib.metadata import version
+        return version("backupctl")
+    except Exception:
+        return _read_version_yaml(_package_dir() / "app.yaml")
 
 
 def _core_version() -> str:
