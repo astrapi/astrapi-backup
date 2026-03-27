@@ -3,7 +3,9 @@
 Priorität für data_dir():
   1. Umgebungsvariable BACKUPCTL_DATA_DIR
   2. /var/lib/backupctl  (Produktion, wenn beschreibbar)
-  3. ./backupctl-data    (Entwicklungs-Fallback)
+  3. ./              (Entwicklungs-Fallback, cwd)
+     → DB:   ./data/app.db
+     → Logs: ./logs/
 """
 import os
 from pathlib import Path
@@ -21,15 +23,11 @@ def data_dir() -> Path:
     prod = Path("/var/lib/backupctl")
     if prod.exists() and os.access(prod, os.W_OK):
         return prod
-    return Path.cwd() / "backupctl-data"
+    return Path.cwd()
 
 
 def db_path() -> Path:
     return data_dir() / "data" / "app.db"
-
-
-def config_dir() -> Path:
-    return data_dir() / "config"
 
 
 def log_dir() -> Path:

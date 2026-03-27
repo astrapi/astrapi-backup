@@ -18,8 +18,9 @@ dist/
 .coverage
 htmlcov/
 
-# Laufzeitdaten (liegen in /var/lib/backupctl oder backupctl-data/)
-backupctl-data/
+# Laufzeitdaten (Dev: ./data/, ./logs/ – Prod: /var/lib/backupctl/)
+data/
+logs/
 
 # Logs
 *.log
