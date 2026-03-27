@@ -2,7 +2,7 @@
 tests/unit/test_template_resolution.py
 
 Stellt sicher, dass jedes Template, das per TemplateResponse("name", …) in
-app/-Code referenziert wird, auch tatsächlich vom Jinja2-Loader aufgelöst
+backupctl/-Code referenziert wird, auch tatsächlich vom Jinja2-Loader aufgelöst
 werden kann.
 
 Verhindert Fehler wie:
@@ -12,20 +12,18 @@ Template-Verzeichnis fehlt.
 """
 
 import ast
-import sys
 from pathlib import Path
 
 import pytest
 
-# app/ auf den Suchpfad legen (wird für "from api.templates import …" gebraucht)
-APP_ROOT = Path(__file__).resolve().parents[2] / "app"
-if str(APP_ROOT) not in sys.path:
-    sys.path.insert(0, str(APP_ROOT))
+from backupctl._paths import package_dir
+
+APP_ROOT = package_dir()
 
 
 # ── Template-Namen aus Quellcode extrahieren ─────────────────────────────────
 
-def _collect_template_names(app_root: Path) -> dict[str, list[int]]:
+def _collect_template_names(app_root: Path) -> dict[str, list[str]]:
     """
     Durchsucht alle .py-Dateien unter app_root und gibt ein Dict zurück:
         template_name → Liste von (relpath:zeile)-Strings
@@ -36,7 +34,6 @@ def _collect_template_names(app_root: Path) -> dict[str, list[int]]:
     found: dict[str, list[str]] = {}
 
     for py_file in app_root.rglob("*.py"):
-        # .venv ausschließen
         if ".venv" in py_file.parts:
             continue
 
@@ -48,7 +45,6 @@ def _collect_template_names(app_root: Path) -> dict[str, list[int]]:
         rel = py_file.relative_to(app_root.parent)
 
         for node in ast.walk(tree):
-            # Suche: <expr>.TemplateResponse(<string-literal>, …)
             if not (
                 isinstance(node, ast.Call)
                 and isinstance(node.func, ast.Attribute)
@@ -69,7 +65,6 @@ def _collect_template_names(app_root: Path) -> dict[str, list[int]]:
 # ── Parametrisierter Test ─────────────────────────────────────────────────────
 
 def _template_params():
-    """Gibt (template_name, locations_string)-Paare für pytest.mark.parametrize zurück."""
     names = _collect_template_names(APP_ROOT)
     return [
         pytest.param(name, ", ".join(locs), id=name)
@@ -82,14 +77,9 @@ def test_template_resolvable(template_name: str, locations: str):
     """
     Jedes per TemplateResponse referenzierte Template muss vom Jinja2-Loader
     gefunden werden können.
-
-    Schlägt dieser Test fehl, ist das Template entweder nicht vorhanden oder
-    das Template-Verzeichnis ist nicht im ChoiceLoader registriert.
-
-    Referenziert in: {locations}
     """
     from jinja2 import TemplateNotFound
-    from api.templates import templates
+    from backupctl.api.templates import templates
 
     try:
         templates.env.get_template(template_name)
@@ -104,7 +94,6 @@ def test_template_resolvable(template_name: str, locations: str):
 
 
 def _format_loader_paths(templates) -> str:
-    """Gibt die konfigurierten Suchpfade des Loaders als lesbaren String zurück."""
     from jinja2 import ChoiceLoader, FileSystemLoader, PrefixLoader
 
     lines = []

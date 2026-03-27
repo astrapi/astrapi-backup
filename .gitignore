@@ -18,10 +18,8 @@ dist/
 .coverage
 htmlcov/
 
-# Datenbank
-app/data/*.db
-app/data/*.db-shm
-app/data/*.db-wal
+# Laufzeitdaten (liegen in /var/lib/backupctl oder backupctl-data/)
+backupctl-data/
 
 # Logs
 *.log
@@ -36,8 +34,4 @@ app/data/*.db-wal
 .vscode/
 
 # backupctl-spezifisch
-config/rsync.yaml
-config/proxmox.yaml
-data/
-logs/
 .borg/
