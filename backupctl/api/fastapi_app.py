@@ -35,7 +35,7 @@ def create(modules: list | None = None) -> FastAPI:
     # ── Modul-Router registrieren (nur laden wenn nicht übergeben) ────────────────────
     from astrapi.core.ui.module_registry import load_modules, register_fastapi_modules
     if modules is None:
-        modules = load_modules(APP_ROOT)
+        modules, _ = load_modules(APP_ROOT)
     register_fastapi_modules(app, modules)
 
     # ── Run/Log-Router pro Modul (Framework-Standard: /api/{module}/{item}/run) ─

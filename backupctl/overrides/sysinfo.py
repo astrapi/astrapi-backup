@@ -40,7 +40,8 @@ def _read_version_yaml(path: Path) -> str:
 def _app_version() -> str:
     try:
         from importlib.metadata import version
-        return version("backupctl")
+        from astrapi.core.system.version import _clean_version
+        return _clean_version(version("backupctl"))
     except Exception:
         return _read_version_yaml(_package_dir() / "app.yaml")
 
@@ -48,7 +49,8 @@ def _app_version() -> str:
 def _core_version() -> str:
     try:
         from importlib.metadata import version
-        return version("astrapi-core")
+        from astrapi.core.system.version import _clean_version
+        return _clean_version(version("astrapi-core"))
     except Exception:
         return "?"
 
@@ -63,8 +65,8 @@ def _db_size() -> str:
 
 def _extra_info() -> dict:
     return {
-        "backupctl": _app_version(),
-        "core":      _core_version(),
+        "BackupCtl": _app_version(),
+        "Core":      _core_version(),
         "Borg":      _borg_version(),
         "DB":        _db_size(),
     }

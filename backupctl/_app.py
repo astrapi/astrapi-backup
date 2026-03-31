@@ -43,7 +43,7 @@ def create_app() -> FastAPI:
     init_db()
 
     settings_init(work_dir())
-    modules = load_modules(_pkg)
+    modules, _ = load_modules(_pkg)
     api = create_api(modules=modules)
     ui  = create_ui(app_root=_pkg, modules=modules)
 
