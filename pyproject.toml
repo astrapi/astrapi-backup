@@ -1,5 +1,5 @@
 [project]
-name = "backupctl"
+name = "astrapi-backup"
 dynamic = ["version"]
 description = "Backup Control – Web-UI für Borg, Rsync, Proxmox"
 requires-python = ">=3.11"
@@ -17,12 +17,12 @@ dependencies = [
     "urllib3>=2.2",
     "psutil>=6.0",
     "apispec>=6.0",
-    "astrapi-core>=26.3.9",
+    "astrapi-core>=26.4.15",
     "borgbackup>=1.4.4",
 ]
 
 [project.scripts]
-backupctl = "backupctl._cli:main"
+astrapi-backup = "astrapi_backup._cli:main"
 
 [build-system]
 requires = ["setuptools>=61", "setuptools-scm"]
@@ -31,10 +31,10 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools_scm]
 
 [tool.setuptools.packages.find]
-include = ["backupctl*"]
+include = ["astrapi_backup*"]
 
 [tool.setuptools.package-data]
-backupctl = [
+astrapi_backup = [
     "app.yaml",
     "navigation.yaml",
     "modules/*/templates/**/*.html",

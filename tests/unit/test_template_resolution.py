@@ -2,7 +2,7 @@
 tests/unit/test_template_resolution.py
 
 Stellt sicher, dass jedes Template, das per TemplateResponse("name", …) in
-backupctl/-Code referenziert wird, auch tatsächlich vom Jinja2-Loader aufgelöst
+astrapi_backup/-Code referenziert wird, auch tatsächlich vom Jinja2-Loader aufgelöst
 werden kann.
 
 Verhindert Fehler wie:
@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from backupctl._paths import package_dir
+from astrapi_backup._paths import package_dir
 
 APP_ROOT = package_dir()
 
@@ -79,7 +79,7 @@ def test_template_resolvable(template_name: str, locations: str):
     gefunden werden können.
     """
     from jinja2 import TemplateNotFound
-    from backupctl.api.templates import templates
+    from astrapi_backup.api.templates import templates
 
     try:
         templates.env.get_template(template_name)

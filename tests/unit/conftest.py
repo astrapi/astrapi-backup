@@ -18,7 +18,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 # Tests brauchen kein echtes work-dir – DB wird per fresh_db-Fixture ersetzt
-os.environ.setdefault("BACKUPCTL_WORK_DIR", "/tmp/backupctl-test")
+os.environ.setdefault("ASTRAPI_BACKUP_WORK_DIR", "/tmp/astrapi-backup-test")
 
 
 # ── Datenbank ──────────────────────────────────────────────────────────────

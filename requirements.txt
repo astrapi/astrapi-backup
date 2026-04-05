@@ -1,4 +1,4 @@
-# backupctl – Python-Abhängigkeiten
+# astrapi-backup – Python-Abhängigkeiten
 # Installation: pip install -r requirements.txt
 #
 # Systemabhängigkeiten (nicht via pip):
@@ -39,7 +39,7 @@ httpx>=0.27
 playwright>=1.51
 
 # ── Astrapi-Core ──────────────────────────────────────────────────
-astrapi-core @ git+ssh://git@gitlab.com/astrapi-os/ctl/astrapi-core.git@v26.3.11
+astrapi-core @ git+ssh://git@gitlab.com/astrapi-os/ctl/astrapi-core.git@v26.4.15
 
 # ── Borg-Backup ──────────────────────────────────────────────────
 borgbackup>=1.4.4
