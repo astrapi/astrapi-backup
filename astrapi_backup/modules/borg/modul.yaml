@@ -16,3 +16,5 @@ card_actions:
     url:  /api/borg/{item}/stats
   - type: preview
     url:  /api/borg/{item}/preview
+
+settings_button: false

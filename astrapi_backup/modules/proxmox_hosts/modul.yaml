@@ -12,3 +12,5 @@ card_actions:
     url:  /api/proxmox_hosts/{item}/logs
   - type: preview
     url:  /api/proxmox_hosts/{item}/preview
+
+settings_button: false

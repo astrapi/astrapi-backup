@@ -12,3 +12,5 @@ card_actions:
     url:  /api/rsync/{item}/logs
   - type: preview
     url:  /api/rsync/{item}/preview
+
+settings_button: false
