@@ -19,6 +19,7 @@ from astrapi.core.system.health import register_health
 from astrapi.core.system.systemd import sd_notify, start_watchdog
 from astrapi.core.system.version import get_display_name
 from astrapi.core.modules.settings.engine import configure as configure_settings
+from astrapi.core.modules.updater.engine import configure as configure_updater
 
 from astrapi_backup._paths import package_dir, work_dir
 from astrapi_backup.api.fastapi_app import create as create_api
@@ -38,6 +39,7 @@ def _db_check() -> tuple[bool, dict]:
 def create_app() -> FastAPI:
     _pkg = package_dir()
     configure_settings(health_fn=_db_check, app_name=get_display_name(_pkg))
+    configure_updater(_pkg)
 
     from astrapi_backup.api.storage import init_db
     init_db()
