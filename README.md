@@ -2,6 +2,10 @@
 
 Web-UI zur zentralen Verwaltung von Backup-Jobs (Borg, Rsync, Proxmox, Remote-Geräte).
 
+## Dokumentation
+
+- Deutsche Benutzeranleitung: [Benutzeranleitung.md](Benutzeranleitung.md)
+
 ## Voraussetzungen
 
 - Python >= 3.11
