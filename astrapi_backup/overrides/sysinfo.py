@@ -87,7 +87,13 @@ def _discover_services() -> list[str]:
         return []
 
 
+def _update_packages():
+    from astrapi.core.modules.updater.engine import get_packages_with_versions
+    return get_packages_with_versions()
+
+
 configure(
     services=_discover_services(),
     extra_info_fn=_extra_info,
+    update_packages_fn=_update_packages,
 )
