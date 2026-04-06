@@ -1,4 +1,17 @@
 {% set host = resolve_remote_host(item_data.remote_id) if item_data.remote_id else (item_data.host or '—') %}
-<td>{{ item_data.type or '—' }}</td>
+<td class="col-type">
+  {% set _type = item_data.type or '' %}
+  {% if _type == 'vzdump' %}
+    <span class="badge-pill badge-live">Backup</span>
+  {% elif _type == 'sync' %}
+    <span class="badge-pill" style="background:rgba(16,185,129,0.15);border-color:rgba(52,211,153,0.25);color:#34d399">Sync</span>
+  {% elif _type == 'verify' %}
+    <span class="badge-pill badge-muted">Verify</span>
+  {% elif _type == 'prune' %}
+    <span class="badge-pill" style="background:rgba(245,158,11,0.15);border-color:rgba(251,191,36,0.25);color:#fbbf24">Prune</span>
+  {% elif _type %}
+    <span class="badge-pill badge-muted">{{ _type }}</span>
+  {% else %}—{% endif %}
+</td>
 <td class="col-trunc" title="{{ host }}">{{ host }}</td>
 <td class="col-trunc" title="{{ item_data.job or '' }}">{{ item_data.job or '—' }}</td>

@@ -15,7 +15,7 @@ store  = SqliteTableStore(KEY)
 router = make_crud_router(
     store, KEY,
     schema_path=str(_DIR / "schema.yaml"),
-    has_run_buttons=True,
+    has_run_buttons=False,
 )
 
 
