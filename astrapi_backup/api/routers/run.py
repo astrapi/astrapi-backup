@@ -43,7 +43,7 @@ def get_running() -> dict:
     return dict(_running)
 
 
-def make_run_router(module: str) -> APIRouter:
+def make_run_router(module: str, *, has_run_buttons: bool = True) -> APIRouter:
     """Erzeugt einen APIRouter mit Run/Log-Routen für ein einzelnes Modul.
 
     Einbinden mit prefix=f"/{module}" → externe URLs:
@@ -69,6 +69,7 @@ def make_run_router(module: str) -> APIRouter:
                 "container_id": f"tab-{module}", "loading_id": f"{module}-loading",
                 "content_template": f"{module}/partials/list.html",
                 "running": get_running(),
+                "has_run_buttons": has_run_buttons,
             },
         )
 
@@ -123,6 +124,7 @@ def make_run_router(module: str) -> APIRouter:
                 "container_id": f"tab-{module}", "loading_id": f"{module}-loading",
                 "content_template": f"{module}/partials/list.html",
                 "running": get_running(),
+                "has_run_buttons": has_run_buttons,
             },
         ).body.decode()
 

@@ -33,9 +33,9 @@ except Exception:
     pass
 
 from .api import router
-from .ui import bp
+from .ui import router as ui_router
 
-module = load_modul(Path(__file__).parent, "remotes", router, bp)
+module = load_modul(Path(__file__).parent, "remotes", router, ui_router)
 
 try:
     from .jobs import sync_all_item_actions
