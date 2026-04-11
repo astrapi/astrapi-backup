@@ -8,7 +8,7 @@ fields:
   - name: remote_id
     type: select
     label: Proxmox Host
-    options_endpoint: /api/remotes/for-select?type=proxmox_host
+    options_endpoint: /api/proxmox_hosts/remotes-for-select
     required: true
     column: 1
     row: 1
