@@ -1,7 +1,7 @@
 # app/modules/remotes/api.py
 import subprocess
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, Request, Header
+from fastapi import APIRouter, HTTPException, Request, Header, Query
 
 from astrapi.core.system.db import load_config, get_item, delete_item, save_item, next_item_id
 
@@ -29,6 +29,7 @@ async def create_one(request: Request):
     form    = await request.form()
     payload = dict(form)
     payload["enabled"] = payload.get("enabled") in ("on", "1", True)
+    payload["types"]   = list(form.getlist("types"))
     new_id = next_item_id(KEY)
     save_item(KEY, new_id, payload)
     try:
@@ -50,6 +51,7 @@ async def patch_one(item_id: str, request: Request):
     form    = await request.form()
     payload = dict(form)
     payload["enabled"] = payload.get("enabled") in ("on", "1", True)
+    payload["types"]   = list(form.getlist("types"))
     existing.update(payload)
     save_item(KEY, iid, existing)
     try:
@@ -162,7 +164,10 @@ def scan_host_key(request: Request, item_id: str, hx_request: str | None = Heade
 
 
 @router.get("/for-select")
-def remotes_for_select():
-    """Returns all enabled remotes for job form dropdowns"""
+def remotes_for_select(type: str | None = Query(default=None)):
+    """Returns all enabled remotes for job form dropdowns.
+
+    Optional ?type= filter: borg | rsync | proxmox_node | proxmox_host
+    """
     from .engine import get_all_remotes_for_select
-    return {"options": get_all_remotes_for_select()}
+    return {"options": get_all_remotes_for_select(type_filter=type)}

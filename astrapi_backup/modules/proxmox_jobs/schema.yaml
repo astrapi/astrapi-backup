@@ -24,7 +24,7 @@ fields:
   - name: remote_id
     type: select
     label: Proxmox Host
-    options_endpoint: /api/remotes/for-select
+    options_endpoint: /api/remotes/for-select?type=proxmox_host
     required: true
     column: 2
     row: 2

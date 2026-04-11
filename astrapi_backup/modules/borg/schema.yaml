@@ -19,7 +19,7 @@ fields:
   - name: source_remote_id
     type: select
     label: Source Server
-    options_endpoint: /api/remotes/for-select
+    options_endpoint: /api/remotes/for-select?type=borg
     required: true
 
   - name: source_path
@@ -35,7 +35,7 @@ fields:
   - name: target_remote_id
     type: select
     label: Target Server
-    options_endpoint: /api/remotes/for-select
+    options_endpoint: /api/remotes/for-select?type=borg
     required: false
 
   - name: target_path

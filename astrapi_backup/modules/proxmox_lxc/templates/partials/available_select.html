@@ -1,0 +1,24 @@
+<div>
+{% if available %}
+<select class="form-select" onchange="
+  var opt = this.options[this.selectedIndex];
+  document.getElementById('lxc-vmid').value        = opt.dataset.vmid    || '';
+  document.getElementById('lxc-description').value = opt.dataset.name    || '';
+  document.getElementById('lxc-node').value        = opt.dataset.nodeId  || '';
+">
+  <option value="">— Container wählen —</option>
+  {% for ct in available %}
+  <option value="{{ ct.vmid }}"
+          data-vmid="{{ ct.vmid }}"
+          data-name="{{ ct.name }}"
+          data-node-id="{{ ct.node_id }}">
+    {{ ct.vmid }} – {{ ct.name }} ({{ ct.node_host }}{% if ct.status %}, {{ ct.status }}{% endif %})
+  </option>
+  {% endfor %}
+</select>
+{% else %}
+<p style="color:var(--text-3); font-size:13px; margin:0; padding:4px 0;">
+  Alle Container bereits registriert oder keine Proxmox Nodes erreichbar.
+</p>
+{% endif %}
+</div>

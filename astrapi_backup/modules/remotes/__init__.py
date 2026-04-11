@@ -4,16 +4,21 @@ from astrapi.core.system.db import register_table
 
 _DDL = """
     CREATE TABLE IF NOT EXISTS remotes (
-        id          INTEGER PRIMARY KEY AUTOINCREMENT,
-        mac         TEXT    NOT NULL DEFAULT '',
-        host        TEXT    NOT NULL DEFAULT '',
-        description TEXT    NOT NULL DEFAULT '',
-        ssh_user    TEXT    NOT NULL DEFAULT 'backupadm',
-        ssh_port    INTEGER NOT NULL DEFAULT 22,
-        enabled     INTEGER NOT NULL DEFAULT 1
+        id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+        mac                  TEXT    NOT NULL DEFAULT '',
+        host                 TEXT    NOT NULL DEFAULT '',
+        description          TEXT    NOT NULL DEFAULT '',
+        ssh_user             TEXT    NOT NULL DEFAULT 'backupadm',
+        ssh_port             INTEGER NOT NULL DEFAULT 22,
+        enabled              INTEGER NOT NULL DEFAULT 1,
+        borg_bin             TEXT    NOT NULL DEFAULT '',
+        types                TEXT    NOT NULL DEFAULT '',
+        pve_api_token_id     TEXT    NOT NULL DEFAULT '',
+        pve_api_token_secret TEXT    NOT NULL DEFAULT '',
+        pve_verify_ssl       INTEGER NOT NULL DEFAULT 0
     )"""
 
-register_table("remotes", _DDL)
+register_table("remotes", _DDL, list_fields=["types"])
 
 
 def _migrate():
@@ -25,6 +30,14 @@ def _migrate():
         con.execute("ALTER TABLE remotes ADD COLUMN ssh_port INTEGER NOT NULL DEFAULT 22")
     if "borg_bin" not in existing:
         con.execute("ALTER TABLE remotes ADD COLUMN borg_bin TEXT NOT NULL DEFAULT ''")
+    if "types" not in existing:
+        con.execute("ALTER TABLE remotes ADD COLUMN types TEXT NOT NULL DEFAULT ''")
+    if "pve_api_token_id" not in existing:
+        con.execute("ALTER TABLE remotes ADD COLUMN pve_api_token_id TEXT NOT NULL DEFAULT ''")
+    if "pve_api_token_secret" not in existing:
+        con.execute("ALTER TABLE remotes ADD COLUMN pve_api_token_secret TEXT NOT NULL DEFAULT ''")
+    if "pve_verify_ssl" not in existing:
+        con.execute("ALTER TABLE remotes ADD COLUMN pve_verify_ssl INTEGER NOT NULL DEFAULT 0")
     con.commit()
 
 try:

@@ -13,4 +13,13 @@
   <span class="meta-value">{{ item_data.host or '—' }}</span>
   <span class="meta-label">SSH-Benutzer</span>
   <span class="meta-value" style="font-family:var(--mono); font-size:13px;">{{ item_data.ssh_user or 'root' }}</span>
+  {% set types = item_data.types if item_data.types is iterable and item_data.types is not string else [] %}
+  {% if types %}
+  <span class="meta-label">Typen</span>
+  <span class="meta-value" style="display:flex; flex-wrap:wrap; gap:4px;">
+    {% for t in types %}
+      <span class="badge-pill badge-muted">{{ t }}</span>
+    {% endfor %}
+  </span>
+  {% endif %}
 </div>

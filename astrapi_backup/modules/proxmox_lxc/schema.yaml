@@ -1,26 +1,23 @@
 id_field: id
 fields:
   - name: description
-    type: text
+    type: info
     label: Beschreibung
-    max: 50
     column: 1
     row: 1
-    required: true
+  - name: vmid
+    type: info
+    label: Container-ID
+    column: 2
+    row: 1
+  - name: node
+    type: info
+    label: Node
+    resolve: remote_host
+    column: 1
+    row: 2
   - name: enabled
     type: boolean
     label: Aktiviert
     column: 2
-    row: 1
-  - name: vmid
-    type: number
-    label: Container-ID
-    column: 1
     row: 2
-  - name: node
-    type: select
-    label: Node
-    options_endpoint: /api/remotes/for-select
-    column: 2
-    row: 2
-    required: true

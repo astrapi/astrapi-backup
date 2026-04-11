@@ -45,6 +45,23 @@ fields:
     row: 3
 
   - type: section
+    label: Verwendung
+    cols: 1
+
+  - name: types
+    type: multiselect
+    label: Typen
+    options:
+      - value: borg
+        label: Borg
+      - value: rsync
+        label: Rsync
+      - value: proxmox_node
+        label: Proxmox Node
+      - value: proxmox_host
+        label: Proxmox Host
+
+  - type: section
     label: Borg
     cols: 1
 

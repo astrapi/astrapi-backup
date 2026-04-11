@@ -19,11 +19,12 @@ from astrapi.core.system.logger import log
 from astrapi_backup.modules.borg.utils import borg_bin as _borg_bin, borg_env as _borg_env
 from astrapi_backup.modules.borg.jobs import preview as _preview_borg, _get_host_info as _job_get_host_info
 from astrapi.core.ui.htmx_crud_router import make_htmx_crud_router
+from astrapi_backup.api.routers.run import get_running
 
 KEY = "borg"
 _SCHEMA_PATH = Path(__file__).parent / "schema.yaml"
 
-router = make_htmx_crud_router(KEY, _SCHEMA_PATH, preview_fn=_preview_borg)
+router = make_htmx_crud_router(KEY, _SCHEMA_PATH, preview_fn=_preview_borg, running_fn=get_running)
 
 # Verhindert parallele save_file_cache_for_archive-Threads für dieselbe (item_id, archive)-Kombination
 _file_cache_building: set[tuple[str, str]] = set()

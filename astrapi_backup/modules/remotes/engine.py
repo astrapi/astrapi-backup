@@ -41,20 +41,33 @@ def get_remote_ssh(remote_id: int | str) -> tuple[str, str, int]:
     return (host, ssh_user, ssh_port)
 
 
-def get_all_remotes_for_select() -> list[dict]:
-    """Get all enabled remote devices for dropdown selection"""
+def get_all_remotes_for_select(type_filter: str | None = None) -> list[dict]:
+    """Get all enabled remote devices for dropdown selection.
+
+    Args:
+        type_filter: optional type key (e.g. "borg", "proxmox_node").
+                     If given, only remotes that include this type are returned.
+                     "Lokal" is always included.
+    """
     from astrapi.core.system.db import load_config
     remotes = load_config("remotes") or {}
 
     result = [{"id": "local", "label": "Lokal"}]
     for remote_id, remote in remotes.items():
-        if remote.get("enabled"):
-            result.append({
-                "id": remote_id,
-                "label": remote.get("host"),
-                "host": remote.get("host"),
-                "ssh_user": remote.get("ssh_user"),
-                "ssh_port": remote.get("ssh_port", 22),
-            })
+        if not remote.get("enabled"):
+            continue
+        if type_filter:
+            types = remote.get("types") or []
+            if isinstance(types, str):
+                types = [t for t in types.split("\n") if t]
+            if type_filter not in types:
+                continue
+        result.append({
+            "id":       remote_id,
+            "label":    remote.get("host"),
+            "host":     remote.get("host"),
+            "ssh_user": remote.get("ssh_user"),
+            "ssh_port": remote.get("ssh_port", 22),
+        })
 
     return result

@@ -2,6 +2,7 @@
 from pathlib import Path
 
 from astrapi.core.ui.htmx_crud_router import make_htmx_crud_router
+from astrapi_backup.api.routers.run import get_running
 from astrapi_backup.modules.proxmox_hosts.jobs import preview as _preview
 
 KEY = "proxmox_hosts"
@@ -17,4 +18,4 @@ def _derive_description(payload: dict) -> dict:
     return payload
 
 
-router = make_htmx_crud_router(KEY, _SCHEMA_PATH, post_process=_derive_description, preview_fn=_preview)
+router = make_htmx_crud_router(KEY, _SCHEMA_PATH, post_process=_derive_description, preview_fn=_preview, running_fn=get_running)

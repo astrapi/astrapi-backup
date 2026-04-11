@@ -43,5 +43,6 @@ def create(modules: list | None = None) -> FastAPI:
     _RUN_MODULES = ["borg", "rsync", "proxmox_lxc", "proxmox_hosts", "proxmox_jobs"]
     for _mod_key in _RUN_MODULES:
         app.include_router(make_run_router(_mod_key), prefix=f"/api/{_mod_key}")
+        app.include_router(make_run_router(_mod_key), prefix=f"/ui/{_mod_key}")
 
     return app

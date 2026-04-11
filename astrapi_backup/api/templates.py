@@ -55,7 +55,7 @@ def _module_label(key: str) -> str:
 def _module_has_settings(key: str) -> bool:
     from astrapi.core.ui.module_registry import _mod_registry
     m = _mod_registry.get(key)
-    return bool(m and m.settings_schema)
+    return bool(m and m.settings_schema and m.settings_button)
 
 
 def _module_card_actions(key: str) -> list:

@@ -32,3 +32,39 @@ fields:
     default: "{{guestname}}"
     description: Template für die Backup-Notiz in Proxmox (--notes-template)
 
+  - type: section
+    label: Read-Token (LXC-Liste)
+    cols: 2
+
+  - key: pve_api_token_id
+    label: Token-ID
+    type: text
+    placeholder: "user@pam!readtoken"
+    description: Proxmox API-Token-ID zum Abrufen der LXC-Liste (user@realm!tokenname)
+
+  - key: pve_api_token_secret
+    label: Token-Secret
+    type: password
+    description: Token-Secret für den Read-Token
+
+  - type: section
+    label: Backup-Token (vzdump)
+    cols: 2
+
+  - key: pve_backup_token_id
+    label: Token-ID
+    type: text
+    placeholder: "user@pam!backuptoken"
+    description: Proxmox API-Token-ID zum Auslösen von vzdump (user@realm!tokenname)
+
+  - key: pve_backup_token_secret
+    label: Token-Secret
+    type: password
+    description: Token-Secret für den Backup-Token
+
+  - key: pve_verify_ssl
+    label: SSL verifizieren
+    type: checkbox
+    default: false
+    description: TLS-Zertifikat des Proxmox-Servers prüfen
+

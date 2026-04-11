@@ -2,6 +2,7 @@
 from pathlib import Path
 
 from astrapi.core.ui.crud_blueprint import make_crud_router
+from astrapi_backup.api.routers.run import get_running
 from astrapi.core.ui.store import SqliteTableStore
 from astrapi.core.ui.field_resolver import resolve_options_endpoint
 
@@ -19,4 +20,5 @@ router = make_crud_router(
     schema_path=str(_DIR / "schema.yaml"),
     has_run_buttons=True,
     resolve_fields_fn=_resolve_fields,
+    running_fn=get_running,
 )
