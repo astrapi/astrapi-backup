@@ -14,7 +14,7 @@ def _derive_description(payload: dict) -> dict:
     if remote_id:
         from astrapi_backup.modules.remotes.engine import get_remote
         r = get_remote(remote_id)
-        payload["description"] = r.get("description", "") if r else ""
+        payload["description"] = r.get("host", "") if r else ""
     return payload
 
 
