@@ -39,7 +39,7 @@ def fetch_available_jobs() -> list[dict]:
     headers = {"Authorization": f"PVEAPIToken={token_id}={token_secret}"}
 
     result = []
-    for remote in get_all_remotes_for_select(type_filter="proxmox_host"):
+    for remote in get_all_remotes_for_select(type_filter="proxmox_backup"):
         if remote["id"] == "local":
             continue
         host = remote.get("host", "")

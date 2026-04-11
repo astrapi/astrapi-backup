@@ -60,6 +60,8 @@ fields:
         label: Proxmox Node
       - value: proxmox_host
         label: Proxmox Host
+      - value: proxmox_backup
+        label: Proxmox Backup
 
   - type: section
     label: Borg
