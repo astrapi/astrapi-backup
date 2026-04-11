@@ -15,7 +15,27 @@ store  = SqliteTableStore(KEY)
 
 
 def _resolve_fields(fields: list) -> list:
-    return resolve_options_endpoint(fields)
+    fields = resolve_options_endpoint(fields)
+
+    # Bereits registrierte Remote-IDs und "local" aus dem Dropdown entfernen
+    from astrapi.core.system.db import load_config
+    registered_ids = {
+        str(e.get("remote_id"))
+        for e in load_config(KEY).values()
+        if e.get("remote_id") is not None
+    }
+
+    result = []
+    for field in fields:
+        if field.get("name") == "remote_id" and "options" in field:
+            field = dict(field)
+            field["options"] = [
+                opt for opt in field["options"]
+                if str(opt.get("value", "")) not in registered_ids
+                and str(opt.get("value", "")) != "local"
+            ]
+        result.append(field)
+    return result
 
 
 def _host_from_remote(remote_id) -> str:
