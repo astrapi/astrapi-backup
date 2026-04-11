@@ -1,17 +1,26 @@
 modal_width: 560
 
 fields:
-  - key: pbs_password
-    label: PBS Passwort / Token-Secret
+  - type: section
+    label: PBS API-Token
+    cols: 2
+
+  - key: pbs_api_token_id
+    label: Token-ID
+    type: text
+    placeholder: "user@pbs!mytoken"
+    description: PBS API-Token-ID (user@realm!tokenname)
+    default: ""
+    span: 2
+
+  - key: pbs_api_token_secret
+    label: Token-Secret
     type: password
-    placeholder: "••••••••"
-    description: Passwort oder API-Token-Secret für die PBS-Authentifizierung
+    description: Token-Secret für die PBS API-Authentifizierung
     default: ""
 
-  - key: pbs_fingerprint
-    label: PBS Fingerprint
-    type: text
-    placeholder: "AB:CD:EF:..."
-    description: TLS-Fingerprint des PBS-Servers
-    mono: true
-    default: ""
+  - key: pbs_verify_ssl
+    label: SSL verifizieren
+    type: checkbox
+    default: false
+    description: TLS-Zertifikat des PBS-Servers prüfen

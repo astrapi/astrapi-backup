@@ -1,4 +1,12 @@
 # modules/proxmox_hosts.py
+#
+# Warum kein API-Zugriff?
+# proxmox-backup-client muss auf dem zu sichernden Host selbst ausgeführt werden
+# und stellt von dort die Verbindung zum PBS-Server her. Weder die Proxmox VE API
+# noch die PBS API bieten einen Endpoint, der diesen Client-seitigen Prozess remote
+# auslösen kann. POST /nodes/{node}/vzdump (PVE) sichert nur VMs/CTs, nicht
+# Host-Dateisysteme. SSH ist daher hier zwingend erforderlich.
+#
 import os
 import subprocess
 
