@@ -64,6 +64,27 @@ fields:
         label: Proxmox Backup
 
   - type: section
+    label: API-Token (Proxmox)
+    cols: 2
+
+  - name: api_token_id
+    type: text
+    label: Token-ID
+    placeholder: "root@pam!ctl-read"
+    max: 100
+    column: 1
+
+  - name: api_verify_ssl
+    type: boolean
+    label: SSL verifizieren
+    column: 2
+
+  - name: api_token_secret
+    type: password
+    label: Token-Secret
+    span: 2
+
+  - type: section
     label: Borg
     cols: 1
 

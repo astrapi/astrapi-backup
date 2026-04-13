@@ -2,10 +2,9 @@
 {% if available %}
 <select class="form-select" onchange="
   var opt = this.options[this.selectedIndex];
-  document.getElementById('pjobs-job').value         = opt.dataset.job       || '';
-  document.getElementById('pjobs-type').value        = opt.dataset.jobType   || '';
-  document.getElementById('pjobs-remote-id').value   = opt.dataset.remoteId  || '';
-  document.getElementById('pjobs-description').value = opt.dataset.job       || '';
+  document.getElementById('pjobs-job').value        = opt.dataset.job      || '';
+  document.getElementById('pjobs-type').value       = opt.dataset.jobType  || '';
+  document.getElementById('pjobs-remote-id').value  = opt.dataset.remoteId || '';
 ">
   <option value="">— Job wählen —</option>
   {% for j in available %}

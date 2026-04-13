@@ -12,38 +12,21 @@ from astrapi_backup.modules.borg.utils import borg_bin_for as _borg_bin_for, bor
 
 def _get_config(): return _load_config("borg")
 def _s(key, default): return _get_module_setting("borg", key, default)
-def _src_local(entry): return is_local(entry.get("source_host"))
+
+_STATUS_ORDER = {"ok": 0, "warning": 1, "error": 2}
+
+def _worst(a: str, b: str) -> str:
+    return a if _STATUS_ORDER.get(a, 0) >= _STATUS_ORDER.get(b, 0) else b
 
 
 def _get_host_info(entry: dict, host_type: str = "source") -> tuple[str, str, int]:
-    """
-    Resolve host/ssh_user/ssh_port from Remote Device OR legacy fields.
-
-    Tries:
-    1. New way: {host_type}_remote_id → Remote Device
-    2. Old way: {host_type}_host + ssh_user fields
-    """
+    """Löst host/ssh_user/ssh_port über das Remote-Device auf."""
     remote_id_key = f"{host_type}_remote_id"
-    host_key = f"{host_type}_host"
-
-    if remote_id_key in entry and entry[remote_id_key]:
-        from astrapi_backup.modules.remotes.engine import get_remote_ssh
-        try:
-            return get_remote_ssh(entry[remote_id_key])
-        except ValueError as e:
-            log("ERROR", str(e))
-            raise
-
-    elif host_key in entry and entry[host_key]:
-        host = entry[host_key]
-        ssh_user = entry.get("ssh_user")
-        ssh_port = 22
-        return (host, ssh_user, ssh_port)
-
-    else:
-        raise ValueError(
-            f"Job missing: neither '{remote_id_key}' nor '{host_key}' configured"
-        )
+    remote_id = entry.get(remote_id_key)
+    if not remote_id:
+        raise ValueError(f"Job missing: '{remote_id_key}' nicht konfiguriert")
+    from astrapi_backup.modules.remotes.engine import get_remote_ssh
+    return get_remote_ssh(remote_id)
 
 
 def preview(job_id) -> list[dict]:
@@ -169,35 +152,39 @@ def run_single(job_id, entry=None):
         if target_host and not is_local(target_host):
             hosts.append((target_host, target_ssh_user))
         if not require_hosts(hosts):
+            _patch_item("borg", job_id, last_run=datetime.now().strftime("%d.%m.%Y %H:%M"), last_status="error")
             return
+        status = "ok"
         if entry.get("pre"):
-            _hook("pre", entry, source_host, ssh_user)
-        _backup(entry, source_host, ssh_user, target_host, target_ssh_user)
+            status = _worst(status, _hook("pre", entry, source_host, ssh_user))
+        status = _worst(status, _backup(entry, source_host, ssh_user, target_host, target_ssh_user))
         if entry.get("post"):
-            _hook("post", entry, source_host, ssh_user)
-        _prune(entry, source_host, ssh_user, target_host, target_ssh_user)
+            status = _worst(status, _hook("post", entry, source_host, ssh_user))
+        status = _worst(status, _prune(entry, source_host, ssh_user, target_host, target_ssh_user))
         if _s("compact_after_prune", "1") in ("1", "true", True):
-            _compact(entry, source_host, ssh_user, target_host, target_ssh_user)
+            status = _worst(status, _compact(entry, source_host, ssh_user, target_host, target_ssh_user))
         from astrapi_backup.modules.borg import cache as _cache
         _cache.update(job_id, entry)
-        _patch_item("borg", job_id, last_run=datetime.now().strftime("%d.%m.%Y %H:%M"))
+        _patch_item("borg", job_id, last_run=datetime.now().strftime("%d.%m.%Y %H:%M"), last_status=status)
         log("INFO", f"=== Borg '{entry.get('description', job_id)}' abgeschlossen ===")
 
 
-def _hook(phase: str, entry, host: str, ssh_user: str):
+def _hook(phase: str, entry, host: str, ssh_user: str) -> str:
     connection = build_connection_string(host, ssh_user)
     hooks = entry.get(phase) or []
     if isinstance(hooks, str):
         hooks = [l for l in hooks.split("\n") if l]
     cmd = "; ".join(hooks)
     if not cmd:
-        return
+        return "ok"
     try:
         run_cmd(cmd, connection, env=_borg_env())
         log("INFO", f"Hook '{phase}' erfolgreich")
+        return "ok"
     except subprocess.CalledProcessError as e:
         log("WARNING", f"Hook '{phase}' fehlgeschlagen")
         log("ERROR", e.stderr.strip() if e.stderr else "Unbekannter Fehler.")
+        return "error"
 
 
 def _local_fqdn() -> str:
@@ -239,7 +226,7 @@ def _repo(source_host: str, target_host: str, target_path: str, src_local: bool 
         return f"{target_ssh_user}@{target_host}:{target_path}"
 
 
-def _backup(entry, source_host: str, ssh_user: str, target_host: str, target_ssh_user: str = None):
+def _backup(entry, source_host: str, ssh_user: str, target_host: str, target_ssh_user: str = None) -> str:
     src_local    = is_local(source_host)
     connection   = build_connection_string(source_host, ssh_user) if not src_local else "local"
     archive_name = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -270,18 +257,21 @@ def _backup(entry, source_host: str, ssh_user: str, target_host: str, target_ssh
     try:
         run_cmd(cmd, connection, env=env)
         log("INFO", "Borg-Backup erfolgreich.")
+        return "ok"
     except subprocess.CalledProcessError as e:
         # RC=1: Borg-Warnung (nicht lesbare Dateien) – Backup trotzdem gültig
         # RC=2: echter Fehler
         if e.returncode == 1:
             stderr = e.stderr.strip() if e.stderr else ""
             log("WARNING", f"Borg-Backup mit Warnungen abgeschlossen:\n{stderr}" if stderr else "Borg-Backup mit Warnungen abgeschlossen.")
+            return "warning"
         else:
             log("WARNING", "Borg-Backup fehlgeschlagen")
             log("ERROR", e.stderr.strip() if e.stderr else "Unbekannter Fehler.")
+            return "error"
 
 
-def _prune(entry, source_host: str, ssh_user: str, target_host: str, target_ssh_user: str = None):
+def _prune(entry, source_host: str, ssh_user: str, target_host: str, target_ssh_user: str = None) -> str:
     src_local  = is_local(source_host)
     connection = build_connection_string(source_host, ssh_user) if not src_local else "local"
 
@@ -312,12 +302,14 @@ def _prune(entry, source_host: str, ssh_user: str, target_host: str, target_ssh_
     try:
         run_cmd(cmd, connection, env=env)
         log("INFO", "Borg-Prune erfolgreich.")
+        return "ok"
     except subprocess.CalledProcessError as e:
         log("WARNING", "Borg-Prune fehlgeschlagen")
         log("ERROR", e.stderr.strip() if e.stderr else "Unbekannter Fehler.")
+        return "error"
 
 
-def _compact(entry, source_host: str, ssh_user: str, target_host: str, target_ssh_user: str = None):
+def _compact(entry, source_host: str, ssh_user: str, target_host: str, target_ssh_user: str = None) -> str:
     src_local  = is_local(source_host)
     connection = build_connection_string(source_host, ssh_user) if not src_local else "local"
 
@@ -335,6 +327,8 @@ def _compact(entry, source_host: str, ssh_user: str, target_host: str, target_ss
     try:
         run_cmd(cmd, connection, env=env)
         log("INFO", "Borg-Compact erfolgreich.")
+        return "ok"
     except subprocess.CalledProcessError as e:
         log("WARNING", "Borg-Compact fehlgeschlagen")
         log("ERROR", e.stderr.strip() if e.stderr else "Unbekannter Fehler.")
+        return "error"

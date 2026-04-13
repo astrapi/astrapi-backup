@@ -226,7 +226,7 @@ def _item_description(module: str, item_id: str) -> str:
     try:
         cfg = load_config(module)
         raw = cfg.get(base) or cfg.get(int(base) if base.isdigit() else base) or {}
-        desc = raw.get("description", base)
+        desc = raw.get("description") or raw.get("job") or raw.get("host") or raw.get("source_path") or base
         return f"{desc} (Debug)" if debug else desc
     except Exception:
         return item_id

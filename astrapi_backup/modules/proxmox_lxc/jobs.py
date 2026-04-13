@@ -15,65 +15,74 @@ KEY = "proxmox_lxc"
 def _get_config(): return _load_config(KEY)
 
 
-def _verify_ssl() -> bool:
-    return str(_get_module_setting(KEY, "pve_verify_ssl", False)).lower() in ("1", "true", "on", "yes")
+def _verify_ssl(remote: dict) -> bool:
+    return str(remote.get("api_verify_ssl", False)).lower() in ("1", "true", "on", "yes")
 
 
-def _resolve_node_for_vmid(vmid: int) -> tuple[str, str]:
-    """Ermittelt via Cluster-API welcher Node den Container hat.
-    Gibt (host, node_name) zurück.
-    """
-    from astrapi.core.system.secrets import get_secret_safe
-    from astrapi_backup.modules.remotes.engine import get_all_remotes_for_select
-
-    token_id     = _get_module_setting(KEY, "pve_api_token_id", "").strip()
-    token_secret = get_secret_safe(f"module.{KEY}.pve_api_token_secret", "").strip()
+def _api_token(remote: dict) -> tuple[str, str]:
+    token_id     = remote.get("api_token_id", "").strip()
+    token_secret = remote.get("api_token_secret", "").strip()
     if not token_id or not token_secret:
-        raise ValueError("Read-Token nicht konfiguriert (pve_api_token_id / pve_api_token_secret)")
+        raise ValueError(f"API-Token für Remote '{remote.get('host')}' nicht konfiguriert")
+    return token_id, token_secret
 
-    verify_ssl = _verify_ssl()
+
+def _resolve_node_for_vmid(vmid: int) -> tuple[str, str, dict]:
+    """Ermittelt via Cluster-API welcher Node den Container hat.
+    Gibt (host, node_name, remote) zurück.
+    """
+    from astrapi_backup.modules.remotes.engine import get_all_remotes_for_select, get_remote
+
+    # Alle proxmox_node-Remotes mit vollständigen Daten laden
+    node_remotes = {}  # short_name → remote_obj
+    for r in get_all_remotes_for_select(type_filter="proxmox_node"):
+        if not r.get("host"):
+            continue
+        remote_obj = get_remote(str(r["id"])) or {}
+        short = r["host"].split(".")[0]
+        node_remotes[short] = remote_obj
+
+    if not node_remotes:
+        raise ValueError("Keine Proxmox-Node-Remotes konfiguriert")
+
+    # Ersten Remote mit Token für Cluster-Abfrage verwenden
+    cluster_remote = next((r for r in node_remotes.values() if r.get("api_token_id")), None)
+    if not cluster_remote:
+        raise ValueError("Kein Proxmox-Node-Remote mit API-Token konfiguriert")
+
+    token_id, token_secret = _api_token(cluster_remote)
+    verify_ssl = _verify_ssl(cluster_remote)
     if not verify_ssl:
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-    remotes = get_all_remotes_for_select(type_filter="proxmox_node")
-    hosts   = {r["host"].split(".")[0]: r["host"] for r in remotes if r.get("host")}
-
-    if not hosts:
-        raise ValueError("Keine Proxmox-Node-Remotes konfiguriert")
-
-    first_host = next(iter(hosts.values()))
+    first_host = cluster_remote["host"]
     headers    = _auth_headers(token_id, token_secret)
     url        = f"https://{first_host}:8006/api2/json/cluster/resources?type=vm"
 
+    from astrapi.core.system.paths import is_debug
+    if is_debug():
+        log("INFO", f"curl -sk -H 'Authorization: PVEAPIToken={token_id}:<secret>' '{url}'")
     resp = requests.get(url, headers=headers, verify=verify_ssl, timeout=10)
     resp.raise_for_status()
 
     for r in resp.json().get("data", []):
         if int(r.get("vmid", 0)) == vmid:
-            node_name = r["node"]
-            host      = hosts.get(node_name, first_host)
-            return host, node_name
+            node_name  = r["node"]
+            remote     = node_remotes.get(node_name, cluster_remote)
+            host       = remote.get("host", first_host)
+            return host, node_name, remote
 
     raise ValueError(f"VMID {vmid} nicht im Cluster gefunden")
-
-
-def _backup_token() -> tuple[str, str]:
-    from astrapi.core.system.secrets import get_secret_safe
-    token_id     = _get_module_setting(KEY, "pve_backup_token_id", "").strip()
-    token_secret = get_secret_safe(f"module.{KEY}.pve_backup_token_secret", "").strip()
-    if not token_id or not token_secret:
-        raise ValueError("Backup-Token nicht konfiguriert (pve_backup_token_id / pve_backup_token_secret)")
-    return token_id, token_secret
 
 
 def _auth_headers(token_id: str, token_secret: str) -> dict:
     return {"Authorization": f"PVEAPIToken={token_id}={token_secret}"}
 
 
-def _trigger_vzdump(host: str, node_name: str, vmid: int) -> str:
+def _trigger_vzdump(host: str, node_name: str, vmid: int, remote: dict) -> str:
     """Startet vzdump via Proxmox API. Gibt den UPID des Tasks zurück."""
-    token_id, token_secret = _backup_token()
-    verify_ssl     = _verify_ssl()
+    token_id, token_secret = _api_token(remote)
+    verify_ssl     = _verify_ssl(remote)
     storage        = _get_module_setting(KEY, "backup_storage", "backup01")
     mode           = _get_module_setting(KEY, "backup_mode", "snapshot")
     notes_template = _get_module_setting(KEY, "notes_template", "{{guestname}}")
@@ -97,11 +106,11 @@ def _trigger_vzdump(host: str, node_name: str, vmid: int) -> str:
     return upid
 
 
-def _wait_for_task(host: str, node_name: str, upid: str,
+def _wait_for_task(host: str, node_name: str, upid: str, remote: dict,
                    poll_interval: int = 5, timeout: int = 3600) -> str:
     """Pollt den Task-Status bis er abgeschlossen ist. Gibt exitstatus zurück."""
-    token_id, token_secret = _backup_token()
-    verify_ssl = _verify_ssl()
+    token_id, token_secret = _api_token(remote)
+    verify_ssl = _verify_ssl(remote)
     headers    = _auth_headers(token_id, token_secret)
 
     upid_enc = urllib.parse.quote(upid, safe="")
@@ -130,13 +139,13 @@ def preview(item_id) -> list[dict]:
         return []
 
     try:
-        host, node_name = _resolve_node_for_vmid(int(vmid))
+        host, node_name, remote = _resolve_node_for_vmid(int(vmid))
     except Exception as e:
         return [{"label": "Error", "cmd": str(e)}]
 
     storage  = _get_module_setting(KEY, "backup_storage", "backup01")
     mode     = _get_module_setting(KEY, "backup_mode", "snapshot")
-    token_id = _get_module_setting(KEY, "pve_backup_token_id", "<backup-token-id>").strip() or "<backup-token-id>"
+    token_id = remote.get("api_token_id", "").strip() or "<api-token-id>"
 
     url = f"https://{host}:8006/api2/json/nodes/{node_name}/vzdump"
     cmd = (
@@ -201,11 +210,11 @@ def _run_single_job(item_id, vmid: int, name: str):
 
 def _backup_lxc(vmid: int, name: str):
     try:
-        host, node_name = _resolve_node_for_vmid(vmid)
+        host, node_name, remote = _resolve_node_for_vmid(vmid)
         log("INFO", f"LXC '{name}': Node {node_name} ({host})")
-        upid = _trigger_vzdump(host, node_name, vmid)
+        upid = _trigger_vzdump(host, node_name, vmid, remote)
         log("INFO", f"LXC '{name}': Task gestartet ({upid})")
-        exitstatus = _wait_for_task(host, node_name, upid)
+        exitstatus = _wait_for_task(host, node_name, upid, remote)
         if exitstatus == "OK":
             log("INFO", f"LXC '{name}' erfolgreich")
         else:

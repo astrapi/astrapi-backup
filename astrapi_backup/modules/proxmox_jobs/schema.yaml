@@ -1,36 +1,26 @@
 id_field: id
 fields:
-  - name: description
-    type: text
-    label: Beschreibung
-    max: 50
+  - name: type
+    type: info
+    label: Typ
     column: 1
     row: 1
-    required: true
+
   - name: enabled
     type: boolean
     label: Aktiviert
     column: 2
     row: 1
-  - name: type
-    type: select
-    label: Typ
-    options:
-      - verify
-      - prune
-      - sync
+
+  - name: remote_id
+    type: info
+    label: Host
+    resolve: remote_host
     column: 1
     row: 2
-  - name: remote_id
-    type: select
-    label: Proxmox Host
-    options_endpoint: /api/remotes/for-select?type=proxmox_backup
-    required: true
+
+  - name: job
+    type: info
+    label: Job
     column: 2
     row: 2
-  - name: job
-    type: text
-    label: Job
-    max: 50
-    column: 1
-    row: 3

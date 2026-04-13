@@ -19,9 +19,12 @@ def fetch_available_lxc() -> list[dict]:
     """
     import requests
     import urllib3
+    import logging
     from astrapi.core.system.db import load_config
-    from astrapi.core.ui.settings_registry import get_module as _get_module_setting
-    from astrapi_backup.modules.remotes.engine import get_all_remotes_for_select
+    from astrapi.core.system.paths import is_debug
+    from astrapi_backup.modules.remotes.engine import get_all_remotes_for_select, get_remote
+
+    _log = logging.getLogger(__name__)
 
     registered = {
         int(e["vmid"])
@@ -29,40 +32,40 @@ def fetch_available_lxc() -> list[dict]:
         if e.get("vmid") is not None
     }
 
-    from astrapi.core.system.secrets import get_secret_safe
-    token_id     = _get_module_setting(KEY, "pve_api_token_id", "").strip()
-    token_secret = get_secret_safe(f"module.{KEY}.pve_api_token_secret", "").strip()
-    verify_ssl   = str(_get_module_setting(KEY, "pve_verify_ssl", False)).lower() in ("1", "true", "on", "yes")
+    # Alle proxmox_node-Remotes mit vollständigen Daten laden
+    node_remotes: dict[str, str] = {}   # short_name → remote_id
+    remote_objs:  dict[str, dict] = {}  # remote_id  → remote_obj
+    for r in get_all_remotes_for_select(type_filter="proxmox_node"):
+        if r["id"] == "local" or not r.get("host"):
+            continue
+        rid = str(r["id"])
+        remote_obj = get_remote(rid) or {}
+        short = r["host"].split(".")[0]
+        node_remotes[short] = rid
+        remote_objs[rid] = remote_obj
 
-    if not token_id or not token_secret:
+    if not remote_objs:
         return []
 
-    # Build a map: node_name → remote_id and collect hosts
-    node_remotes: dict[str, str] = {}
-    hosts: dict[str, str] = {}  # remote_id → host
-    for remote in get_all_remotes_for_select(type_filter="proxmox_node"):
-        if remote["id"] == "local":
-            continue
-        host = remote.get("host", "")
-        if not host:
-            continue
-        node_name = host.split(".")[0]
-        node_remotes[node_name] = str(remote["id"])
-        hosts[str(remote["id"])] = host
-
-    if not hosts:
+    # Ersten Remote mit Token für Cluster-Abfrage verwenden
+    cluster_remote = next((ro for ro in remote_objs.values() if ro.get("api_token_id")), None)
+    if not cluster_remote:
         return []
 
-    # Use the first available remote to query cluster-wide resources
-    first_remote_id = next(iter(hosts))
-    host = hosts[first_remote_id]
-    port = 8006
+    token_id     = cluster_remote.get("api_token_id", "").strip()
+    token_secret = cluster_remote.get("api_token_secret", "").strip()
+    verify_ssl   = str(cluster_remote.get("api_verify_ssl", False)).lower() in ("1", "true", "on", "yes")
 
     if not verify_ssl:
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+    host    = cluster_remote["host"]
     headers = {"Authorization": f"PVEAPIToken={token_id}={token_secret}"}
-    url = f"https://{host}:{port}/api2/json/cluster/resources?type=vm"
+    url     = f"https://{host}:8006/api2/json/cluster/resources?type=vm"
+
+    if is_debug():
+        _log.warning("fetch_available_lxc: curl -sk -H 'Authorization: PVEAPIToken=%s:<secret>' '%s'", token_id, url)
+
     try:
         resp = requests.get(url, headers=headers, verify=verify_ssl, timeout=10)
         resp.raise_for_status()
@@ -70,6 +73,7 @@ def fetch_available_lxc() -> list[dict]:
     except Exception:
         return []
 
+    first_remote_id = next(iter(remote_objs))
     result = []
     for ct in resources:
         if ct.get("type") != "lxc":

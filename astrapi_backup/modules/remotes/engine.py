@@ -36,7 +36,7 @@ def get_remote_ssh(remote_id: int | str) -> tuple[str, str, int]:
         raise ValueError(f"Remote Device '{remote_id}': No host configured")
 
     ssh_user = remote.get("ssh_user")
-    ssh_port = int(remote.get("ssh_port", 22))
+    ssh_port = int(remote.get("ssh_port") or 22)
 
     return (host, ssh_user, ssh_port)
 

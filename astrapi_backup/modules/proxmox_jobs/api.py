@@ -16,27 +16,16 @@ def fetch_available_jobs() -> list[dict]:
     """
     import requests
     import urllib3
+    import logging
     from astrapi.core.system.db import load_config
-    from astrapi.core.system.secrets import get_secret_safe
-    from astrapi.core.ui.settings_registry import get_module as _get_module_setting
-    from astrapi_backup.modules.remotes.engine import get_all_remotes_for_select
+    from astrapi_backup.modules.remotes.engine import get_all_remotes_for_select, get_remote
+
+    _log = logging.getLogger(__name__)
 
     registered = {
         (str(e.get("remote_id", "")), e.get("type", ""), e.get("job", ""))
         for e in load_config(KEY).values()
     }
-
-    token_id     = _get_module_setting(KEY, "pbs_api_token_id", "").strip()
-    token_secret = get_secret_safe(f"module.{KEY}.pbs_api_token_secret", "").strip()
-    verify_ssl   = str(_get_module_setting(KEY, "pbs_verify_ssl", False)).lower() in ("1", "true", "on", "yes")
-
-    if not token_id or not token_secret:
-        return []
-
-    if not verify_ssl:
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-    headers = {"Authorization": f"PVEAPIToken={token_id}={token_secret}"}
 
     result = []
     for remote in get_all_remotes_for_select(type_filter="proxmox_backup"):
@@ -45,15 +34,32 @@ def fetch_available_jobs() -> list[dict]:
         host = remote.get("host", "")
         if not host:
             continue
-        remote_id = str(remote["id"])
+        remote_id  = str(remote["id"])
+        remote_obj = get_remote(remote_id) or {}
+
+        token_id     = remote_obj.get("api_token_id", "").strip()
+        token_secret = remote_obj.get("api_token_secret", "").strip()
+        if not token_id or not token_secret:
+            _log.warning("fetch_available_jobs: Remote '%s' (%s) hat keinen API-Token konfiguriert – übersprungen", remote_id, host)
+            continue
+
+        verify_ssl = str(remote_obj.get("api_verify_ssl", False)).lower() in ("1", "true", "on", "yes")
+        if not verify_ssl:
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+        headers = {"Authorization": f"PBSAPIToken={token_id}:{token_secret}"}
 
         for job_type in ("verify", "sync", "prune"):
-            url = f"https://{host}:{_PBS_PORT}/api2/json/admin/{job_type}-job"
+            url = f"https://{host}:{_PBS_PORT}/api2/json/admin/{job_type}"
+            from astrapi.core.system.paths import is_debug
+            if is_debug():
+                _log.warning("fetch_available_jobs: curl -sk -H 'Authorization: %s' %s", headers.get("Authorization", ""), url)
             try:
                 resp = requests.get(url, headers=headers, verify=verify_ssl, timeout=10)
                 resp.raise_for_status()
                 jobs = resp.json().get("data", [])
-            except Exception:
+            except Exception as exc:
+                _log.warning("fetch_available_jobs: %s %s → %s", job_type, url, exc)
                 continue
 
             for job in jobs:

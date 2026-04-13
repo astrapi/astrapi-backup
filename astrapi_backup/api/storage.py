@@ -42,12 +42,9 @@ _APP_TABLES = {
                 enabled          INTEGER NOT NULL DEFAULT 1,
                 description      TEXT    NOT NULL DEFAULT '',
                 source_remote_id TEXT,
-                source_host      TEXT    NOT NULL DEFAULT '',
                 source_path      TEXT    NOT NULL DEFAULT '',
                 target_remote_id TEXT,
-                target_host      TEXT    NOT NULL DEFAULT '',
                 target_path      TEXT    NOT NULL DEFAULT '',
-                ssh_user         TEXT,
                 pre_hooks        TEXT,
                 post_hooks       TEXT,
                 exclude          TEXT
@@ -105,8 +102,6 @@ _APP_TABLES = {
             CREATE TABLE IF NOT EXISTS proxmox_jobs (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 job         TEXT    NOT NULL DEFAULT '',
-                description TEXT    NOT NULL DEFAULT '',
-                host        TEXT    NOT NULL DEFAULT '',
                 remote_id   TEXT,
                 type        TEXT    NOT NULL DEFAULT '',
                 enabled     INTEGER NOT NULL DEFAULT 1
@@ -185,6 +180,19 @@ def _migrate_remote_id_columns() -> None:
     con.commit()
 
 
+def _migrate_borg_drop_legacy_columns() -> None:
+    """Entfernt veraltete Spalten source_host, target_host, ssh_user aus der borg-Tabelle."""
+    con = _conn()
+    existing = {row[1] for row in con.execute("PRAGMA table_info(borg)").fetchall()}
+    for col in ("source_host", "target_host", "ssh_user"):
+        if col in existing:
+            try:
+                con.execute(f"ALTER TABLE borg DROP COLUMN {col}")
+            except Exception:
+                pass
+    con.commit()
+
+
 def _migrate_last_run_columns() -> None:
     """Fügt last_run und last_status TEXT zu allen Job-Tabellen hinzu."""
     con = _conn()
@@ -197,6 +205,19 @@ def _migrate_last_run_columns() -> None:
     con.commit()
 
 
+def _migrate_proxmox_jobs_drop_columns() -> None:
+    """Entfernt obsolete Spalten description und host aus proxmox_jobs."""
+    con = _conn()
+    existing = {row[1] for row in con.execute("PRAGMA table_info(proxmox_jobs)").fetchall()}
+    for col in ("description", "host"):
+        if col in existing:
+            try:
+                con.execute(f"ALTER TABLE proxmox_jobs DROP COLUMN {col}")
+            except Exception:
+                pass
+    con.commit()
+
+
 def init_db() -> None:
     _configure_db(DB_PATH)
     _register_app_tables()
@@ -205,6 +226,8 @@ def init_db() -> None:
     _migrate_proxmox_hosts_columns()
     _migrate_remote_id_columns()
     _migrate_last_run_columns()
+    _migrate_proxmox_jobs_drop_columns()
+    _migrate_borg_drop_legacy_columns()
     _migrate_all_yaml()
 
 

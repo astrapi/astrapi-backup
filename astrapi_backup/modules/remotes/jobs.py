@@ -33,7 +33,7 @@ def wake_single(item_id):
         log.error("Remote-Gerät '%s' nicht gefunden", item_id)
         return
     mac  = entry.get("mac", "").strip()
-    desc = entry.get("description", str(item_id))
+    desc = entry.get("host", str(item_id))
     if not mac:
         log.warning("Remote '%s': keine MAC-Adresse konfiguriert", desc)
         return
@@ -56,7 +56,7 @@ def wait_for_single(item_id, timeout: int = 300, interval: int = 10):
         return
     host     = entry.get("host", "").strip()
     ssh_user = entry.get("ssh_user") or "root"
-    desc     = entry.get("description", str(item_id))
+    desc     = entry.get("host", str(item_id))
     if not host:
         log.warning("Remote '%s': kein Hostname konfiguriert", desc)
         return
@@ -79,7 +79,7 @@ def poweroff_single(item_id):
         return
     host     = entry.get("host", "").strip()
     ssh_user = entry.get("ssh_user") or "root"
-    desc     = entry.get("description", str(item_id))
+    desc     = entry.get("host", str(item_id))
     if not host:
         log.warning("Remote '%s': kein Hostname konfiguriert", desc)
         return

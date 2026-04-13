@@ -25,11 +25,10 @@
         <style>@keyframes pjobs-spin{to{transform:rotate(360deg)}}</style>
       </div>
 
-      <input type="hidden" name="job"        id="pjobs-job">
-      <input type="hidden" name="type"       id="pjobs-type">
-      <input type="hidden" name="remote_id"  id="pjobs-remote-id">
-      <input type="hidden" name="description" id="pjobs-description">
-      <input type="hidden" name="enabled"    value="1">
+      <input type="hidden" name="job"       id="pjobs-job">
+      <input type="hidden" name="type"      id="pjobs-type">
+      <input type="hidden" name="remote_id" id="pjobs-remote-id">
+      <input type="hidden" name="enabled"   value="1">
 
       {{ modal_footer(has_toggle=False, save_label='Erstellen',
                       save_id='create-edit-submit', save_type='button') }}

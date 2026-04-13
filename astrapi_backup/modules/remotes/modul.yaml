@@ -7,8 +7,8 @@ nav_default: false
 
 card_actions:
   - type: power-on
-    url:  /ui/remotes/{item}/wake?container_id={container_id}&loading_id={loading_id}&description={description}
+    url:  /ui/remotes/{item}/wake?container_id={container_id}&loading_id={loading_id}&description={host}
   - type: power-off
-    url:  /ui/remotes/{item}/shutdown?container_id={container_id}&loading_id={loading_id}&description={description}
+    url:  /ui/remotes/{item}/shutdown?container_id={container_id}&loading_id={loading_id}&description={host}
   - type: scan-host-key
-    url:  /ui/remotes/{item}/scan-host-key?container_id={container_id}&loading_id={loading_id}&description={description}
+    url:  /ui/remotes/{item}/scan-host-key?container_id={container_id}&loading_id={loading_id}&description={host}

@@ -16,6 +16,7 @@ router = make_crud_router(
     store, KEY,
     schema_path=str(_DIR / "schema.yaml"),
     has_run_buttons=False,
+    description_field="host",
 )
 
 

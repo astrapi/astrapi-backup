@@ -1,26 +1,3 @@
 modal_width: 560
 
-fields:
-  - type: section
-    label: PBS API-Token
-    cols: 2
-
-  - key: pbs_api_token_id
-    label: Token-ID
-    type: text
-    placeholder: "user@pbs!mytoken"
-    description: PBS API-Token-ID (user@realm!tokenname)
-    default: ""
-    span: 2
-
-  - key: pbs_api_token_secret
-    label: Token-Secret
-    type: password
-    description: Token-Secret für die PBS API-Authentifizierung
-    default: ""
-
-  - key: pbs_verify_ssl
-    label: SSL verifizieren
-    type: checkbox
-    default: false
-    description: TLS-Zertifikat des PBS-Servers prüfen
+fields: []
