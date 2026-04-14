@@ -164,10 +164,11 @@ def scan_host_key(request: Request, item_id: str, hx_request: str | None = Heade
 
 
 @router.get("/for-select")
-def remotes_for_select(type: str | None = Query(default=None)):
+def remotes_for_select(type: str | None = Query(default=None), local: str = Query(default="1")):
     """Returns all enabled remotes for job form dropdowns.
 
-    Optional ?type= filter: borg | rsync | proxmox_node | proxmox_host
+    Optional ?type= filter: borg_source | borg_target | rsync | proxmox_node | proxmox_host
+    Optional ?local=0 to exclude the "Lokal" option.
     """
     from .engine import get_all_remotes_for_select
-    return {"options": get_all_remotes_for_select(type_filter=type)}
+    return {"options": get_all_remotes_for_select(type_filter=type, include_local=local != "0")}

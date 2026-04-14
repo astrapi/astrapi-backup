@@ -52,8 +52,10 @@ fields:
     type: multiselect
     label: Typen
     options:
-      - value: borg
-        label: Borg
+      - value: borg_source
+        label: Borg Source
+      - value: borg_target
+        label: Borg Target
       - value: rsync
         label: Rsync
       - value: proxmox_node

@@ -41,18 +41,18 @@ def get_remote_ssh(remote_id: int | str) -> tuple[str, str, int]:
     return (host, ssh_user, ssh_port)
 
 
-def get_all_remotes_for_select(type_filter: str | None = None) -> list[dict]:
+def get_all_remotes_for_select(type_filter: str | None = None, include_local: bool = True) -> list[dict]:
     """Get all enabled remote devices for dropdown selection.
 
     Args:
-        type_filter: optional type key (e.g. "borg", "proxmox_node").
-                     If given, only remotes that include this type are returned.
-                     "Lokal" is always included.
+        type_filter:   optional type key (e.g. "borg_source", "proxmox_node").
+                       If given, only remotes that include this type are returned.
+        include_local: if True (default), prepends a "Lokal" option.
     """
     from astrapi.core.system.db import load_config
     remotes = load_config("remotes") or {}
 
-    result = [{"id": "local", "label": "Lokal"}]
+    result = [{"id": "local", "label": "Lokal"}] if include_local else []
     for remote_id, remote in remotes.items():
         if not remote.get("enabled"):
             continue

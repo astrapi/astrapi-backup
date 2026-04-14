@@ -18,7 +18,21 @@
   <span class="meta-label">Typen</span>
   <span class="meta-value" style="display:flex; flex-wrap:wrap; gap:4px;">
     {% for t in types %}
-      <span class="badge-pill badge-muted">{{ t }}</span>
+      {% if t == 'borg_source' %}
+        <span class="badge-pill badge-live">Borg Source</span>
+      {% elif t == 'borg_target' %}
+        <span class="badge-pill" style="background:rgba(16,185,129,0.15);border-color:rgba(52,211,153,0.25);color:#34d399">Borg Target</span>
+      {% elif t == 'rsync' %}
+        <span class="badge-pill badge-live">Rsync</span>
+      {% elif t == 'proxmox_node' %}
+        <span class="badge-pill" style="background:rgba(245,158,11,0.15);border-color:rgba(251,191,36,0.25);color:#fbbf24">Proxmox Node</span>
+      {% elif t == 'proxmox_host' %}
+        <span class="badge-pill" style="background:rgba(245,158,11,0.15);border-color:rgba(251,191,36,0.25);color:#fbbf24">Proxmox Host</span>
+      {% elif t == 'proxmox_backup' %}
+        <span class="badge-pill badge-muted">Proxmox Backup</span>
+      {% else %}
+        <span class="badge-pill badge-muted">{{ t }}</span>
+      {% endif %}
     {% endfor %}
   </span>
   {% endif %}
