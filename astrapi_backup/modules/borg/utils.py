@@ -46,10 +46,6 @@ def borg_bin_for(remote_id) -> str:
 
 def borg_env() -> dict:
     env = dict(os.environ)
-    env["BORG_PASSPHRASE"] = (
-        get_secret_safe("module.borg.passphrase", "")
-        or _get_module_setting("borg", "passphrase", "")  # backward compat: plaintext fallback
-        or get_secret_safe("BORG_PASSPHRASE", "")         # legacy env-based secret
-    )
+    env["BORG_PASSPHRASE"] = get_secret_safe("module.borg.passphrase", "")
     env["BORG_UNKNOWN_UNENCRYPTED_REPO_ACCESS_IS_OK"] = "yes"
     return env

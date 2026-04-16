@@ -60,7 +60,9 @@ def make_run_router(module: str, *, has_run_buttons: bool = True) -> APIRouter:
 
     @router.get("/status", response_class=HTMLResponse)
     def module_status(request: Request):
+        from astrapi.core.ui.crud_blueprint import resolve_filters_for_request
         cfg = load_config(module)
+        cfg, extra = resolve_filters_for_request(module, request, cfg)
         return _get_templates().TemplateResponse(
             request,
             "partials/list_wrapper_inner.html",
@@ -70,6 +72,7 @@ def make_run_router(module: str, *, has_run_buttons: bool = True) -> APIRouter:
                 "content_template": f"{module}/partials/list.html",
                 "running": get_running(),
                 "has_run_buttons": has_run_buttons,
+                **extra,
             },
         )
 
@@ -115,7 +118,9 @@ def make_run_router(module: str, *, has_run_buttons: bool = True) -> APIRouter:
 
         threading.Thread(target=_execute, daemon=True).start()
 
+        from astrapi.core.ui.crud_blueprint import resolve_filters_for_request
         cfg = load_config(module)
+        cfg, extra = resolve_filters_for_request(module, request, cfg)
         list_html = _get_templates().TemplateResponse(
             request,
             "partials/list_wrapper_inner.html",
@@ -125,6 +130,7 @@ def make_run_router(module: str, *, has_run_buttons: bool = True) -> APIRouter:
                 "content_template": f"{module}/partials/list.html",
                 "running": get_running(),
                 "has_run_buttons": has_run_buttons,
+                **extra,
             },
         ).body.decode()
 

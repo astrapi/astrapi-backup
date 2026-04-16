@@ -3,30 +3,13 @@ modal_width: 720
 fields:
   - type: section
     label: PBS
-    cols: 2
+    cols: 1
 
-  - key: pbs_repository
-    label: PBS Repository
-    type: text
-    placeholder: "backup@pbs!token-name@pbs.example.com:datastore"
-    description: "PBS_REPOSITORY im Format: user@pbs!token-name@host:datastore"
-    mono: true
-    default: ""
-    span: 2
-
-  - key: pbs_password
-    label: PBS Passwort / Token-Secret
-    type: password
-    placeholder: "••••••••"
-    description: Passwort oder API-Token-Secret für die PBS-Authentifizierung
-    default: ""
-
-  - key: pbs_fingerprint
-    label: PBS Fingerprint
-    type: text
-    placeholder: "AB:CD:EF:..."
-    description: TLS-Fingerprint des PBS-Servers
-    mono: true
+  - key: pbs_remote_id
+    label: PBS Server
+    type: select
+    options_endpoint: /api/remotes/for-select?type=proxmox_backup&local=0
+    description: "Remote-Gerät mit Typ 'Proxmox Backup' als PBS-Server verwenden"
     default: ""
 
   - type: section

@@ -1,6 +1,6 @@
 # Datenbankschema – app.db
 
-Stand: 2026-04-13  
+Stand: 2026-04-16  
 Datei: `<work-dir>/app.db` (SQLite, WAL-Modus)  
 Quelle der Wahrheit: `astrapi_backup/api/storage.py`, `astrapi_backup/modules/remotes/__init__.py`,
 `astrapi-core/astrapi/core/system/db.py`, `activity_log.py`, `modules/borg/storage.py`
@@ -150,14 +150,16 @@ Konfiguration der Rsync-Jobs.
 | `id`              | INTEGER | —     | auto    | Primärschlüssel                               |
 | `enabled`         | INTEGER | 1 bit | `1`     | Job aktiv (1) oder deaktiviert (0)            |
 | `description`     | TEXT    | ≤50   | `''`    | Anzeigename des Jobs                          |
+| `type`            | TEXT    | —     | `''`    | Job-Typ: `intern` oder `extern`               |
 | `source_remote_id`| TEXT    | —     | NULL    | FK auf `remotes.id` (Quell-Server)            |
-| `source_host`     | TEXT    | ≤200  | `''`    | Hostname/IP der Quelle (denormalisiert)        |
 | `source_path`     | TEXT    | ≤200  | `''`    | Quellverzeichnis                              |
 | `target_remote_id`| TEXT    | —     | NULL    | FK auf `remotes.id` (Ziel-Server)             |
-| `target_host`     | TEXT    | ≤200  | `''`    | Hostname/IP des Ziels (denormalisiert)         |
 | `target_path`     | TEXT    | ≤200  | `''`    | Zielverzeichnis                               |
 | `last_run`        | TEXT    | 19    | NULL    | Zeitstempel des letzten Laufs                 |
 | `last_status`     | TEXT    | —     | NULL    | Status des letzten Laufs                      |
+
+> Hostname und SSH-Zugangsdaten werden ausschließlich über `source_remote_id` / `target_remote_id`
+> aus der `remotes`-Tabelle gelesen.
 
 ---
 
@@ -171,7 +173,6 @@ Konfiguration der LXC-Container-Backups via Proxmox-API.
 | `vmid`      | INTEGER | —     | —       | Proxmox-Container-ID (CT-ID)                   |
 | `description`| TEXT   | ≤100  | `''`    | Anzeigename                                    |
 | `node`      | TEXT    | ≤100  | `''`    | Proxmox-Node-Name (wird zur Laufzeit aufgelöst)|
-| `remote_id` | TEXT    | —     | NULL    | FK auf `remotes.id`                            |
 | `enabled`   | INTEGER | 1 bit | `1`     | Job aktiv                                      |
 | `last_run`  | TEXT    | 19    | NULL    | Zeitstempel des letzten Laufs                  |
 | `last_status`| TEXT   | —     | NULL    | Status des letzten Laufs                       |
@@ -184,17 +185,16 @@ Konfiguration der Proxmox-Host-Backups (vzdump / PBS-Sicherungen vom Host).
 
 | Spalte         | Typ     | Größe | Default  | Python-Key    | Zweck                                               |
 |----------------|---------|-------|----------|---------------|-----------------------------------------------------|
-| `id`           | INTEGER | —     | auto     | `id`          | Primärschlüssel                                     |
-| `host`         | TEXT    | ≤200  | `''`     | `host`        | Hostname/IP des Proxmox-Hosts                       |
-| `description`  | TEXT    | ≤100  | `''`     | `description` | Anzeigename                                         |
-| `enabled`      | INTEGER | 1 bit | `1`      | `enabled`     | Job aktiv                                           |
-| `namespace`    | TEXT    | ≤50   | `'host'` | `namespace`   | PBS-Namespace für das Backup                        |
-| `remote_id`    | TEXT    | —     | NULL     | `remote_id`   | FK auf `remotes.id`                                 |
-| `extra_sources`| TEXT    | —     | NULL     | `source`      | Zusätzliche Quellpfade, `\n`-getrennt               |
-| `last_run`     | TEXT    | 19    | NULL     | `last_run`    | Zeitstempel des letzten Laufs                       |
-| `last_status`  | TEXT    | —     | NULL     | `last_status` | Status des letzten Laufs                            |
+| `id`           | INTEGER | —     | auto  | `id`          | Primärschlüssel                                     |
+| `description`  | TEXT    | ≤200  | `''`  | `description` | Hostname des Remotes (automatisch befüllt)          |
+| `enabled`      | INTEGER | 1 bit | `1`   | `enabled`     | Job aktiv                                           |
+| `remote_id`    | TEXT    | —     | NULL  | `remote_id`   | FK auf `remotes.id` (Proxmox Host)                  |
+| `extra_sources`| TEXT    | —     | NULL  | `source`      | Zusätzliche Quellpfade, `\n`-getrennt               |
+| `last_run`     | TEXT    | 19    | NULL  | `last_run`    | Zeitstempel des letzten Laufs                       |
+| `last_status`  | TEXT    | —     | NULL  | `last_status` | Status des letzten Laufs                            |
 
 > `extra_sources` wird als Liste gelesen. Python-Key `source` weicht vom DB-Spaltennamen ab.
+> `namespace` (PBS-Namespace) ist hardcoded auf `host` in `jobs.py` und wird nicht in der DB gespeichert.
 
 ---
 
@@ -233,6 +233,8 @@ Konfiguration aller Remote-Geräte: SSH-Zugang, Wake-on-LAN, Proxmox-API-Token.
 | `api_token_id`    | TEXT    | ≤100  | `''`           | Proxmox-API-Token-ID (`user@realm!tokenname`)                     |
 | `api_token_secret`| TEXT    | —     | `''`           | Proxmox-API-Token-Secret (Fernet-verschlüsselt)                   |
 | `api_verify_ssl`  | INTEGER | 1 bit | `0`            | SSL-Zertifikat bei Proxmox-API verifizieren                       |
+| `pbs_fingerprint` | TEXT    | —     | `''`           | PBS-Server-Fingerprint (TLS-Verifikation)                         |
+| `pbs_datastore`   | TEXT    | —     | `''`           | PBS-Datastore-Name                                                |
 
 > `types` wird beim Lesen als Python-Liste zurückgegeben (`list_fields=["types"]`).  
 > `api_token_secret` wird über `get_secret_safe` ver-/entschlüsselt, nicht im Klartext gelesen.

@@ -87,6 +87,25 @@ fields:
     span: 2
 
   - type: section
+    label: PBS (Proxmox Backup Server)
+    cols: 2
+
+  - name: pbs_datastore
+    type: text
+    label: Datastore
+    placeholder: "datastore-name"
+    max: 100
+    column: 1
+
+  - name: pbs_fingerprint
+    type: text
+    label: Fingerprint
+    placeholder: "AB:CD:EF:..."
+    max: 200
+    mono: true
+    column: 2
+
+  - type: section
     label: Borg
     cols: 1
 

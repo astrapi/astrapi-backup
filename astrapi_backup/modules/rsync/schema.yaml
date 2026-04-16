@@ -12,6 +12,16 @@ fields:
     type: boolean
     label: Aktiviert
 
+  - name: type
+    type: select
+    label: Typ
+    required: true
+    options:
+      - value: intern
+        label: Intern
+      - value: extern
+        label: Extern
+
   - type: section
     label: Quelle / Ziel
     cols: 1

@@ -192,9 +192,11 @@ def run_single(item_id, entry=None):
             return
         name = entry.get("description", item_id)
         log("INFO", f"=== LXC '{name}' gestartet ===")
-        _backup_lxc(int(vmid), name)
+        status = _backup_lxc(int(vmid), name)
         from datetime import datetime
-        _patch_item(KEY, item_id, last_run=datetime.now().strftime("%d.%m.%Y %H:%M"))
+        _patch_item(KEY, item_id,
+                    last_run=datetime.now().strftime("%d.%m.%Y %H:%M"),
+                    last_status=status)
         log("INFO", f"=== LXC '{name}' abgeschlossen ===")
 
 
@@ -208,7 +210,7 @@ def _run_single_job(item_id, vmid: int, name: str):
         _patch_item(KEY, item_id, last_run=datetime.now().strftime("%d.%m.%Y %H:%M"))
 
 
-def _backup_lxc(vmid: int, name: str):
+def _backup_lxc(vmid: int, name: str) -> str:
     try:
         host, node_name, remote = _resolve_node_for_vmid(vmid)
         log("INFO", f"LXC '{name}': Node {node_name} ({host})")
@@ -217,8 +219,11 @@ def _backup_lxc(vmid: int, name: str):
         exitstatus = _wait_for_task(host, node_name, upid, remote)
         if exitstatus == "OK":
             log("INFO", f"LXC '{name}' erfolgreich")
+            return "ok"
         else:
             log("WARNING", f"LXC '{name}' abgeschlossen mit Status: {exitstatus}")
+            return "warning"
     except Exception as e:
         log("WARNING", f"LXC '{name}' fehlgeschlagen")
         log("ERROR", str(e))
+        return "error"

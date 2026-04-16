@@ -1,7 +1,16 @@
 {# templates/partials/lists/rsync.html #}
 {% set module = "rsync" %}
-{% set src_host = resolve_remote_host(item_data.source_remote_id) if item_data.source_remote_id else (item_data.source_host or '—') %}
-{% set tgt_host = resolve_remote_host(item_data.target_remote_id) if item_data.target_remote_id else (item_data.target_host or '—') %}
+{% set src_host = resolve_remote_host(item_data.source_remote_id) if item_data.source_remote_id else '—' %}
+{% set tgt_host = resolve_remote_host(item_data.target_remote_id) if item_data.target_remote_id else '—' %}
+{% if item_data.type %}
+<div style="margin-bottom:4px;">
+  {% if item_data.type == 'intern' %}
+    <span class="badge-pill badge-live">Intern</span>
+  {% elif item_data.type == 'extern' %}
+    <span class="badge-pill" style="background:rgba(16,185,129,0.15);border-color:rgba(52,211,153,0.25);color:#34d399">Extern</span>
+  {% endif %}
+</div>
+{% endif %}
 <div class="meta-grid">
   {% if src_host != '—' or item_data.source_path %}
   <span class="meta-label">Quelle</span><span class="meta-value">{{ src_host }}:{{ item_data.source_path or '—' }}</span>

@@ -3,18 +3,7 @@ fields:
   - name: enabled
     type: boolean
     label: Aktiviert
-    column: 2
-    row: 1
-  - name: remote_id
-    type: select
-    label: Proxmox Host
-    options_endpoint: /api/remotes/for-select?type=proxmox_host
-    required: true
-    column: 1
-    row: 1
+
   - name: source
     type: list
     label: Zusätzliche Quellen
-    column: 1
-    row: 3
-

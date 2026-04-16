@@ -10,33 +10,16 @@ def _get_config(): return _load_config("rsync")
 
 
 def _get_host_info(entry: dict, host_type: str = "source") -> tuple[str, str, int]:
-    """
-    Resolve host/ssh_user/ssh_port from Remote Device OR legacy fields.
-
-    Tries:
-    1. New way: {host_type}_remote_id → Remote Device
-    2. Old way: {host_type}_host field
-    """
+    """Resolve host/ssh_user/ssh_port from Remote Device."""
     remote_id_key = f"{host_type}_remote_id"
-    host_key = f"{host_type}_host"
-
-    if remote_id_key in entry and entry[remote_id_key]:
+    if entry.get(remote_id_key):
         from astrapi_backup.modules.remotes.engine import get_remote_ssh
         try:
             return get_remote_ssh(entry[remote_id_key])
         except ValueError as e:
             log("ERROR", str(e))
             raise
-
-    elif host_key in entry and entry[host_key]:
-        host = entry[host_key]
-        ssh_user = entry.get("ssh_user")
-        return (host, ssh_user, 22)
-
-    else:
-        raise ValueError(
-            f"Job missing: neither '{remote_id_key}' nor '{host_key}' configured"
-        )
+    raise ValueError(f"Job missing: '{remote_id_key}' nicht konfiguriert")
 
 
 def preview(job_id) -> list[dict]:
@@ -89,8 +72,20 @@ def preview(job_id) -> list[dict]:
 
 
 def run():
+    run_intern()
+    run_extern()
+
+
+def run_intern():
     from astrapi.core.modules.scheduler.job_runner import run_all
-    run_all("rsync", _get_config(), run_single)
+    items = {k: v for k, v in _get_config().items() if v.get("type") == "intern"}
+    run_all("rsync", items, run_single)
+
+
+def run_extern():
+    from astrapi.core.modules.scheduler.job_runner import run_all
+    items = {k: v for k, v in _get_config().items() if v.get("type") == "extern"}
+    run_all("rsync", items, run_single)
 
 
 def run_single(job_id, entry=None):
@@ -117,9 +112,11 @@ def run_single(job_id, entry=None):
         hosts = [(h, u) for h, u in [(source_host, ssh_user), (target_host, target_ssh_user)] if h and not is_local(h)]
         if not require_hosts(hosts):
             return
-        _rsync(entry, source_host, ssh_user, target_host)
+        status = _rsync(entry, source_host, ssh_user, target_host)
         from datetime import datetime
-        _patch_item("rsync", job_id, last_run=datetime.now().strftime("%d.%m.%Y %H:%M"))
+        _patch_item("rsync", job_id,
+                    last_run=datetime.now().strftime("%d.%m.%Y %H:%M"),
+                    last_status=status)
         log("INFO", f"=== Rsync '{entry.get('description', job_id)}' abgeschlossen ===")
 
 
@@ -171,9 +168,11 @@ def _rsync(entry, source_host: str, ssh_user: str, target_host: str):
             if line.strip():
                 log("INFO", line)
         log("INFO", "Rsync erfolgreich.")
+        return "ok"
     except subprocess.CalledProcessError as e:
         log("WARNING", "Rsync fehlgeschlagen:")
         for line in (e.stdout or "").splitlines():
             if line.strip():
                 log("INFO", line)
         log("ERROR", e.stderr.strip() if e.stderr else "Unbekannter Fehler.")
+        return "error"
