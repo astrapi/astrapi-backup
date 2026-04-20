@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 
 
 def _get_config():
-    from astrapi.core.system.db import load_config
+    from astrapi_core.system.db import load_config
     return load_config("remotes")
 
 
@@ -27,7 +27,7 @@ def _get_config():
 
 def wake_single(item_id):
     """Sendet ein Wake-on-LAN Magic Packet an einen bestimmten Eintrag."""
-    from astrapi.core.system.db import get_item
+    from astrapi_core.system.db import get_item
     entry = get_item("remotes", item_id)
     if entry is None:
         log.error("Remote-Gerät '%s' nicht gefunden", item_id)
@@ -48,8 +48,8 @@ def wake_single(item_id):
 
 def wait_for_single(item_id, timeout: int = 300, interval: int = 10):
     """Blockiert bis das Remote-Gerät per SSH erreichbar ist (oder Timeout abläuft)."""
-    from astrapi.core.system.db import get_item
-    from astrapi.core.system.reachability import check_ssh
+    from astrapi_core.system.db import get_item
+    from astrapi_core.system.reachability import check_ssh
     entry = get_item("remotes", item_id)
     if entry is None:
         log.error("Remote-Gerät '%s' nicht gefunden", item_id)
@@ -72,7 +72,7 @@ def wait_for_single(item_id, timeout: int = 300, interval: int = 10):
 
 def poweroff_single(item_id):
     """Fährt ein bestimmtes Remote-Gerät per SSH herunter."""
-    from astrapi.core.system.db import get_item
+    from astrapi_core.system.db import get_item
     entry = get_item("remotes", item_id)
     if entry is None:
         log.error("Remote-Gerät '%s' nicht gefunden", item_id)
@@ -101,7 +101,7 @@ def poweroff_single(item_id):
 def register_item_actions(item_id, entry: dict) -> None:
     """Registriert die Scheduler-Aktionen für ein Remote-Gerät."""
     try:
-        from astrapi.core.modules.scheduler.engine import register_action
+        from astrapi_core.modules.scheduler.engine import register_action
         iid  = str(item_id)
         desc = entry.get("host") or f"Remote #{iid}"
         if not entry.get("mac", "").strip():
@@ -134,7 +134,7 @@ def register_item_actions(item_id, entry: dict) -> None:
 def unregister_item_actions(item_id) -> None:
     """Entfernt die Scheduler-Aktionen eines Remote-Geräts aus der Registry."""
     try:
-        from astrapi.core.modules.scheduler.engine import _actions
+        from astrapi_core.modules.scheduler.engine import _actions
         iid = str(item_id)
         _actions.pop(f"remotes.wake.{iid}",     None)
         _actions.pop(f"remotes.wait.{iid}",     None)

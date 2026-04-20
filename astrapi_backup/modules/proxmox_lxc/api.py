@@ -1,14 +1,14 @@
 # modules/proxmox_lxc/api.py
 from pathlib import Path
 
-from astrapi.core.ui.htmx_crud_router import make_htmx_crud_router
+from astrapi_core.ui.htmx_crud_router import make_htmx_crud_router
 from astrapi_backup.api.routers.run import get_running
 from astrapi_backup.modules.proxmox_lxc.jobs import preview as _preview
 
 KEY = "proxmox_lxc"
 _SCHEMA_PATH = Path(__file__).parent / "schema.yaml"
 
-router = make_htmx_crud_router(KEY, _SCHEMA_PATH, preview_fn=_preview, running_fn=get_running)
+router = make_htmx_crud_router(KEY, _SCHEMA_PATH, preview_fn=_preview, running_fn=get_running, create_defaults={"last_status": "neu"})
 
 
 def fetch_available_lxc() -> list[dict]:
@@ -20,8 +20,8 @@ def fetch_available_lxc() -> list[dict]:
     import requests
     import urllib3
     import logging
-    from astrapi.core.system.db import load_config
-    from astrapi.core.system.paths import is_debug
+    from astrapi_core.system.db import load_config
+    from astrapi_core.system.paths import is_debug
     from astrapi_backup.modules.remotes.engine import get_all_remotes_for_select, get_remote
 
     _log = logging.getLogger(__name__)

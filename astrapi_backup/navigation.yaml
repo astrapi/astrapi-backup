@@ -5,31 +5,25 @@
 
 - key:     borg
   label:   Borg
-  icon:    database
   group:   Jobs
   default: true
 
 - key:   rsync
   label: Rsync
-  icon:  chart
   group: Jobs
 
 - key:   proxmox_lxc
   label: Proxmox LXC
-  icon:  list
   group: Jobs
 
 - key:   proxmox_hosts
   label: Proxmox Hosts
-  icon:  shield
   group: Jobs
 
 - key:   proxmox_jobs
   label: Proxmox Jobs
-  icon:  server
   group: Jobs
 
 - key:   remotes
   label: Remote-Geräte
-  icon:  monitor
   group: System

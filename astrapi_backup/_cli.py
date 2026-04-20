@@ -4,7 +4,7 @@ Start:
     astrapi-backup --work-dir /opt/astrapi-backup --port 5001
     astrapi-backup --work-dir /opt/astrapi-backup --port 5001 --debug    # Debug-Modus (inkl. reload)
 """
-from astrapi.core.system.paths import run_app
+from astrapi_core.system.paths import run_app
 
 
 def main() -> None:

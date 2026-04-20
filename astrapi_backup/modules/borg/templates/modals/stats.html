@@ -1,6 +1,6 @@
 {% from "partials/components/ui_macros.html" import modal_wrapper, modal_title %}
 {#
-  borg/templates/partials/stats_modal.html
+  borg/templates/modals/stats.html
   Repository-Statistiken für einen Borg-Job.
 
   Variablen:
@@ -28,9 +28,7 @@
     Lade …
   </div>
 
-  <div class="ds-modal-footer-simple"
-       style="display:flex; align-items:center; justify-content:space-between;
-              padding-top:12px; margin-top:12px; border-top:1px solid var(--border-s);">
+  <div class="ds-modal-footer">
     <div style="display:flex; align-items:center; gap:10px;">
       <button class="btn btn-ghost btn-sm"
               hx-post="/api/borg/{{ item_id }}/stats/refresh"

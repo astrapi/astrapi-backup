@@ -26,8 +26,8 @@ os.environ.setdefault("ASTRAPI_BACKUP_WORK_DIR", "/tmp/astrapi-backup-test")
 @pytest.fixture(autouse=True)
 def fresh_db(tmp_path):
     """Konfiguriert eine frische SQLite-DB für jeden Test und räumt danach auf."""
-    import astrapi.core.system.db as db
-    from astrapi.core.ui.storage import SqliteStorage
+    import astrapi_core.system.db as db
+    from astrapi_core.ui.storage import SqliteStorage
 
     # Vorhandene Thread-lokale Verbindung schließen
     if getattr(db._local, "conn", None):
@@ -59,7 +59,7 @@ def fresh_db(tmp_path):
 @pytest.fixture
 def scheduler():
     """Frische, isolierte Scheduler-Instanz (nicht der Modul-Singleton)."""
-    from astrapi.core.modules.scheduler.engine import Scheduler
+    from astrapi_core.modules.scheduler.engine import Scheduler
     sch = Scheduler()
     yield sch
     sch.reset()

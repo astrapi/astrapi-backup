@@ -3,10 +3,10 @@ import os
 import subprocess
 from datetime import datetime
 
-from astrapi.core.system.logger import log, log_context
-from astrapi.core.system.reachability import require_hosts
-from astrapi.core.system.cmd import run_cmd, build_connection_string, is_local
-from astrapi.core.ui.settings_registry import get_module as _get_module_setting
+from astrapi_core.system.logger import log, log_context
+from astrapi_core.system.reachability import require_hosts
+from astrapi_core.system.cmd import run_cmd, build_connection_string, is_local
+from astrapi_core.ui.settings_registry import get_module as _get_module_setting
 from astrapi_backup.api.storage import load_config as _load_config, patch_item as _patch_item
 from astrapi_backup.modules.borg.utils import borg_bin_for as _borg_bin_for, borg_env as _borg_env
 
@@ -119,7 +119,7 @@ def preview(job_id) -> list[dict]:
 
 
 def run():
-    from astrapi.core.modules.scheduler.job_runner import run_all
+    from astrapi_core.modules.scheduler.job_runner import run_all
     run_all("borg", _get_config(), run_single)
 
 

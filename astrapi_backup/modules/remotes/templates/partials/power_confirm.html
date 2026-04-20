@@ -1,0 +1,16 @@
+<div style="display:flex; flex-direction:column; gap:0;">
+  <p style="font-size:13px; color:var(--text-2); margin:0 0 16px;">
+    Möchtest du dieses Gerät wirklich <strong>{{ verb }}</strong>?
+  </p>
+  <div class="ds-modal-footer-simple">
+    <button class="btn btn-ghost btn-sm"
+            onclick="this.closest('.ds-modal-backdrop').remove()">
+      Abbrechen
+    </button>
+    <button class="btn btn-{{ btn_style }} btn-sm"
+            hx-{{ method }}="{{ confirm_url }}"
+            hx-on::after-request="this.closest('.ds-modal-backdrop').remove()">
+      {{ verb | capitalize }}
+    </button>
+  </div>
+</div>

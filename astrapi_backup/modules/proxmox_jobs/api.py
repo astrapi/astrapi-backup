@@ -1,11 +1,11 @@
 # modules/proxmox_jobs/api.py
 from pathlib import Path
 
-from astrapi.core.ui.htmx_crud_router import make_htmx_crud_router
+from astrapi_core.ui.htmx_crud_router import make_htmx_crud_router
 from astrapi_backup.api.routers.run import get_running
 from astrapi_backup.modules.proxmox_jobs.jobs import preview as _preview, KEY, _PBS_PORT
 
-router = make_htmx_crud_router(KEY, Path(__file__).parent / "schema.yaml", preview_fn=_preview, running_fn=get_running)
+router = make_htmx_crud_router(KEY, Path(__file__).parent / "schema.yaml", preview_fn=_preview, running_fn=get_running, create_defaults={"last_status": "neu"})
 
 
 def fetch_available_jobs() -> list[dict]:
@@ -17,7 +17,7 @@ def fetch_available_jobs() -> list[dict]:
     import requests
     import urllib3
     import logging
-    from astrapi.core.system.db import load_config
+    from astrapi_core.system.db import load_config
     from astrapi_backup.modules.remotes.engine import get_all_remotes_for_select, get_remote
 
     _log = logging.getLogger(__name__)
@@ -51,7 +51,7 @@ def fetch_available_jobs() -> list[dict]:
 
         for job_type in ("verify", "sync", "prune"):
             url = f"https://{host}:{_PBS_PORT}/api2/json/admin/{job_type}"
-            from astrapi.core.system.paths import is_debug
+            from astrapi_core.system.paths import is_debug
             if is_debug():
                 _log.warning("fetch_available_jobs: curl -sk -H 'Authorization: %s' %s", headers.get("Authorization", ""), url)
             try:

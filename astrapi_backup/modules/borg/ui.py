@@ -1,10 +1,10 @@
 # app/modules/borg/ui.py
 from pathlib import Path
 
-from astrapi.core.ui.crud_blueprint import make_crud_router
+from astrapi_core.ui.crud_blueprint import make_crud_router
 from astrapi_backup.api.routers.run import get_running
-from astrapi.core.ui.store import SqliteTableStore
-from astrapi.core.ui.field_resolver import resolve_options_endpoint
+from astrapi_core.ui.store import SqliteTableStore
+from astrapi_core.ui.field_resolver import resolve_options_endpoint
 
 KEY    = "borg"
 _DIR   = Path(__file__).parent
@@ -30,6 +30,7 @@ router = make_crud_router(
     has_run_buttons=True,
     resolve_fields_fn=_resolve_fields,
     running_fn=get_running,
+    create_defaults={"last_status": "neu"},
     filters=[
         {
             "param":      "source_remote_id",
@@ -42,6 +43,16 @@ router = make_crud_router(
             "label":      "Ziel",
             "all_label":  "Alle Ziele",
             "options_fn": lambda: _remote_options("borg_target", include_local=False),
+        },
+        {
+            "param":      "last_status",
+            "label":      "Status",
+            "all_label":  "Alle Status",
+            "options_fn": lambda: [
+                {"value": "neu",     "label": "Neu"},
+                {"value": "ok",    "label": "OK"},
+                {"value": "error", "label": "Fehler"},
+            ],
         },
     ],
 )

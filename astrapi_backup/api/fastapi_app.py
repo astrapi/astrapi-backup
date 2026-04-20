@@ -1,7 +1,7 @@
 """astrapi_backup.api.fastapi_app – FastAPI-Factory."""
 from pathlib import Path
 from fastapi import FastAPI
-from astrapi.core.system.version import get_app_version
+from astrapi_core.system.version import get_app_version
 
 from astrapi_backup._paths import package_dir, log_dir
 
@@ -23,17 +23,17 @@ def create(modules: list | None = None) -> FastAPI:
         openapi_url="/api/openapi.json",
     )
 
-    from astrapi.core.system.logger import configure_log_root
+    from astrapi_core.system.logger import configure_log_root
     configure_log_root(log_dir())
 
-    from astrapi.core.system.secrets import configure as configure_secrets
+    from astrapi_core.system.secrets import configure as configure_secrets
     configure_secrets(
         key_path     = Path("/var/lib/backupadm/secret.key"),
         dev_key_path = package_dir() / "secret.key",
     )
 
     # ── Modul-Router registrieren (nur laden wenn nicht übergeben) ────────────────────
-    from astrapi.core.ui.module_registry import load_modules, register_fastapi_modules
+    from astrapi_core.ui.module_registry import load_modules, register_fastapi_modules
     if modules is None:
         modules, _ = load_modules(APP_ROOT)
     register_fastapi_modules(app, modules)

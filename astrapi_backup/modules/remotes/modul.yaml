@@ -1,14 +1,7 @@
 # app/modules/remotes/modul.yaml – Modul-Konfiguration
 
 label:       Remote-Geräte
-icon:        monitor
 nav_group:   System
 nav_default: false
 
-card_actions:
-  - type: power-on
-    url:  /ui/remotes/{item}/wake?container_id={container_id}&loading_id={loading_id}&description={host}
-  - type: power-off
-    url:  /ui/remotes/{item}/shutdown?container_id={container_id}&loading_id={loading_id}&description={host}
-  - type: scan-host-key
-    url:  /ui/remotes/{item}/scan-host-key?container_id={container_id}&loading_id={loading_id}&description={host}
+card_actions: []

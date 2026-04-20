@@ -1,10 +1,10 @@
 import subprocess
 
-from astrapi.core.system.logger import log, log_context
-from astrapi.core.system.reachability import require_hosts
-from astrapi.core.system.cmd import run_cmd, build_connection_string, is_local
+from astrapi_core.system.logger import log, log_context
+from astrapi_core.system.reachability import require_hosts
+from astrapi_core.system.cmd import run_cmd, build_connection_string, is_local
 from astrapi_backup.api.storage import load_config as _load_config, get_entry as _get_entry, patch_item as _patch_item
-from astrapi.core.ui.settings_registry import get_module as _get_module_setting, get as _get_global_setting
+from astrapi_core.ui.settings_registry import get_module as _get_module_setting, get as _get_global_setting
 
 def _get_config(): return _load_config("rsync")
 
@@ -77,13 +77,13 @@ def run():
 
 
 def run_intern():
-    from astrapi.core.modules.scheduler.job_runner import run_all
+    from astrapi_core.modules.scheduler.job_runner import run_all
     items = {k: v for k, v in _get_config().items() if v.get("type") == "intern"}
     run_all("rsync", items, run_single)
 
 
 def run_extern():
-    from astrapi.core.modules.scheduler.job_runner import run_all
+    from astrapi_core.modules.scheduler.job_runner import run_all
     items = {k: v for k, v in _get_config().items() if v.get("type") == "extern"}
     run_all("rsync", items, run_single)
 

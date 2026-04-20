@@ -1,7 +1,6 @@
 # app/modules/borg/modul.yaml – Modul-Konfiguration
 
 label:       Borg
-icon:        archive
 nav_group:   Backup
 nav_default: true
 

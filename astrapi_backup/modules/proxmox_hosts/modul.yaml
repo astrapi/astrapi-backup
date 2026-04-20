@@ -1,7 +1,6 @@
 # app/modules/proxmox_hosts/modul.yaml – Modul-Konfiguration
 
 label:       Proxmox Hosts
-icon:        server
 nav_group:   Proxmox
 nav_default: false
 

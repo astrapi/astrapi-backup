@@ -3,21 +3,21 @@ import subprocess
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request, Header, Query
 
-from astrapi.core.system.db import load_config, get_item, delete_item, save_item, next_item_id
+from astrapi_core.system.db import load_config, get_item, delete_item, save_item, next_item_id
 
 KEY = "remotes"
 router = APIRouter(tags=[KEY])
 
 
 def _list_response(request: Request):
-    from astrapi.core.ui.fastapi_templates import get_templates
+    from astrapi_core.ui.fastapi_templates import get_templates
     return get_templates().TemplateResponse(
         request,
         "partials/list_wrapper_inner.html",
         {
             "cfg":              load_config(KEY),
             "module":           KEY,
-            "content_template": f"{KEY}/partials/list.html",
+            "content_template": f"{KEY}/partials/card_body.html",
             "container_id":     f"tab-{KEY}",
             "loading_id":       f"{KEY}-loading",
         },
@@ -52,6 +52,10 @@ async def patch_one(item_id: str, request: Request):
     payload = dict(form)
     payload["enabled"] = payload.get("enabled") in ("on", "1", True)
     payload["types"]   = list(form.getlist("types"))
+    # Passwort-/Secret-Felder nicht überschreiben wenn leer gelassen
+    for field in ("api_token_secret",):
+        if not payload.get(field):
+            payload.pop(field, None)
     existing.update(payload)
     save_item(KEY, iid, existing)
     try:
@@ -135,32 +139,6 @@ def shutdown_item(request: Request, item_id: str, hx_request: str | None = Heade
         return _list_response(request)
     return {"status": "ok", "host": host}
 
-
-@router.post("/{item_id}/scan-host-key")
-def scan_host_key(request: Request, item_id: str, hx_request: str | None = Header(None)):
-    item = get_item(KEY, item_id)
-    if item is None:
-        raise HTTPException(404, "Item not found")
-    host = item.get("host", "")
-    if not host:
-        raise HTTPException(400, "Kein Hostname konfiguriert")
-    ssh_port = item.get("ssh_port", 22)
-    known_hosts = Path.home() / ".ssh" / "known_hosts"
-    known_hosts.parent.mkdir(mode=0o700, exist_ok=True)
-    try:
-        keyscan_cmd = ["ssh-keyscan", "-H", "-p", str(ssh_port), host]
-        result = subprocess.run(keyscan_cmd, capture_output=True, text=True, timeout=15)
-        if not result.stdout.strip():
-            raise HTTPException(500, f"ssh-keyscan lieferte keine Ausgabe für {host} – Host erreichbar?")
-        with open(known_hosts, "a") as f:
-            f.write(result.stdout)
-    except subprocess.TimeoutExpired:
-        raise HTTPException(504, f"ssh-keyscan Timeout für {host}")
-    except OSError as ex:
-        raise HTTPException(500, f"known_hosts konnte nicht geschrieben werden: {ex}")
-    if hx_request:
-        return _list_response(request)
-    return {"status": "ok", "host": host}
 
 
 @router.get("/for-select")

@@ -14,11 +14,11 @@ from astrapi_backup.modules.borg.storage import (
     get_stats_cache, save_stats_cache,
 )
 from astrapi_backup.api.templates import templates
-from astrapi.core.system.cmd import is_local, build_connection_string
-from astrapi.core.system.logger import log
+from astrapi_core.system.cmd import is_local, build_connection_string
+from astrapi_core.system.logger import log
 from astrapi_backup.modules.borg.utils import borg_bin as _borg_bin, borg_env as _borg_env
 from astrapi_backup.modules.borg.jobs import preview as _preview_borg, _get_host_info as _job_get_host_info
-from astrapi.core.ui.htmx_crud_router import make_htmx_crud_router
+from astrapi_core.ui.htmx_crud_router import make_htmx_crud_router
 from astrapi_backup.api.routers.run import get_running
 
 KEY = "borg"
@@ -115,7 +115,7 @@ def _load_archive_entries(repo_path: str, archive: str, env: dict, timeout: int 
         return []
 
 
-from astrapi.core.system.format import fmt_bytes as _fmt_size
+from astrapi_core.system.format import fmt_bytes as _fmt_size
 
 
 def _sanitize_path(path: str) -> str:
@@ -207,7 +207,7 @@ def archives_modal(item_id: str, request: Request):
         "Noch kein Cache vorhanden. Bitte zuerst ein Backup ausführen."
         if not cached_at else "Cache ist leer."
     )
-    return templates.TemplateResponse(request, "borg/partials/archives_modal.html", {
+    return templates.TemplateResponse(request, "borg/modals/archives.html", {
         "item_id":     item_id,
         "description": entry.get("description", item_id),
         "repo_path":   _repo_path(entry),
@@ -452,7 +452,7 @@ def stats_modal(item_id: str, request: Request):
     stats = _build_stats(info) if info else None
     if stats:
         stats = _enrich_stats_from_archive_cache(stats, item_id)
-    return templates.TemplateResponse(request, "borg/partials/stats_modal.html", {
+    return templates.TemplateResponse(request, "borg/modals/stats.html", {
         "item_id":     item_id,
         "description": entry.get("description", item_id),
         "repo_path":   _repo_path(entry),

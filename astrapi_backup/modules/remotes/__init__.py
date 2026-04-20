@@ -1,6 +1,6 @@
 from pathlib import Path
-from astrapi.core.ui.module_loader import load_modul
-from astrapi.core.system.db import register_table
+from astrapi_core.ui.module_loader import load_modul
+from astrapi_core.system.db import register_table
 
 _DDL = """
     CREATE TABLE IF NOT EXISTS remotes (

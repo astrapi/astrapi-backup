@@ -3,7 +3,7 @@
 
 def get_remote(remote_id: int | str) -> dict | None:
     """Get a single remote device by ID"""
-    from astrapi.core.system.db import load_config
+    from astrapi_core.system.db import load_config
     remotes = load_config("remotes") or {}
     return remotes.get(str(remote_id))
 
@@ -49,7 +49,7 @@ def get_all_remotes_for_select(type_filter: str | None = None, include_local: bo
                        If given, only remotes that include this type are returned.
         include_local: if True (default), prepends a "Lokal" option.
     """
-    from astrapi.core.system.db import load_config
+    from astrapi_core.system.db import load_config
     remotes = load_config("remotes") or {}
 
     result = [{"id": "local", "label": "Lokal"}] if include_local else []

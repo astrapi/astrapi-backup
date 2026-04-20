@@ -2,8 +2,8 @@
 import subprocess
 from pathlib import Path
 
-from astrapi.core.modules.sysinfo import module  # noqa: F401  – wird von der Registry erwartet
-from astrapi.core.modules.sysinfo.engine import configure
+from astrapi_core.modules.system import module  
+from astrapi_core.modules.system.engine import configure
 
 from astrapi_backup._paths import package_dir as _package_dir, db_path as _db_path
 
@@ -37,7 +37,7 @@ def _read_version_yaml(path: Path) -> str:
     return "?"
 
 def _db_size() -> str:
-    from astrapi.core.system.format import fmt_bytes
+    from astrapi_core.system.format import fmt_bytes
     p = _db_path()
     if p.exists():
         return fmt_bytes(p.stat().st_size)
@@ -65,7 +65,7 @@ def _discover_services() -> list[str]:
 
 
 def _update_packages():
-    from astrapi.core.modules.updater.engine import get_packages_with_versions
+    from astrapi_core.modules.system.updater import get_packages_with_versions
     return get_packages_with_versions()
 
 

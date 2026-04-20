@@ -14,34 +14,35 @@ fields:
 
   - type: section
     label: Quelle
-    cols: 1
+    cols: 2
 
   - name: source_remote_id
     type: select
-    label: Source Server
+    label: Server
     options_endpoint: /api/remotes/for-select?type=borg_source
     required: true
 
   - name: source_path
     type: text
-    label: Source Path
+    label: Pfad
     max: 200
     required: true
 
   - type: section
     label: Ziel
-    cols: 1
+    cols: 2
 
   - name: target_remote_id
     type: select
-    label: Target Server
+    label: Server
     options_endpoint: /api/remotes/for-select?type=borg_target&local=0
-    required: false
+    required: true
 
   - name: target_path
     type: text
-    label: Target Path
+    label: Pfad
     max: 200
+    required: true
 
   - type: section
     label: Skripte & Filter

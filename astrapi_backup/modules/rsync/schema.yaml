@@ -2,15 +2,15 @@ modal_width: 860
 id_field: id
 
 fields:
+  - type: section
+    label: Allgemein
+    cols: 2
+
   - name: description
     type: text
     label: Name
     max: 50
     required: true
-
-  - name: enabled
-    type: boolean
-    label: Aktiviert
 
   - name: type
     type: select
@@ -22,32 +22,38 @@ fields:
       - value: extern
         label: Extern
 
+  - name: enabled
+    type: boolean
+    label: Aktiviert
+
   - type: section
-    label: Quelle / Ziel
-    cols: 1
+    label: Quelle
+    cols: 2
 
   - name: source_remote_id
     type: select
-    label: Source Server
+    label: Server
     options_endpoint: /api/remotes/for-select?type=rsync
     required: true
 
   - name: source_path
     type: text
-    label: Source Path
+    label: Pfad
     max: 200
+    required: true
 
-  # - type: section
-  #   label: Ziel
-  #   cols: 2
+  - type: section
+    label: Ziel
+    cols: 2
 
   - name: target_remote_id
     type: select
-    label: Target Server
+    label: Server
     options_endpoint: /api/remotes/for-select?type=rsync
-    required: false
+    required: true
 
   - name: target_path
     type: text
-    label: Target Path
+    label: Pfad
     max: 200
+    required: true

@@ -4,10 +4,10 @@ from pathlib import Path
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
-from astrapi.core.ui.crud_blueprint import make_crud_router
+from astrapi_core.ui.crud_blueprint import make_crud_router
 from astrapi_backup.api.routers.run import get_running
-from astrapi.core.ui.store import SqliteTableStore
-from astrapi.core.ui.field_resolver import resolve_options_endpoint
+from astrapi_core.ui.store import SqliteTableStore
+from astrapi_core.ui.field_resolver import resolve_options_endpoint
 
 KEY  = "proxmox_hosts"
 _DIR = Path(__file__).parent
@@ -32,7 +32,7 @@ def _available_host_options(exclude_ids: set[str] | None = None) -> list[dict]:
 
 
 def _registered_remote_ids() -> set[str]:
-    from astrapi.core.system.db import load_config
+    from astrapi_core.system.db import load_config
     return {
         str(e.get("remote_id"))
         for e in load_config(KEY).values()
@@ -56,8 +56,10 @@ router = APIRouter()
 
 @router.get(f"/ui/{KEY}/create", response_class=HTMLResponse)
 def create_modal(request: Request):
-    from astrapi.core.ui.render import render
+    from astrapi_core.ui.render import render
     options = _available_host_options(exclude_ids=_registered_remote_ids())
+    if not options:
+        return render(request, f"{KEY}/modals/no_hosts.html", {})
     fields = [
         {"name": "remote_id", "type": "select", "label": "Proxmox Host", "options": options, "row": 1},
         {"name": "enabled",   "type": "boolean", "label": "Aktiviert"},
@@ -81,7 +83,7 @@ def create_modal(request: Request):
 
 @router.get(f"/ui/{KEY}/{{item_id}}/edit", response_class=HTMLResponse)
 def edit_modal(item_id: str, request: Request):
-    from astrapi.core.ui.render import render
+    from astrapi_core.ui.render import render
     item = store.get(item_id)
     if item is None:
         return HTMLResponse("Proxmox Host nicht gefunden", status_code=404)
@@ -108,8 +110,8 @@ def edit_modal(item_id: str, request: Request):
 
 @router.post(f"/ui/{KEY}/", response_class=HTMLResponse)
 async def create_apply(request: Request):
-    from astrapi.core.ui.render import render
-    from astrapi.core.ui.crud_blueprint import resolve_filters_for_request
+    from astrapi_core.ui.render import render
+    from astrapi_core.ui.crud_blueprint import resolve_filters_for_request
     form      = await request.form()
     remote_id = form.get("remote_id", "")
     data = {
@@ -121,18 +123,18 @@ async def create_apply(request: Request):
     store.create(None, data)
     cfg = store.list()
     cfg, extra = resolve_filters_for_request(KEY, request, cfg)
-    return render(request, "partials/list_wrapper.html", dict(
+    return render(request, "content.html", dict(
         cfg=cfg, module=KEY,
         container_id=_C_ID, loading_id=_L_ID,
-        content_template=f"{KEY}/partials/list.html",
+        content_template=f"{KEY}/partials/card_body.html",
         running=get_running(), has_run_buttons=True, **extra,
     ))
 
 
 @router.post(f"/ui/{KEY}/{{item_id}}/update", response_class=HTMLResponse)
 async def edit_apply(item_id: str, request: Request):
-    from astrapi.core.ui.render import render
-    from astrapi.core.ui.crud_blueprint import resolve_filters_for_request
+    from astrapi_core.ui.render import render
+    from astrapi_core.ui.crud_blueprint import resolve_filters_for_request
     form = await request.form()
     item = store.get(item_id) or {}
     item.update({
@@ -142,10 +144,10 @@ async def edit_apply(item_id: str, request: Request):
     store.update(item_id, item)
     cfg = store.list()
     cfg, extra = resolve_filters_for_request(KEY, request, cfg)
-    return render(request, "partials/list_wrapper.html", dict(
+    return render(request, "content.html", dict(
         cfg=cfg, module=KEY,
         container_id=_C_ID, loading_id=_L_ID,
-        content_template=f"{KEY}/partials/list.html",
+        content_template=f"{KEY}/partials/card_body.html",
         running=get_running(), has_run_buttons=True, **extra,
     ))
 
@@ -155,5 +157,18 @@ _crud = make_crud_router(
     schema_path=str(_DIR / "schema.yaml"),
     has_run_buttons=True,
     running_fn=get_running,
+    create_defaults={"last_status": "neu"},
+    filters=[
+        {
+            "param":      "last_status",
+            "label":      "Status",
+            "all_label":  "Alle Status",
+            "options_fn": lambda: [
+                {"value": "neu",     "label": "Neu"},
+                {"value": "ok",    "label": "OK"},
+                {"value": "error", "label": "Fehler"},
+            ],
+        },
+    ],
 )
 router.include_router(_crud)

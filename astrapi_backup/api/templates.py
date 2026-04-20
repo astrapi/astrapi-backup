@@ -8,7 +8,7 @@ from astrapi_backup._paths import package_dir as _package_dir
 _APP_ROOT      = _package_dir()
 _APP_TEMPLATES = _APP_ROOT / "templates"
 
-import astrapi.core.ui as _astrapi_core_ui
+import astrapi_core.ui as _astrapi_core_ui
 _CORE_TEMPLATES = Path(_astrapi_core_ui.__file__).resolve().parent / "templates"
 
 # Basis-Loader: app/templates/ > core/ui/templates/
@@ -39,33 +39,33 @@ _env = Environment(loader=ChoiceLoader(_prefix_loaders + _base_loaders), autoesc
 templates = Jinja2Templates(env=_env)
 
 # Jinja2-Instanz für core-Module bereitstellen
-from astrapi.core.ui.fastapi_templates import configure as _configure_fastapi_templates
+from astrapi_core.ui.fastapi_templates import configure as _configure_fastapi_templates
 _configure_fastapi_templates(templates)
 
 
-# ── Template-Globals: Funktionen die list_wrapper.html braucht ────────────────
+# ── Template-Globals: Funktionen die content.html / list_wrapper_inner.html braucht ──
 # (entsprechen den Flask-Context-Processor-Funktionen in core/ui/app.py)
 
 def _module_label(key: str) -> str:
-    from astrapi.core.ui.module_registry import _mod_registry
+    from astrapi_core.ui.module_registry import _mod_registry
     m = _mod_registry.get(key)
     return m.label if m else key.replace("_", " ").title()
 
 
 def _module_has_settings(key: str) -> bool:
-    from astrapi.core.ui.module_registry import _mod_registry
+    from astrapi_core.ui.module_registry import _mod_registry
     m = _mod_registry.get(key)
     return bool(m and m.settings_schema and m.settings_button)
 
 
 def _module_card_actions(key: str) -> list:
-    from astrapi.core.ui.module_registry import _mod_registry
+    from astrapi_core.ui.module_registry import _mod_registry
     m = _mod_registry.get(key)
     return m.card_actions if m else []
 
 
 def _col_widths(module_key: str) -> str:
-    from astrapi.core.ui.settings_registry import get as settings_get
+    from astrapi_core.ui.settings_registry import get as settings_get
     return settings_get(f"ui.col_widths.{module_key}", "{}")
 
 
@@ -82,7 +82,7 @@ def _resolve_remote_host(remote_id) -> str:
 
 def _last_run_status(module: str, item_id) -> str | None:
     try:
-        from astrapi.core.system.activity_log import list_runs_for_item
+        from astrapi_core.system.activity_log import list_runs_for_item
         runs = list_runs_for_item(module, str(item_id), limit=5)
         for run in runs:
             if run.get("status") != "running":

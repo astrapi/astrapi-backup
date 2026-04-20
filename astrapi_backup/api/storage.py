@@ -1,12 +1,12 @@
 # api/storage.py
 """SQLite-Backend mit einer Tabelle pro Modul."""
 
-from astrapi.core.system.db import (
+from astrapi_core.system.db import (
     configure as _configure_db,
     register_table, create_all_registered_tables,
     load_config, get_item, save_item, delete_item, next_item_id, get_entry, patch_item,
 )
-from astrapi.core.system.activity_log import (
+from astrapi_core.system.activity_log import (
     log_activity, update_activity_log,
     list_activity, get_activity_log, clear_activity_log,
     get_latest_activity_log_id, list_runs_for_item,

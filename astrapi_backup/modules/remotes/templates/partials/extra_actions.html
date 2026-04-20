@@ -1,0 +1,9 @@
+{% if item_data.mac %}
+  {% from 'partials/components/ui_macros.html' import icon %}
+  <button class="btn-icon" title="Power"
+          hx-get="/ui/remotes/{{ item_name }}/power-modal"
+          hx-target="body"
+          hx-swap="beforeend">
+    {{ icon('power-on') }}
+  </button>
+{% endif %}

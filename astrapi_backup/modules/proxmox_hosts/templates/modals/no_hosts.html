@@ -1,0 +1,19 @@
+{% from "partials/components/ui_macros.html" import modal_title %}
+<div class="ds-modal-backdrop" x-data x-on:keydown.escape.window="$el.remove()">
+  <div class="ds-modal" style="max-width:480px; padding:20px 24px;">
+
+    {{ modal_title(is_edit=False, title="Neuer Proxmox Host") }}
+
+    <p style="color:var(--text-3); font-size:13px; margin:16px 0 0;">
+      Keine Remote-Geräte mit dem Typ „Proxmox Host" konfiguriert.
+      Bitte zuerst ein Remote-Gerät mit diesem Typ anlegen.
+    </p>
+
+    <div class="ds-modal-footer-simple">
+      <button class="btn btn-ghost btn-sm" onclick="this.closest('.ds-modal-backdrop').remove()">
+        Schließen
+      </button>
+    </div>
+
+  </div>
+</div>

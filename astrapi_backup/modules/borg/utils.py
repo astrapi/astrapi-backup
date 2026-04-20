@@ -3,8 +3,8 @@
 import os
 import shutil
 
-from astrapi.core.system.secrets import get_secret_safe
-from astrapi.core.ui.settings_registry import get_module as _get_module_setting
+from astrapi_core.system.secrets import get_secret_safe
+from astrapi_core.ui.settings_registry import get_module as _get_module_setting
 
 _BORG_REMOTE_DEFAULT = "/var/lib/backupadm/.venv/bin/borg"
 

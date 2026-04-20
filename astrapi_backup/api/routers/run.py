@@ -6,8 +6,8 @@ import threading
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 
-from astrapi.core.system.logger import set_tee_context, clear_tee_context, set_active_log_id, clear_active_log_id
-from astrapi.core.system.activity_log import (
+from astrapi_core.system.logger import set_tee_context, clear_tee_context, set_active_log_id, clear_active_log_id
+from astrapi_core.system.activity_log import (
     history_start, history_finish,
     get_log_lines, get_latest_activity_log_id, list_runs_for_item,
 )
@@ -60,7 +60,7 @@ def make_run_router(module: str, *, has_run_buttons: bool = True) -> APIRouter:
 
     @router.get("/status", response_class=HTMLResponse)
     def module_status(request: Request):
-        from astrapi.core.ui.crud_blueprint import resolve_filters_for_request
+        from astrapi_core.ui.crud_blueprint import resolve_filters_for_request
         cfg = load_config(module)
         cfg, extra = resolve_filters_for_request(module, request, cfg)
         return _get_templates().TemplateResponse(
@@ -69,7 +69,7 @@ def make_run_router(module: str, *, has_run_buttons: bool = True) -> APIRouter:
             {
                 "cfg": cfg, "module": module,
                 "container_id": f"tab-{module}", "loading_id": f"{module}-loading",
-                "content_template": f"{module}/partials/list.html",
+                "content_template": f"{module}/partials/card_body.html",
                 "running": get_running(),
                 "has_run_buttons": has_run_buttons,
                 **extra,
@@ -113,12 +113,12 @@ def make_run_router(module: str, *, has_run_buttons: bool = True) -> APIRouter:
                 clear_tee_context()
                 _mark_done(module, item_id)
                 if not debug:
-                    from astrapi.core.modules.scheduler.job_runner import _notify
+                    from astrapi_core.modules.scheduler.job_runner import _notify
                     _notify(module, desc, status, duration)
 
         threading.Thread(target=_execute, daemon=True).start()
 
-        from astrapi.core.ui.crud_blueprint import resolve_filters_for_request
+        from astrapi_core.ui.crud_blueprint import resolve_filters_for_request
         cfg = load_config(module)
         cfg, extra = resolve_filters_for_request(module, request, cfg)
         list_html = _get_templates().TemplateResponse(
@@ -127,7 +127,7 @@ def make_run_router(module: str, *, has_run_buttons: bool = True) -> APIRouter:
             {
                 "cfg": cfg, "module": module,
                 "container_id": f"tab-{module}", "loading_id": f"{module}-loading",
-                "content_template": f"{module}/partials/list.html",
+                "content_template": f"{module}/partials/card_body.html",
                 "running": get_running(),
                 "has_run_buttons": has_run_buttons,
                 **extra,
@@ -243,7 +243,7 @@ def _dispatch_single(module: str, item_id: str) -> None:
     try:
         mod = importlib.import_module(f"astrapi_backup.modules.{module}.jobs")
     except ModuleNotFoundError:
-        from astrapi.core.system.logger import log
+        from astrapi_core.system.logger import log
         log("ERROR", f"Unbekanntes Modul: {module}")
         return
     mod.run_single(item_id)

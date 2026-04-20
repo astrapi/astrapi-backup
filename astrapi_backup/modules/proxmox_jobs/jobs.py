@@ -5,7 +5,7 @@ import urllib.parse
 import requests
 import urllib3
 
-from astrapi.core.system.logger import log, log_context
+from astrapi_core.system.logger import log, log_context
 from astrapi_backup.api.storage import load_config as _load_config, get_entry as _get_entry, patch_item as _patch_item
 
 KEY = "proxmox_jobs"
@@ -63,7 +63,7 @@ def _trigger_job(host: str, job_type: str, job_name: str, remote: dict) -> str:
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     url  = f"https://{host}:{_PBS_PORT}/api2/json/admin/{job_type}/{job_name}/run"
-    from astrapi.core.system.paths import is_debug
+    from astrapi_core.system.paths import is_debug
     if is_debug():
         log("INFO", f"curl -sk -X POST -H 'Authorization: PBSAPIToken={token_id}:<secret>' '{url}'")
     resp = requests.post(url, headers=_auth_headers(token_id, token_secret),
@@ -131,14 +131,14 @@ def preview(item_id) -> list[dict]:
 
 
 def run():
-    from astrapi.core.modules.scheduler.job_runner import run_all
+    from astrapi_core.modules.scheduler.job_runner import run_all
     run_all(KEY, _get_config(), run_single,
             desc_fn=lambda iid, e: e.get("job", iid))
 
 
 def run_by_type(job_type: str):
     """Führt alle aktivierten Jobs eines bestimmten Typs sequenziell aus."""
-    from astrapi.core.modules.scheduler.job_runner import run_all
+    from astrapi_core.modules.scheduler.job_runner import run_all
     filtered = {iid: e for iid, e in _get_config().items() if e.get("type") == job_type}
     run_all(KEY, filtered, run_single,
             desc_fn=lambda iid, e: e.get("job", iid))
@@ -166,16 +166,16 @@ def run_single(item_id, job=None):
             return
 
         log("INFO", f"=== Job '{job_name}' ({job_type}) gestartet ===")
-        last_status = "ERROR"
+        last_status = "error"
         try:
             upid = _trigger_job(host, job_type, job_name, remote_obj)
             log("INFO", f"{job_type}-job '{job_name}': Task gestartet ({upid})")
             exitstatus = _wait_for_task(host, upid, remote_obj)
             if exitstatus == "OK":
-                last_status = "OK"
+                last_status = "ok"
                 log("INFO", f"{job_type}-job '{job_name}' auf '{host}' erfolgreich")
             else:
-                last_status = exitstatus
+                last_status = "error"
                 log("WARNING", f"{job_type}-job '{job_name}' auf '{host}' abgeschlossen mit Status: {exitstatus}")
         except Exception as e:
             log("WARNING", f"{job_type}-job '{job_name}' auf '{host}' fehlgeschlagen")

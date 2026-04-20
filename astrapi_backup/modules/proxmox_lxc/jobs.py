@@ -6,8 +6,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 import urllib3
 
-from astrapi.core.system.logger import log, log_context
-from astrapi.core.ui.settings_registry import get_module as _get_module_setting
+from astrapi_core.system.logger import log, log_context
+from astrapi_core.ui.settings_registry import get_module as _get_module_setting
 from astrapi_backup.api.storage import load_config as _load_config, get_entry as _get_entry, patch_item as _patch_item
 
 KEY = "proxmox_lxc"
@@ -59,7 +59,7 @@ def _resolve_node_for_vmid(vmid: int) -> tuple[str, str, dict]:
     headers    = _auth_headers(token_id, token_secret)
     url        = f"https://{first_host}:8006/api2/json/cluster/resources?type=vm"
 
-    from astrapi.core.system.paths import is_debug
+    from astrapi_core.system.paths import is_debug
     if is_debug():
         log("INFO", f"curl -sk -H 'Authorization: PVEAPIToken={token_id}:<secret>' '{url}'")
     resp = requests.get(url, headers=headers, verify=verify_ssl, timeout=10)
@@ -201,7 +201,7 @@ def run_single(item_id, entry=None):
 
 
 def _run_single_job(item_id, vmid: int, name: str):
-    from astrapi.core.modules.scheduler.job_runner import run_logged
+    from astrapi_core.modules.scheduler.job_runner import run_logged
     from datetime import datetime
     try:
         run_logged(KEY, str(item_id), name,

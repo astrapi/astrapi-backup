@@ -2,9 +2,9 @@
 import subprocess
 import time
 from datetime import datetime
-from astrapi.core.system.logger import log, set_log_context, clear_log_context
-from astrapi.core.system.cmd import build_connection_string
-from astrapi.core.modules.notify.engine import send_simple as notify_ntfy
+from astrapi_core.system.logger import log, set_log_context, clear_log_context
+from astrapi_core.system.cmd import build_connection_string
+from astrapi_core.modules.notify.engine import send_simple as notify_ntfy
 
 _running_jobs: set = set()
 
