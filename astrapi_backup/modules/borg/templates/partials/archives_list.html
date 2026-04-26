@@ -43,11 +43,7 @@
       hx-swap="innerHTML"
       hx-indicator="#borg-archive-loading">
       <div style="display:flex; align-items:center; gap:10px; min-width:0;">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="1.8" style="color:var(--b); flex-shrink:0; opacity:.8;">
-          <path d="M21 8v13H3V8"/><rect x="1" y="3" width="22" height="5" rx="1"/>
-          <line x1="10" y1="12" x2="14" y2="12"/>
-        </svg>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="color:var(--b); flex-shrink:0; opacity:.8;"><use href="#icon-archive"></use></svg>
         <span style="font-family:var(--mono); font-size:12.5px;
                      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ a.name }}</span>
       </div>

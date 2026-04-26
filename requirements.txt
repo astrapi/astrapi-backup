@@ -41,3 +41,6 @@ astrapi-core @ git+ssh://git@gitlab.com/astrapi-os/ctl/astrapi-core.git@v26.4.15
 
 # ── Borg-Backup ──────────────────────────────────────────────────
 borgbackup>=1.4.4
+
+# ── Entwicklungstools ─────────────────────────────────────────────
+ruff>=0.4                # Linter + Formatter (ersetzt flake8, isort, black)

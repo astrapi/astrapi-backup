@@ -1,6 +1,6 @@
-# astrapi-backup – Claude Memory
+# astrapi-backup – Projektkontext für GitHub Copilot
 
-Projektkontext für Claude Code. Wird im Repo versioniert, damit es auf jedem PC verfügbar ist.
+Wird im Repo versioniert und von VS Code Copilot automatisch geladen.
 
 ---
 

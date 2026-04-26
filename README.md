@@ -1,15 +1,18 @@
-# backupctl
+# astrapi-backup
 
 Web-UI zur zentralen Verwaltung von Backup-Jobs (Borg, Rsync, Proxmox, Remote-Geräte).
+Aufgebaut auf **astrapi-core** (FastAPI + HTMX + Jinja2).
 
-## Dokumentation
+## Stack
 
-- Deutsche Benutzeranleitung: [Benutzeranleitung.md](Benutzeranleitung.md)
+| Komponente | Details |
+|---|---|
+| Framework | astrapi-core (FastAPI + HTMX) |
+| Persistenz | SQLite |
+| Verschlüsselung | Fernet (Secrets via astrapi-core) |
+| Python | ≥ 3.11 |
 
 ## Voraussetzungen
-
-- Python >= 3.11
-- `astrapi-core` (lokales Repo, muss parallel geklont sein)
 
 ### Systemabhängigkeiten
 
@@ -19,62 +22,56 @@ apt install borgbackup wakeonlan openssh-client
 
 > Borg wird unter `/var/lib/backupadm/.venv/bin/borg` erwartet.
 
-## Setup nach dem Klonen
-
-1. Virtuelles Environment erstellen und aktivieren:
+## Setup (Entwicklung)
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-```
-
-2. `astrapi-core` installieren (liegt als Schwesterprojekt neben diesem Repo):
-
-```bash
-pip install -e ../astrapi-core
-```
-
-3. `backupctl` selbst installieren:
-
-```bash
+pip install -e ../astrapi-core   # Schwesterprojekt
 pip install -e .
 ```
 
 ## Starten
 
 ```bash
-backupctl --work-dir data --port 9999
+astrapi-backup --work-dir data --port 5001
 ```
 
 **Mit Auto-Reload (Entwicklung):**
 
 ```bash
-backupctl --work-dir data --port 9999 --reload
+astrapi-backup --work-dir data --port 5001 --reload
 ```
 
-| Parameter    | Standard    | Beschreibung                            |
-|--------------|-------------|-----------------------------------------|
-| `--work-dir` | (Pflicht)   | Datenpfad für SQLite-DB und Laufzeitdaten |
-| `--port`     | `5001`      | HTTP-Port                               |
-| `--host`     | `0.0.0.0`   | Bind-Adresse                            |
-| `--reload`   | –           | Auto-Reload bei Dateiänderungen         |
+| Parameter | Standard | Beschreibung |
+|---|---|---|
+| `--work-dir` | (Pflicht) | Datenpfad für SQLite-DB und Laufzeitdaten |
+| `--port` | `5001` | HTTP-Port |
+| `--host` | `0.0.0.0` | Bind-Adresse |
+| `--reload` | – | Auto-Reload bei Dateiänderungen |
 
-Die Web-Oberfläche ist danach erreichbar unter: `http://localhost:9999`
+Die Web-Oberfläche ist danach erreichbar unter: `http://localhost:5001`
 
 ## Projektstruktur
 
 ```
-backupctl/
+astrapi_backup/
 ├── _cli.py            # Einstiegspunkt (CLI)
 ├── _app.py            # ASGI-App-Factory
 ├── _paths.py          # Pfad-Utilities
-├── runner.py          # Job-Executor (Borg, Rsync, Proxmox)
+├── runner.py          # Job-Dispatcher
 ├── api/               # FastAPI-Router und SQLite-Backend
 └── modules/           # Feature-Module
-    ├── borg/
-    ├── rsync/
-    ├── proxmox_lxc/
-    ├── proxmox_hosts/
-    ├── proxmox_jobs/
-    └── remotes/
+    ├── borg/          # Borg-Backup
+    ├── rsync/         # Rsync
+    ├── proxmox_lxc/   # Proxmox LXC-Container
+    ├── proxmox_hosts/ # Proxmox-Host-Backups
+    ├── proxmox_jobs/  # Proxmox-Job-Verwaltung
+    └── remotes/       # Remote-Geräte (WoL, SSH)
+```
+
+## Tests
+
+```bash
+pytest tests/unit/
 ```

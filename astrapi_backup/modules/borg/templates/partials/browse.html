@@ -23,9 +23,7 @@
           hx-target="#borg-archive-content"
           hx-swap="innerHTML"
           hx-indicator="#borg-archive-loading">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-      <polyline points="15 18 9 12 15 6"/>
-    </svg>
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none"><use href="#icon-chevron-left"></use></svg>
     Archive
   </button>
   <span style="color:var(--text-3);"> / </span>
@@ -37,11 +35,7 @@
     <a class="btn btn-ghost btn-sm"
        href="/api/borg/{{ item_id }}/archives/{{ archive }}/download-bundle{% if path %}?path={{ (path + '/') | urlencode }}{% endif %}"
        title="Gesamtes Verzeichnis als .tar herunterladen">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-        <polyline points="7 10 12 15 17 10"/>
-        <line x1="12" y1="15" x2="12" y2="3"/>
-      </svg>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><use href="#icon-download"></use></svg>
       Verzeichnis
     </a>
     {% endif %}
@@ -111,9 +105,7 @@
       hx-indicator="#borg-archive-loading">
       <span></span>
       <div style="display:flex; align-items:center; gap:8px; font-size:13px; font-family:var(--mono);">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none"><use href="#icon-chevron-left"></use></svg>
         ..
       </div>
       <span></span><span></span><span></span>
@@ -135,10 +127,7 @@
       hx-indicator="#borg-archive-loading">
       <span></span>
       <div style="display:flex; align-items:center; gap:8px; font-size:13px; font-family:var(--mono);">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="1.8" style="color:#f5c211; flex-shrink:0;">
-          <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
-        </svg>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="color:#f5c211; flex-shrink:0;"><use href="#icon-folder"></use></svg>
         {{ d.name }}/
       </div>
       <span></span>
@@ -161,11 +150,7 @@
       </span>
       <div style="display:flex; align-items:center; gap:8px; font-size:13px;
                   font-family:var(--mono); min-width:0;">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="1.8" style="color:var(--text-3); flex-shrink:0;">
-          <path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/>
-          <polyline points="13 2 13 9 20 9"/>
-        </svg>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="color:var(--text-3); flex-shrink:0;"><use href="#icon-file"></use></svg>
         <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ f.name }}</span>
       </div>
       <span style="font-size:11px; color:var(--text-3); text-align:right; font-family:var(--mono);">
@@ -181,11 +166,7 @@
                 transition:background 100ms, color 100ms;"
          onmouseover="this.style.background='rgba(128,128,128,0.1)'; this.style.color='var(--text)'"
          onmouseout="this.style.background='transparent'; this.style.color='var(--text-3)'">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-          <polyline points="7 10 12 15 17 10"/>
-          <line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none"><use href="#icon-download"></use></svg>
       </a>
     </div>
     {% endfor %}
@@ -212,11 +193,7 @@
       Auswahl aufheben
     </button>
     <button id="borg-browse-dl" class="btn btn-sm btn-primary">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-        <polyline points="7 10 12 15 17 10"/>
-        <line x1="12" y1="15" x2="12" y2="3"/>
-      </svg>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><use href="#icon-download"></use></svg>
       Ausgewählte herunterladen
     </button>
   </div>
