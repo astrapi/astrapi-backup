@@ -109,9 +109,16 @@ def _last_run_status(module: str, item_id) -> str | None:
     return None
 
 
+def _module_obj(key: str):
+    from astrapi_core.ui.module_registry import _mod_registry
+
+    return _mod_registry.get(key)
+
+
 _env.globals["module_label"] = _module_label
 _env.globals["module_has_settings"] = _module_has_settings
 _env.globals["module_card_actions"] = _module_card_actions
+_env.globals["module_obj"] = _module_obj
 _env.globals["col_widths"] = _col_widths
 _env.globals["resolve_remote_host"] = _resolve_remote_host
 _env.globals["last_run_status"] = _last_run_status

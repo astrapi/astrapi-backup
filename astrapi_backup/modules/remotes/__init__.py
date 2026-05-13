@@ -24,10 +24,43 @@ _DDL = """
 
 register_table(_KEY, _DDL, list_fields=["types"], secret_fields=["api_token_secret"])
 
+from urllib.parse import parse_qs as _parse_qs
+from urllib.parse import urlparse
+
+# Remote-Host-Resolver für resolve_remote_host() in Templates registrieren
+from astrapi_core.ui.app import register_remote_resolver as _reg_remote_resolver
 from astrapi_core.ui.controls import Col, ContentTable  # noqa: E402
+
+# Dynamische Feld-Optionen für options_endpoint in schema.yaml registrieren
+from astrapi_core.ui.field_resolver import register_options_fetcher as _reg
+
+
+def _remote_host_fn(remote_id) -> str:
+    from astrapi_backup.modules.remotes.service import get_remote
+
+    r = get_remote(remote_id)
+    return r.get("host") or "—" if r else "—"
+
+
+_reg_remote_resolver(_remote_host_fn)
 
 from astrapi_backup.modules.remotes.ui.crud import api_router as router
 from astrapi_backup.modules.remotes.ui.crud import router as ui_router
+
+
+def _remotes_options_fetcher(endpoint: str) -> list:
+    from astrapi_backup.modules.remotes.service import get_all_remotes_for_select
+
+    qs = _parse_qs(urlparse(endpoint).query)
+    type_filter = qs.get("type", [None])[0]
+    include_local = qs.get("local", ["1"])[0] != "0"
+    return [
+        {"value": r["id"], "label": r["label"]}
+        for r in get_all_remotes_for_select(type_filter=type_filter, include_local=include_local)
+    ]
+
+
+_reg("/api/remotes/for-select", _remotes_options_fetcher)
 
 module = load_modul(
     Path(__file__).parent,

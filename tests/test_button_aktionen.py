@@ -417,3 +417,48 @@ def test_proxmox_jobs_ausfuehren(client, work_dir):
         assert resp.status_code == 200
     finally:
         client.delete(f"/api/proxmox_jobs/{new_id}/delete")
+
+
+# ── Neu-Button öffnet Modal ───────────────────────────────────────────────────
+
+
+def test_remotes_neu_button_oeffnet_modal(client):
+    """Klick auf „Neu" öffnet den Erstellen-Dialog für Remotes."""
+    resp = client.get("/ui/remotes/create")
+    assert resp.status_code == 200
+    assert 'id="create-edit-modal"' in resp.text
+
+
+def test_borg_neu_button_oeffnet_modal(client):
+    """Klick auf „Neu" öffnet den Erstellen-Dialog für Borg-Jobs."""
+    resp = client.get("/ui/borg/create")
+    assert resp.status_code == 200
+    assert 'id="create-edit-modal"' in resp.text
+
+
+def test_rsync_neu_button_oeffnet_modal(client):
+    """Klick auf „Neu" öffnet den Erstellen-Dialog für Rsync-Jobs."""
+    resp = client.get("/ui/rsync/create")
+    assert resp.status_code == 200
+    assert 'id="create-edit-modal"' in resp.text
+
+
+def test_proxmox_hosts_neu_button_oeffnet_modal(client):
+    """Klick auf „Neu" öffnet den Erstellen-Dialog für Proxmox-Hosts."""
+    resp = client.get("/ui/proxmox_hosts/create")
+    assert resp.status_code == 200
+    assert 'id="create-edit-modal"' in resp.text
+
+
+def test_proxmox_lxc_neu_button_oeffnet_modal(client):
+    """Klick auf „Neu" öffnet den Erstellen-Dialog für Proxmox-LXC."""
+    resp = client.get("/ui/proxmox_lxc/create")
+    assert resp.status_code == 200
+    assert 'id="create-edit-modal"' in resp.text
+
+
+def test_proxmox_jobs_neu_button_oeffnet_modal(client):
+    """Klick auf „Neu" öffnet den Erstellen-Dialog für Proxmox-Jobs."""
+    resp = client.get("/ui/proxmox_jobs/create")
+    assert resp.status_code == 200
+    assert 'id="create-edit-modal"' in resp.text
