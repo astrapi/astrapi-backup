@@ -35,7 +35,7 @@ def borg_bin_for(remote_id) -> str:
     if remote_id is None or str(remote_id) == "local":
         return borg_bin_local()
     try:
-        from astrapi_backup.modules.remotes.engine import get_remote
+        from astrapi_backup.modules.remotes.service import get_remote
         remote = get_remote(remote_id)
         if remote and remote.get("borg_bin"):
             return remote["borg_bin"]

@@ -1,9 +1,0 @@
-{% set _host = resolve_remote_host(item_data.remote_id) if item_data.remote_id else '—' %}
-<div class="meta-grid">
-  <span class="meta-label">Host</span>
-  <span class="meta-value">{{ _host }}</span>
-  {% if item_data.source %}
-  <span class="meta-label">Quellen</span>
-  <span class="meta-value" style="font-family:var(--mono); font-size:.85em;">{{ item_data.source | join(', ') }}</span>
-  {% endif %}
-</div>

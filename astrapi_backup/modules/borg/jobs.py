@@ -3,17 +3,27 @@ import os
 import subprocess
 from datetime import datetime
 
+from astrapi_core.system.cmd import build_connection_string, is_local, run_cmd
 from astrapi_core.system.logger import log, log_context
 from astrapi_core.system.reachability import require_hosts
-from astrapi_core.system.cmd import run_cmd, build_connection_string, is_local
 from astrapi_core.ui.settings_registry import get_module as _get_module_setting
-from astrapi_backup.api.storage import load_config as _load_config, patch_item as _patch_item
-from astrapi_backup.modules.borg.utils import borg_bin_for as _borg_bin_for, borg_env as _borg_env
 
-def _get_config(): return _load_config("borg")
-def _s(key, default): return _get_module_setting("borg", key, default)
+from astrapi_backup.api.storage import load_config as _load_config
+from astrapi_backup.api.storage import patch_item as _patch_item
+from astrapi_backup.modules.borg.utils import borg_bin_for as _borg_bin_for
+from astrapi_backup.modules.borg.utils import borg_env as _borg_env
+
+
+def _get_config():
+    return _load_config("borg")
+
+
+def _s(key, default):
+    return _get_module_setting("borg", key, default)
+
 
 _STATUS_ORDER = {"ok": 0, "warning": 1, "error": 2}
+
 
 def _worst(a: str, b: str) -> str:
     return a if _STATUS_ORDER.get(a, 0) >= _STATUS_ORDER.get(b, 0) else b
@@ -25,7 +35,8 @@ def _get_host_info(entry: dict, host_type: str = "source") -> tuple[str, str, in
     remote_id = entry.get(remote_id_key)
     if not remote_id:
         raise ValueError(f"Job missing: '{remote_id_key}' nicht konfiguriert")
-    from astrapi_backup.modules.remotes.engine import get_remote_ssh
+    from astrapi_backup.modules.remotes.service import get_remote_ssh
+
     return get_remote_ssh(remote_id)
 
 
@@ -46,11 +57,13 @@ def preview(job_id) -> list[dict]:
         target_host = None
         target_ssh_user = None
 
-    src_local    = is_local(source_host)
+    src_local = is_local(source_host)
     archive_name = datetime.now().strftime("%Y%m%d_%H%M%S")
-    repo    = _repo(source_host, target_host, entry.get("target_path"), src_local, ssh_user, target_ssh_user)
+    repo = _repo(
+        source_host, target_host, entry.get("target_path"), src_local, ssh_user, target_ssh_user
+    )
     archive = f"{repo}::{archive_name}"
-    src     = f"{entry.get('source_path')}/./"
+    src = f"{entry.get('source_path')}/./"
 
     def _fmt(parts, connection):
         cmd_str = " ".join(parts) if isinstance(parts, list) else parts
@@ -75,8 +88,12 @@ def preview(job_id) -> list[dict]:
     compression = _s("compression", "auto,zstd")
     base_cmd = [
         "BORG_PASSPHRASE=***",
-        _borg_bin_for(entry.get("source_remote_id")), "create",
-        "--verbose", "--stats", "--compression", compression,
+        _borg_bin_for(entry.get("source_remote_id")),
+        "create",
+        "--verbose",
+        "--stats",
+        "--compression",
+        compression,
         "--exclude-caches",
     ]
     for pattern in entry.get("exclude", []):
@@ -94,16 +111,19 @@ def preview(job_id) -> list[dict]:
             commands.append({"label": "Post-Hook", "cmd": _fmt(cmd, conn)})
 
     # Borg Prune
-    keep_daily   = _s("keep_daily",   "7")
-    keep_weekly  = _s("keep_weekly",  "4")
+    keep_daily = _s("keep_daily", "7")
+    keep_weekly = _s("keep_weekly", "4")
     keep_monthly = _s("keep_monthly", "12")
-    keep_yearly  = _s("keep_yearly",  "5")
-    keep_within  = _s("keep_within",  "7")
+    keep_yearly = _s("keep_yearly", "5")
+    keep_within = _s("keep_within", "7")
     prune_cmd = [
         "BORG_PASSPHRASE=***",
-        _borg_bin_for(entry.get("source_remote_id")), "prune",
-        f"--keep-daily={keep_daily}", f"--keep-weekly={keep_weekly}",
-        f"--keep-monthly={keep_monthly}", f"--keep-yearly={keep_yearly}",
+        _borg_bin_for(entry.get("source_remote_id")),
+        "prune",
+        f"--keep-daily={keep_daily}",
+        f"--keep-weekly={keep_weekly}",
+        f"--keep-monthly={keep_monthly}",
+        f"--keep-yearly={keep_yearly}",
     ]
     if keep_within and str(keep_within) != "0":
         prune_cmd.append(f"--keep-within={keep_within}d")
@@ -112,14 +132,20 @@ def preview(job_id) -> list[dict]:
 
     # Borg Compact
     if _s("compact_after_prune", "1") in ("1", "true", True):
-        compact_cmd = ["BORG_PASSPHRASE=***", _borg_bin_for(entry.get("source_remote_id")), "compact", repo]
+        compact_cmd = [
+            "BORG_PASSPHRASE=***",
+            _borg_bin_for(entry.get("source_remote_id")),
+            "compact",
+            repo,
+        ]
         commands.append({"label": "Borg Compact", "cmd": _fmt(compact_cmd, conn)})
 
     return commands
 
 
 def run():
-    from astrapi_core.modules.scheduler.job_runner import run_all
+    from astrapi_core.system.runner import run_all
+
     run_all("borg", _get_config(), run_single)
 
 
@@ -152,7 +178,12 @@ def run_single(job_id, entry=None):
         if target_host and not is_local(target_host):
             hosts.append((target_host, target_ssh_user))
         if not require_hosts(hosts):
-            _patch_item("borg", job_id, last_run=datetime.now().strftime("%d.%m.%Y %H:%M"), last_status="error")
+            _patch_item(
+                "borg",
+                job_id,
+                last_run=datetime.now().strftime("%d.%m.%Y %H:%M"),
+                last_status="error",
+            )
             return
         status = "ok"
         if entry.get("pre"):
@@ -162,10 +193,15 @@ def run_single(job_id, entry=None):
             status = _worst(status, _hook("post", entry, source_host, ssh_user))
         status = _worst(status, _prune(entry, source_host, ssh_user, target_host, target_ssh_user))
         if _s("compact_after_prune", "1") in ("1", "true", True):
-            status = _worst(status, _compact(entry, source_host, ssh_user, target_host, target_ssh_user))
+            status = _worst(
+                status, _compact(entry, source_host, ssh_user, target_host, target_ssh_user)
+            )
         from astrapi_backup.modules.borg import cache as _cache
+
         _cache.update(job_id, entry)
-        _patch_item("borg", job_id, last_run=datetime.now().strftime("%d.%m.%Y %H:%M"), last_status=status)
+        _patch_item(
+            "borg", job_id, last_run=datetime.now().strftime("%d.%m.%Y %H:%M"), last_status=status
+        )
         log("INFO", f"=== Borg '{entry.get('description', job_id)}' abgeschlossen ===")
 
 
@@ -196,8 +232,9 @@ def _local_fqdn() -> str:
     configured = os.getenv("LOCAL_FQDN", "").strip()
     if configured:
         return configured
-    import socket
     import ipaddress
+    import socket
+
     fqdn = socket.getfqdn()
     # Fallback auf Hostname wenn getfqdn() eine IP-Adresse (v4 oder v6) zurückgibt
     if fqdn:
@@ -208,7 +245,14 @@ def _local_fqdn() -> str:
     return socket.gethostname()
 
 
-def _repo(source_host: str, target_host: str, target_path: str, src_local: bool = False, ssh_user: str = None, target_ssh_user: str = None) -> str:
+def _repo(
+    source_host: str,
+    target_host: str,
+    target_path: str,
+    src_local: bool = False,
+    ssh_user: str = None,
+    target_ssh_user: str = None,
+) -> str:
     """
     Borg-Repository-Pfad aus Sicht des ausführenden Hosts (source_host).
 
@@ -226,27 +270,35 @@ def _repo(source_host: str, target_host: str, target_path: str, src_local: bool 
         return f"{target_ssh_user}@{target_host}:{target_path}"
 
 
-def _backup(entry, source_host: str, ssh_user: str, target_host: str, target_ssh_user: str = None) -> str:
-    src_local    = is_local(source_host)
-    connection   = build_connection_string(source_host, ssh_user) if not src_local else "local"
+def _backup(
+    entry, source_host: str, ssh_user: str, target_host: str, target_ssh_user: str = None
+) -> str:
+    src_local = is_local(source_host)
+    connection = build_connection_string(source_host, ssh_user) if not src_local else "local"
     archive_name = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    env  = _borg_env()
+    env = _borg_env()
     borg = _borg_bin_for(entry.get("source_remote_id"))
 
-    repo    = _repo(source_host, target_host, entry.get("target_path"), src_local, ssh_user, target_ssh_user)
+    repo = _repo(
+        source_host, target_host, entry.get("target_path"), src_local, ssh_user, target_ssh_user
+    )
     archive = f"{repo}::{archive_name}"
-    src     = f"{entry.get('source_path')}/./"
+    src = f"{entry.get('source_path')}/./"
 
     compression = _s("compression", "auto,zstd")
     base_cmd = [
-        borg, "create",
-        "--verbose", "--stats", "--compression", compression,
+        borg,
+        "create",
+        "--verbose",
+        "--stats",
+        "--compression",
+        compression,
         "--exclude-caches",
     ]
     for pattern in entry.get("exclude", []):
         # Wildcards in Quotes einschliessen damit die Remote-Shell sie nicht expandiert
-        safe = f"\'{pattern}\'" if any(c in pattern for c in "*?[") else pattern
+        safe = f"'{pattern}'" if any(c in pattern for c in "*?[") else pattern
         base_cmd.extend(["--exclude", safe])
 
     if src_local:
@@ -263,7 +315,12 @@ def _backup(entry, source_host: str, ssh_user: str, target_host: str, target_ssh
         # RC=2: echter Fehler
         if e.returncode == 1:
             stderr = e.stderr.strip() if e.stderr else ""
-            log("WARNING", f"Borg-Backup mit Warnungen abgeschlossen:\n{stderr}" if stderr else "Borg-Backup mit Warnungen abgeschlossen.")
+            log(
+                "WARNING",
+                f"Borg-Backup mit Warnungen abgeschlossen:\n{stderr}"
+                if stderr
+                else "Borg-Backup mit Warnungen abgeschlossen.",
+            )
             return "warning"
         else:
             log("WARNING", "Borg-Backup fehlgeschlagen")
@@ -271,25 +328,32 @@ def _backup(entry, source_host: str, ssh_user: str, target_host: str, target_ssh
             return "error"
 
 
-def _prune(entry, source_host: str, ssh_user: str, target_host: str, target_ssh_user: str = None) -> str:
-    src_local  = is_local(source_host)
+def _prune(
+    entry, source_host: str, ssh_user: str, target_host: str, target_ssh_user: str = None
+) -> str:
+    src_local = is_local(source_host)
     connection = build_connection_string(source_host, ssh_user) if not src_local else "local"
 
-    env  = _borg_env()
+    env = _borg_env()
     borg = _borg_bin_for(entry.get("source_remote_id"))
 
-    repo = _repo(source_host, target_host, entry.get("target_path"), src_local, ssh_user, target_ssh_user)
+    repo = _repo(
+        source_host, target_host, entry.get("target_path"), src_local, ssh_user, target_ssh_user
+    )
 
-    keep_daily   = _s("keep_daily",   "7")
-    keep_weekly  = _s("keep_weekly",  "4")
+    keep_daily = _s("keep_daily", "7")
+    keep_weekly = _s("keep_weekly", "4")
     keep_monthly = _s("keep_monthly", "12")
-    keep_yearly  = _s("keep_yearly",  "5")
-    keep_within  = _s("keep_within",  "7")
+    keep_yearly = _s("keep_yearly", "5")
+    keep_within = _s("keep_within", "7")
 
     base_cmd = [
-        borg, "prune",
-        f"--keep-daily={keep_daily}", f"--keep-weekly={keep_weekly}",
-        f"--keep-monthly={keep_monthly}", f"--keep-yearly={keep_yearly}",
+        borg,
+        "prune",
+        f"--keep-daily={keep_daily}",
+        f"--keep-weekly={keep_weekly}",
+        f"--keep-monthly={keep_monthly}",
+        f"--keep-yearly={keep_yearly}",
     ]
     if keep_within and str(keep_within) != "0":
         base_cmd.append(f"--keep-within={keep_within}d")
@@ -309,14 +373,18 @@ def _prune(entry, source_host: str, ssh_user: str, target_host: str, target_ssh_
         return "error"
 
 
-def _compact(entry, source_host: str, ssh_user: str, target_host: str, target_ssh_user: str = None) -> str:
-    src_local  = is_local(source_host)
+def _compact(
+    entry, source_host: str, ssh_user: str, target_host: str, target_ssh_user: str = None
+) -> str:
+    src_local = is_local(source_host)
     connection = build_connection_string(source_host, ssh_user) if not src_local else "local"
 
-    env  = _borg_env()
+    env = _borg_env()
     borg = _borg_bin_for(entry.get("source_remote_id"))
 
-    repo     = _repo(source_host, target_host, entry.get("target_path"), src_local, ssh_user, target_ssh_user)
+    repo = _repo(
+        source_host, target_host, entry.get("target_path"), src_local, ssh_user, target_ssh_user
+    )
     base_cmd = [borg, "compact", repo]
 
     if src_local:

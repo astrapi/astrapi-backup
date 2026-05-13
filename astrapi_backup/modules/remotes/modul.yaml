@@ -1,7 +1,0 @@
-# app/modules/remotes/modul.yaml – Modul-Konfiguration
-
-label:       Remote-Geräte
-nav_group:   System
-nav_default: false
-
-card_actions: []

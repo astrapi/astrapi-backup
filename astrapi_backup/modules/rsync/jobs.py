@@ -1,19 +1,26 @@
 import subprocess
 
+from astrapi_core.system.cmd import build_connection_string, is_local, run_cmd
 from astrapi_core.system.logger import log, log_context
 from astrapi_core.system.reachability import require_hosts
-from astrapi_core.system.cmd import run_cmd, build_connection_string, is_local
-from astrapi_backup.api.storage import load_config as _load_config, get_entry as _get_entry, patch_item as _patch_item
-from astrapi_core.ui.settings_registry import get_module as _get_module_setting, get as _get_global_setting
+from astrapi_core.ui.settings_registry import get as _get_global_setting
+from astrapi_core.ui.settings_registry import get_module as _get_module_setting
 
-def _get_config(): return _load_config("rsync")
+from astrapi_backup.api.storage import get_entry as _get_entry
+from astrapi_backup.api.storage import load_config as _load_config
+from astrapi_backup.api.storage import patch_item as _patch_item
+
+
+def _get_config():
+    return _load_config("rsync")
 
 
 def _get_host_info(entry: dict, host_type: str = "source") -> tuple[str, str, int]:
     """Resolve host/ssh_user/ssh_port from Remote Device."""
     remote_id_key = f"{host_type}_remote_id"
     if entry.get(remote_id_key):
-        from astrapi_backup.modules.remotes.engine import get_remote_ssh
+        from astrapi_backup.modules.remotes.service import get_remote_ssh
+
         try:
             return get_remote_ssh(entry[remote_id_key])
         except ValueError as e:
@@ -66,7 +73,9 @@ def preview(job_id) -> list[dict]:
     if connection == "local":
         full_cmd = cmd_str
     else:
-        full_cmd = f"ssh -o BatchMode=yes -o ConnectTimeout={ssh_connect_timeout} {connection} '{cmd_str}'"
+        full_cmd = (
+            f"ssh -o BatchMode=yes -o ConnectTimeout={ssh_connect_timeout} {connection} '{cmd_str}'"
+        )
 
     return [{"label": "Rsync", "cmd": full_cmd}]
 
@@ -77,13 +86,15 @@ def run():
 
 
 def run_intern():
-    from astrapi_core.modules.scheduler.job_runner import run_all
+    from astrapi_core.system.runner import run_all
+
     items = {k: v for k, v in _get_config().items() if v.get("type") == "intern"}
     run_all("rsync", items, run_single)
 
 
 def run_extern():
-    from astrapi_core.modules.scheduler.job_runner import run_all
+    from astrapi_core.system.runner import run_all
+
     items = {k: v for k, v in _get_config().items() if v.get("type") == "extern"}
     run_all("rsync", items, run_single)
 
@@ -109,14 +120,19 @@ def run_single(job_id, entry=None):
             log("ERROR", str(e))
             return
 
-        hosts = [(h, u) for h, u in [(source_host, ssh_user), (target_host, target_ssh_user)] if h and not is_local(h)]
+        hosts = [
+            (h, u)
+            for h, u in [(source_host, ssh_user), (target_host, target_ssh_user)]
+            if h and not is_local(h)
+        ]
         if not require_hosts(hosts):
             return
         status = _rsync(entry, source_host, ssh_user, target_host)
         from datetime import datetime
-        _patch_item("rsync", job_id,
-                    last_run=datetime.now().strftime("%d.%m.%Y %H:%M"),
-                    last_status=status)
+
+        _patch_item(
+            "rsync", job_id, last_run=datetime.now().strftime("%d.%m.%Y %H:%M"), last_status=status
+        )
         log("INFO", f"=== Rsync '{entry.get('description', job_id)}' abgeschlossen ===")
 
 

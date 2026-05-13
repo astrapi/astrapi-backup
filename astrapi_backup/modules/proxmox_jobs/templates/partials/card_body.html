@@ -1,6 +1,0 @@
-{# templates/partials/lists/proxmox_jobs.html #}
-<div class="meta-grid">
-  <span class="meta-label">Typ</span><span class="meta-value">{{ item_data.type or '—' }}</span>
-  {% set host = resolve_remote_host(item_data.remote_id) if item_data.remote_id else (item_data.host or '—') %}
-  <span class="meta-label">Host</span><span class="meta-value">{{ host }}</span>
-</div>

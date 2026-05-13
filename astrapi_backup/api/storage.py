@@ -3,15 +3,14 @@
 
 from astrapi_core.system.db import (
     configure as _configure_db,
-    register_table, create_all_registered_tables,
-    load_config, get_item, save_item, delete_item, next_item_id, get_entry, patch_item,
 )
-from astrapi_core.system.activity_log import (
-    log_activity, update_activity_log,
-    list_activity, get_activity_log, clear_activity_log,
-    get_latest_activity_log_id, list_runs_for_item,
-    history_start, history_finish, list_history,
-    append_log_line, get_log_lines,
+from astrapi_core.system.db import (
+    create_all_registered_tables,
+    register_table,
+    load_config,
+    get_item,
+    patch_item,
+    get_entry,
 )
 
 from astrapi_backup._paths import db_path as _db_path
@@ -39,10 +38,9 @@ _APP_TABLES = {
                 last_status      TEXT
             )""",
         "list_fields": ["pre_hooks", "post_hooks", "exclude"],
-        "col_in":  {"pre_hooks": "pre", "post_hooks": "post"},
+        "col_in": {"pre_hooks": "pre", "post_hooks": "post"},
         "col_out": {"pre": "pre_hooks", "post": "post_hooks"},
     },
-
     "rsync": {
         "ddl": """
             CREATE TABLE IF NOT EXISTS rsync (
@@ -58,7 +56,6 @@ _APP_TABLES = {
                 last_status      TEXT
             )""",
     },
-
     "proxmox_lxc": {
         "ddl": """
             CREATE TABLE IF NOT EXISTS proxmox_lxc (
@@ -71,7 +68,6 @@ _APP_TABLES = {
                 last_status TEXT
             )""",
     },
-
     "proxmox_hosts": {
         "ddl": """
             CREATE TABLE IF NOT EXISTS proxmox_hosts (
@@ -84,10 +80,9 @@ _APP_TABLES = {
                 last_status   TEXT
             )""",
         "list_fields": ["extra_sources"],
-        "col_in":  {"extra_sources": "source"},
+        "col_in": {"extra_sources": "source"},
         "col_out": {"source": "extra_sources"},
     },
-
     "proxmox_jobs": {
         "ddl": """
             CREATE TABLE IF NOT EXISTS proxmox_jobs (
@@ -120,8 +115,8 @@ def init_db() -> None:
     create_all_registered_tables()
 
 
-# Borg-spezifischer Cache → app/modules/borg/storage.py
-from astrapi_backup.modules.borg.storage import (
+# Borg-spezifischer Cache → app/modules/borg/cache/storage.py
+from astrapi_backup.modules.borg.cache.storage import (
     save_archive_list_cache, save_archive_cache,
     get_archive_cache, archive_is_cached,
     get_file_cache, save_file_cache_for_archive,

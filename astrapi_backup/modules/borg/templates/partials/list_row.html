@@ -1,6 +1,0 @@
-{% set src_host = resolve_remote_host(item_data.source_remote_id) if item_data.source_remote_id else '—' %}
-{% set tgt_host = resolve_remote_host(item_data.target_remote_id) if item_data.target_remote_id else '—' %}
-{% set src_label = 'Lokal' if src_host == '—' else src_host %}
-{% set tgt_label = 'Lokal' if tgt_host == '—' else tgt_host %}
-<td class="col-trunc" title="{{ src_label }}:{{ item_data.source_path or '' }}">{{ src_label }}:{{ item_data.source_path or '—' }}</td>
-<td class="col-trunc" title="{{ tgt_label }}:{{ item_data.target_path or '' }}">{{ tgt_label }}:{{ item_data.target_path or '—' }}</td>

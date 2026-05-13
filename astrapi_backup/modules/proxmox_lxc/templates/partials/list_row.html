@@ -1,3 +1,0 @@
-{% set _node = resolve_remote_host(item_data.node) if item_data.node else (item_data.node or '—') %}
-<td class="col-type">{{ item_data.vmid or '—' }}</td>
-<td class="col-trunc">{{ _node }}</td>

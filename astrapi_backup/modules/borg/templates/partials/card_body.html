@@ -1,9 +1,0 @@
-{# borg/partials/card_body.html #}
-{% set src_host = resolve_remote_host(item_data.source_remote_id) if item_data.source_remote_id else '—' %}
-{% set tgt_host = resolve_remote_host(item_data.target_remote_id) if item_data.target_remote_id else '—' %}
-{% set src_label = 'Lokal' if src_host == '—' else src_host %}
-{% set tgt_label = 'Lokal' if tgt_host == '—' else tgt_host %}
-<div class="meta-grid">
-  <span class="meta-label">Quelle</span><span class="meta-value">{{ src_label }}{% if item_data.source_path %}:{{ item_data.source_path }}{% endif %}</span>
-  <span class="meta-label">Ziel</span><span class="meta-value">{{ tgt_label }}{% if item_data.target_path %}:{{ item_data.target_path }}{% endif %}</span>
-</div>

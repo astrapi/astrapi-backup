@@ -10,18 +10,29 @@
 import os
 import subprocess
 
+from astrapi_core.system.cmd import build_connection_string, is_local, run_cmd
 from astrapi_core.system.logger import log, log_context
 from astrapi_core.system.reachability import require_hosts
-from astrapi_core.system.cmd import run_cmd, build_connection_string, is_local
-from astrapi_core.ui.settings_registry import get_module as _get_module_setting, get as _get_global_setting
+from astrapi_core.ui.settings_registry import get as _get_global_setting
+from astrapi_core.ui.settings_registry import get_module as _get_module_setting
 
-from astrapi_backup.api.storage import load_config as _load_config, get_entry as _get_entry, patch_item as _patch_item
-def _get_config(): return _load_config("proxmox_hosts")
+from astrapi_backup.api.storage import get_entry as _get_entry
+from astrapi_backup.api.storage import load_config as _load_config
+from astrapi_backup.api.storage import patch_item as _patch_item
+
+
+def _get_config():
+    return _load_config("proxmox_hosts")
+
 
 _FALLBACK_SOURCES = [
-    "etc.pxar:/etc", "home.pxar:/home", "opt.pxar:/opt",
-    "root.pxar:/root", "local.pxar:/usr/local",
+    "etc.pxar:/etc",
+    "home.pxar:/home",
+    "opt.pxar:/opt",
+    "root.pxar:/root",
+    "local.pxar:/usr/local",
 ]
+
 
 def _default_sources() -> list[str]:
     sources = _get_module_setting("proxmox_hosts", "default_sources", [])
@@ -34,25 +45,28 @@ def _default_sources() -> list[str]:
 
 def _get_pbs_config(entry: dict) -> dict:
     """Liest PBS-Verbindungsdaten aus dem in den Einstellungen gewählten PBS-Remote."""
-    from astrapi_backup.modules.remotes.engine import get_remote
+    from astrapi_backup.modules.remotes.service import get_remote
+
     pbs_remote_id = _get_module_setting("proxmox_hosts", "pbs_remote_id", "")
     if not pbs_remote_id:
-        raise ValueError("Kein PBS-Remote konfiguriert — bitte in den Einstellungen von 'Proxmox Hosts' auswählen")
+        raise ValueError(
+            "Kein PBS-Remote konfiguriert — bitte in den Einstellungen von 'Proxmox Hosts' auswählen"
+        )
     remote = get_remote(pbs_remote_id)
     if not remote:
         raise ValueError(f"PBS-Remote '{pbs_remote_id}' nicht gefunden")
-    host        = remote.get("host", "")
-    token_id    = remote.get("api_token_id", "")
-    token_sec   = remote.get("api_token_secret", "")
-    datastore   = remote.get("pbs_datastore", "")
+    host = remote.get("host", "")
+    token_id = remote.get("api_token_id", "")
+    token_sec = remote.get("api_token_secret", "")
+    datastore = remote.get("pbs_datastore", "")
     fingerprint = remote.get("pbs_fingerprint", "")
     if not host or not token_id or not datastore:
         raise ValueError(
             f"PBS-Remote '{host}': host, api_token_id und pbs_datastore müssen konfiguriert sein"
         )
     return {
-        "repository":  f"{token_id}@{host}:{datastore}",
-        "password":    token_sec,
+        "repository": f"{token_id}@{host}:{datastore}",
+        "password": token_sec,
         "fingerprint": fingerprint,
     }
 
@@ -60,7 +74,8 @@ def _get_pbs_config(entry: dict) -> dict:
 def _get_proxmox_host_info(entry: dict) -> tuple[str, str, int]:
     if not entry.get("remote_id"):
         raise ValueError("Job nicht konfiguriert: 'remote_id' fehlt")
-    from astrapi_backup.modules.remotes.engine import get_remote_ssh
+    from astrapi_backup.modules.remotes.service import get_remote_ssh
+
     try:
         return get_remote_ssh(entry["remote_id"])
     except ValueError as e:
@@ -90,27 +105,41 @@ def preview(item_id) -> list[dict]:
     pxar_sources += entry.get("source", [])
 
     ssh_connect_timeout = _get_global_setting("ssh_connect_timeout", 10)
-    namespace           = "host"
+    namespace = "host"
 
     cmd_parts = [
-        f"PBS_REPOSITORY={pbs['repository']}", "PBS_PASSWORD=***", "PBS_FINGERPRINT=***",
-        "sudo", "--preserve-env=PBS_REPOSITORY,PBS_PASSWORD,PBS_FINGERPRINT",
-        "/usr/bin/proxmox-backup-client", "backup", *pxar_sources,
-        "--backup-type", "host", "--backup-id", "$(hostname)",
-        "--ns", namespace, "--backup-time", "$(date +%s)",
+        f"PBS_REPOSITORY={pbs['repository']}",
+        "PBS_PASSWORD=***",
+        "PBS_FINGERPRINT=***",
+        "sudo",
+        "--preserve-env=PBS_REPOSITORY,PBS_PASSWORD,PBS_FINGERPRINT",
+        "/usr/bin/proxmox-backup-client",
+        "backup",
+        *pxar_sources,
+        "--backup-type",
+        "host",
+        "--backup-id",
+        "$(hostname)",
+        "--ns",
+        namespace,
+        "--backup-time",
+        "$(date +%s)",
     ]
     cmd_str = " ".join(cmd_parts)
 
     if connection == "local":
         full_cmd = cmd_str
     else:
-        full_cmd = f"ssh -o BatchMode=yes -o ConnectTimeout={ssh_connect_timeout} {connection} '{cmd_str}'"
+        full_cmd = (
+            f"ssh -o BatchMode=yes -o ConnectTimeout={ssh_connect_timeout} {connection} '{cmd_str}'"
+        )
 
     return [{"label": "proxmox-backup-client", "cmd": full_cmd}]
 
 
 def run():
-    from astrapi_core.modules.scheduler.job_runner import run_all
+    from astrapi_core.system.runner import run_all
+
     run_all("proxmox_hosts", _get_config(), run_single)
 
 
@@ -135,9 +164,13 @@ def run_single(item_id, entry=None):
             return
         status = _backup(host, ssh_user, entry, pbs)
         from datetime import datetime
-        _patch_item("proxmox_hosts", item_id,
-                    last_run=datetime.now().strftime("%d.%m.%Y %H:%M"),
-                    last_status=status)
+
+        _patch_item(
+            "proxmox_hosts",
+            item_id,
+            last_run=datetime.now().strftime("%d.%m.%Y %H:%M"),
+            last_status=status,
+        )
         log("INFO", f"=== Host '{entry.get('description', host)}' abgeschlossen ===")
 
 
@@ -151,15 +184,24 @@ def _backup(host, ssh_user: str, entry, pbs: dict) -> str:
 
     env = dict(os.environ)
     env["PBS_REPOSITORY"] = pbs["repository"]
-    env["PBS_PASSWORD"]   = pbs["password"]
+    env["PBS_PASSWORD"] = pbs["password"]
     env["PBS_FINGERPRINT"] = pbs["fingerprint"]
 
     namespace = "host"
     base_cmd = [
-        "sudo", "--preserve-env=PBS_REPOSITORY,PBS_PASSWORD,PBS_FINGERPRINT",
-        "/usr/bin/proxmox-backup-client", "backup", *pxar_sources,
-        "--backup-type", "host", "--backup-id", "$(hostname)",
-        "--ns", namespace, "--backup-time", "$(date +%s)"
+        "sudo",
+        "--preserve-env=PBS_REPOSITORY,PBS_PASSWORD,PBS_FINGERPRINT",
+        "/usr/bin/proxmox-backup-client",
+        "backup",
+        *pxar_sources,
+        "--backup-type",
+        "host",
+        "--backup-id",
+        "$(hostname)",
+        "--ns",
+        namespace,
+        "--backup-time",
+        "$(date +%s)",
     ]
 
     if is_local(host):
@@ -169,7 +211,7 @@ def _backup(host, ssh_user: str, entry, pbs: dict) -> str:
             f"PBS_REPOSITORY={env['PBS_REPOSITORY']}",
             f"PBS_PASSWORD={env['PBS_PASSWORD']}",
             f"PBS_FINGERPRINT={env['PBS_FINGERPRINT']}",
-            *base_cmd
+            *base_cmd,
         ]
 
     try:

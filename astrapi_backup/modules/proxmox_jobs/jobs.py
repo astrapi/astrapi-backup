@@ -4,19 +4,24 @@ import urllib.parse
 
 import requests
 import urllib3
-
 from astrapi_core.system.logger import log, log_context
-from astrapi_backup.api.storage import load_config as _load_config, get_entry as _get_entry, patch_item as _patch_item
+
+from astrapi_backup.api.storage import get_entry as _get_entry
+from astrapi_backup.api.storage import load_config as _load_config
+from astrapi_backup.api.storage import patch_item as _patch_item
 
 KEY = "proxmox_jobs"
 _PBS_PORT = 8007
 
-def _get_config(): return _load_config(KEY)
+
+def _get_config():
+    return _load_config(KEY)
 
 
 def _get_host(entry: dict) -> str:
     """Ermittelt den PBS-Host aus dem Remote-Eintrag."""
-    from astrapi_backup.modules.remotes.engine import get_remote
+    from astrapi_backup.modules.remotes.service import get_remote
+
     remote_id = entry.get("remote_id")
     if not remote_id:
         raise ValueError("Job hat keine remote_id konfiguriert")
@@ -32,7 +37,7 @@ def _get_host(entry: dict) -> str:
 
 
 def _api_token_for_remote(remote: dict) -> tuple[str, str]:
-    token_id     = remote.get("api_token_id", "").strip()
+    token_id = remote.get("api_token_id", "").strip()
     token_secret = remote.get("api_token_secret", "").strip()
     if not token_id or not token_secret:
         raise ValueError(f"API-Token für Remote '{remote.get('host')}' nicht konfiguriert")
@@ -62,12 +67,14 @@ def _trigger_job(host: str, job_type: str, job_name: str, remote: dict) -> str:
     if not verify_ssl:
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-    url  = f"https://{host}:{_PBS_PORT}/api2/json/admin/{job_type}/{job_name}/run"
+    url = f"https://{host}:{_PBS_PORT}/api2/json/admin/{job_type}/{job_name}/run"
     from astrapi_core.system.paths import is_debug
+
     if is_debug():
         log("INFO", f"curl -sk -X POST -H 'Authorization: PBSAPIToken={token_id}:<secret>' '{url}'")
-    resp = requests.post(url, headers=_auth_headers(token_id, token_secret),
-                         json={}, verify=verify_ssl, timeout=30)
+    resp = requests.post(
+        url, headers=_auth_headers(token_id, token_secret), json={}, verify=verify_ssl, timeout=30
+    )
     resp.raise_for_status()
     upid = resp.json().get("data", "")
     if not upid:
@@ -75,22 +82,23 @@ def _trigger_job(host: str, job_type: str, job_name: str, remote: dict) -> str:
     return upid
 
 
-def _wait_for_task(host: str, upid: str, remote: dict,
-                   poll_interval: int = 5, timeout: int = 3600) -> str:
+def _wait_for_task(
+    host: str, upid: str, remote: dict, poll_interval: int = 5, timeout: int = 3600
+) -> str:
     """Pollt den Task-Status bis er abgeschlossen ist. Gibt exitstatus zurück."""
     token_id, token_secret = _api_token_for_remote(remote)
     verify_ssl = _verify_ssl_for_remote(remote)
-    headers    = _auth_headers(token_id, token_secret)
+    headers = _auth_headers(token_id, token_secret)
 
-    node     = _parse_upid_node(upid)
+    node = _parse_upid_node(upid)
     upid_enc = urllib.parse.quote(upid, safe="")
-    url      = f"https://{host}:{_PBS_PORT}/api2/json/nodes/{node}/tasks/{upid_enc}/status"
+    url = f"https://{host}:{_PBS_PORT}/api2/json/nodes/{node}/tasks/{upid_enc}/status"
 
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         resp = requests.get(url, headers=headers, verify=verify_ssl, timeout=15)
         resp.raise_for_status()
-        data   = resp.json().get("data", {})
+        data = resp.json().get("data", {})
         status = data.get("status", "")
         if status == "stopped":
             return data.get("exitstatus", "unknown")
@@ -115,33 +123,30 @@ def preview(item_id) -> list[dict]:
         return [{"label": "Error", "cmd": str(e)}]
 
     try:
-        from astrapi_backup.modules.remotes.engine import get_remote
+        from astrapi_backup.modules.remotes.service import get_remote
+
         remote_obj = get_remote(job["remote_id"]) if job.get("remote_id") else {}
         token_id = remote_obj.get("api_token_id", "").strip() or "<api-token-id>"
     except Exception:
         token_id = "<pbs-token-id>"
 
     url = f"https://{host}:{_PBS_PORT}/api2/json/admin/{job_type}/{job_name}/run"
-    cmd = (
-        f"curl -k -X POST "
-        f"-H 'Authorization: PBSAPIToken={token_id}:<secret>' "
-        f"'{url}'"
-    )
+    cmd = f"curl -k -X POST -H 'Authorization: PBSAPIToken={token_id}:<secret>' '{url}'"
     return [{"label": f"{job_type}-job (PBS API)", "cmd": cmd}]
 
 
 def run():
-    from astrapi_core.modules.scheduler.job_runner import run_all
-    run_all(KEY, _get_config(), run_single,
-            desc_fn=lambda iid, e: e.get("job", iid))
+    from astrapi_core.system.runner import run_all
+
+    run_all(KEY, _get_config(), run_single, desc_fn=lambda iid, e: e.get("job", iid))
 
 
 def run_by_type(job_type: str):
     """Führt alle aktivierten Jobs eines bestimmten Typs sequenziell aus."""
-    from astrapi_core.modules.scheduler.job_runner import run_all
+    from astrapi_core.system.runner import run_all
+
     filtered = {iid: e for iid, e in _get_config().items() if e.get("type") == job_type}
-    run_all(KEY, filtered, run_single,
-            desc_fn=lambda iid, e: e.get("job", iid))
+    run_all(KEY, filtered, run_single, desc_fn=lambda iid, e: e.get("job", iid))
 
 
 def run_single(item_id, job=None):
@@ -158,7 +163,8 @@ def run_single(item_id, job=None):
             return
 
         try:
-            from astrapi_backup.modules.remotes.engine import get_remote
+            from astrapi_backup.modules.remotes.service import get_remote
+
             remote_obj = get_remote(job.get("remote_id")) or {}
             host = _get_host(job)
         except ValueError as e:
@@ -176,11 +182,20 @@ def run_single(item_id, job=None):
                 log("INFO", f"{job_type}-job '{job_name}' auf '{host}' erfolgreich")
             else:
                 last_status = "error"
-                log("WARNING", f"{job_type}-job '{job_name}' auf '{host}' abgeschlossen mit Status: {exitstatus}")
+                log(
+                    "WARNING",
+                    f"{job_type}-job '{job_name}' auf '{host}' abgeschlossen mit Status: {exitstatus}",
+                )
         except Exception as e:
             log("WARNING", f"{job_type}-job '{job_name}' auf '{host}' fehlgeschlagen")
             log("ERROR", str(e))
 
         from datetime import datetime
-        _patch_item(KEY, item_id, last_run=datetime.now().strftime("%d.%m.%Y %H:%M"), last_status=last_status)
+
+        _patch_item(
+            KEY,
+            item_id,
+            last_run=datetime.now().strftime("%d.%m.%Y %H:%M"),
+            last_status=last_status,
+        )
         log("INFO", f"=== Job '{job_name}' abgeschlossen ===")

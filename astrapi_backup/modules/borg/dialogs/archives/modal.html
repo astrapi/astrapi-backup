@@ -1,0 +1,53 @@
+{% from "partials/components/ui_macros.html" import modal_wrapper, modal_title %}
+{#
+  borg/templates/modals/archives.html
+  Vollständiger Modal-Wrapper für den Archiv-Browser.
+  Der innere Bereich #borg-archive-content wird per HTMX ausgetauscht.
+
+  Variablen:
+    item_id     – Job-ID
+    description – Anzeigename des Jobs
+    repo_path   – Borg-Repo-Pfad (für den Untertitel)
+    archives    – list[dict] aus borg list --json
+    cached_at   – Timestamp des letzten Cache-Updates | None
+    error       – str | None
+#}
+{% call modal_wrapper(id="borg-archive-modal", max_width="920px") %}
+
+  {{ modal_title(title="Archive – " ~ description) }}
+
+  <div style="font-size:11px; color:var(--text-3); font-family:var(--mono);
+              word-break:break-all; margin-bottom:14px;">{{ repo_path }}</div>
+
+  <div id="borg-archive-content">
+    {% set include_mode = True %}
+    {% include "borg/dialogs/archives/list.html" %}
+  </div>
+
+  <div id="borg-archive-loading" class="htmx-indicator"
+       style="text-align:center; padding:10px 0; color:var(--text-3); font-size:13px;">
+    Lade …
+  </div>
+
+  <div class="ds-modal-footer">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <button class="btn btn-ghost btn-sm"
+              hx-post="/api/borg/{{ item_id }}/archives/refresh"
+              hx-target="#borg-archive-content"
+              hx-swap="innerHTML"
+              hx-indicator="#borg-archive-loading"
+              title="Archive live vom Server abrufen">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><use href="#icon-refresh"></use></svg>
+        Aktualisieren
+      </button>
+      <span id="borg-archive-stand" style="font-size:10px; color:var(--text-3);">
+        {% if cached_at %}Stand: {{ cached_at[:16] }}{% endif %}
+      </span>
+    </div>
+    <button type="button" class="btn btn-ghost btn-sm"
+            x-on:click="$el.closest('.ds-modal-backdrop').remove()">
+      Schließen
+    </button>
+  </div>
+
+{% endcall %}

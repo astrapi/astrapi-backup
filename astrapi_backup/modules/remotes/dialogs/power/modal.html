@@ -1,0 +1,30 @@
+{% from "partials/components/ui_macros.html" import modal_title %}
+<div class="ds-modal-backdrop" x-data x-on:keydown.escape.window="$el.remove()">
+  <div class="ds-modal" style="max-width:420px; padding:20px 24px;">
+
+    {{ modal_title(title=host) }}
+
+    {% if no_mac %}
+    <div style="margin-top:16px; font-size:13px; color:var(--text-3);">
+      Keine MAC-Adresse konfiguriert – Wake-on-LAN nicht möglich.
+    </div>
+    <div class="ds-modal-footer-simple" style="margin-top:16px;">
+      <button class="btn btn-ghost btn-sm" onclick="this.closest('.ds-modal-backdrop').remove()">
+        Schließen
+      </button>
+    </div>
+    {% else %}
+    <div id="power-check-body-{{ item_id }}"
+         hx-post="/ui/remotes/{{ item_id }}/power"
+         hx-trigger="load"
+         hx-target="#power-check-body-{{ item_id }}"
+         hx-swap="innerHTML"
+         style="margin-top:16px; display:flex; align-items:center; justify-content:center; min-height:60px; gap:10px; color:var(--text-3); font-size:13px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"
+           style="animation:spin 1s linear infinite; flex-shrink:0;"><use href="#icon-loading"></use></svg>
+      SSH-Status wird geprüft …
+    </div>
+    {% endif %}
+
+  </div>
+</div>
