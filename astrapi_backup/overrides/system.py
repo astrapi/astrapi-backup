@@ -89,7 +89,7 @@ def _update_packages():
 
 
 configure(
-    services=_discover_services(),
+    services=[],
     extra_info_fn=_extra_info,
     update_packages_fn=_update_packages,
 )
