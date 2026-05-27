@@ -7,10 +7,6 @@ from astrapi_core.system.db import (
 from astrapi_core.system.db import (
     create_all_registered_tables,
     register_table,
-    load_config,
-    get_item,
-    patch_item,
-    get_entry,
 )
 
 from astrapi_backup._paths import db_path as _db_path
@@ -109,16 +105,27 @@ def _register_app_tables() -> None:
         )
 
 
+def _run_migrations() -> None:
+    """Fügt fehlende Spalten zu bestehenden Tabellen hinzu (ALTER TABLE … ADD COLUMN)."""
+    from astrapi_core.system.db import _conn
+
+    con = _conn()
+    _migrations = [
+        ("remotes", "ssh_connect_timeout", "INTEGER NOT NULL DEFAULT 0"),
+    ]
+    for table, column, col_def in _migrations:
+        try:
+            con.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_def}")
+            con.commit()
+        except Exception:
+            pass  # Spalte existiert bereits
+
+
 def init_db() -> None:
     _configure_db(DB_PATH)
     _register_app_tables()
     create_all_registered_tables()
+    _run_migrations()
 
 
 # Borg-spezifischer Cache → app/modules/borg/cache/storage.py
-from astrapi_backup.modules.borg.cache.storage import (
-    save_archive_list_cache, save_archive_cache,
-    get_archive_cache, archive_is_cached,
-    get_file_cache, save_file_cache_for_archive,
-    get_stats_cache, save_stats_cache,
-)
