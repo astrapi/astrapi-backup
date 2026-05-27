@@ -29,8 +29,8 @@ def _worst(a: str, b: str) -> str:
     return a if _STATUS_ORDER.get(a, 0) >= _STATUS_ORDER.get(b, 0) else b
 
 
-def _get_host_info(entry: dict, host_type: str = "source") -> tuple[str, str, int]:
-    """Löst host/ssh_user/ssh_port über das Remote-Device auf."""
+def _get_host_info(entry: dict, host_type: str = "source") -> tuple[str, str, int, int]:
+    """Löst host/ssh_user/ssh_port/ssh_connect_timeout über das Remote-Device auf."""
     remote_id_key = f"{host_type}_remote_id"
     remote_id = entry.get(remote_id_key)
     if not remote_id:
@@ -47,12 +47,12 @@ def preview(job_id) -> list[dict]:
         return []
 
     try:
-        source_host, ssh_user, ssh_port = _get_host_info(entry, "source")
+        source_host, ssh_user, ssh_port, source_connect_timeout = _get_host_info(entry, "source")
     except ValueError as e:
         return [{"label": "Error", "cmd": str(e)}]
 
     try:
-        target_host, target_ssh_user, target_ssh_port = _get_host_info(entry, "target")
+        target_host, target_ssh_user, target_ssh_port, _ = _get_host_info(entry, "target")
     except ValueError:
         target_host = None
         target_ssh_user = None
@@ -65,11 +65,13 @@ def preview(job_id) -> list[dict]:
     archive = f"{repo}::{archive_name}"
     src = f"{entry.get('source_path')}/./"
 
+    _ct = source_connect_timeout or 10
+
     def _fmt(parts, connection):
         cmd_str = " ".join(parts) if isinstance(parts, list) else parts
         if connection == "local":
             return cmd_str
-        return f"ssh -o BatchMode=yes -o ConnectTimeout=10 {connection} '{cmd_str}'"
+        return f"ssh -o BatchMode=yes -o ConnectTimeout={_ct} {connection} '{cmd_str}'"
 
     conn = "local" if src_local else build_connection_string(source_host, ssh_user)
 
@@ -160,13 +162,15 @@ def run_single(job_id, entry=None):
         log("INFO", f"=== Borg '{entry.get('description', job_id)}' gestartet ===")
 
         try:
-            source_host, ssh_user, ssh_port = _get_host_info(entry, "source")
+            source_host, ssh_user, ssh_port, source_connect_timeout = _get_host_info(
+                entry, "source"
+            )
         except ValueError as e:
             log("ERROR", str(e))
             return
 
         try:
-            target_host, target_ssh_user, target_ssh_port = _get_host_info(entry, "target")
+            target_host, target_ssh_user, target_ssh_port, _ = _get_host_info(entry, "target")
         except ValueError:
             target_host = None
             target_ssh_user = None
@@ -185,16 +189,21 @@ def run_single(job_id, entry=None):
                 last_status="error",
             )
             return
+        _ct = source_connect_timeout or 10
         status = "ok"
         if entry.get("pre"):
-            status = _worst(status, _hook("pre", entry, source_host, ssh_user))
-        status = _worst(status, _backup(entry, source_host, ssh_user, target_host, target_ssh_user))
+            status = _worst(status, _hook("pre", entry, source_host, ssh_user, _ct))
+        status = _worst(
+            status, _backup(entry, source_host, ssh_user, target_host, target_ssh_user, _ct)
+        )
         if entry.get("post"):
-            status = _worst(status, _hook("post", entry, source_host, ssh_user))
-        status = _worst(status, _prune(entry, source_host, ssh_user, target_host, target_ssh_user))
+            status = _worst(status, _hook("post", entry, source_host, ssh_user, _ct))
+        status = _worst(
+            status, _prune(entry, source_host, ssh_user, target_host, target_ssh_user, _ct)
+        )
         if _s("compact_after_prune", "1") in ("1", "true", True):
             status = _worst(
-                status, _compact(entry, source_host, ssh_user, target_host, target_ssh_user)
+                status, _compact(entry, source_host, ssh_user, target_host, target_ssh_user, _ct)
             )
         from astrapi_backup.modules.borg import cache as _cache
 
@@ -205,7 +214,7 @@ def run_single(job_id, entry=None):
         log("INFO", f"=== Borg '{entry.get('description', job_id)}' abgeschlossen ===")
 
 
-def _hook(phase: str, entry, host: str, ssh_user: str) -> str:
+def _hook(phase: str, entry, host: str, ssh_user: str, ssh_connect_timeout: int = 10) -> str:
     connection = build_connection_string(host, ssh_user)
     hooks = entry.get(phase) or []
     if isinstance(hooks, str):
@@ -214,7 +223,7 @@ def _hook(phase: str, entry, host: str, ssh_user: str) -> str:
     if not cmd:
         return "ok"
     try:
-        run_cmd(cmd, connection, env=_borg_env())
+        run_cmd(cmd, connection, env=_borg_env(), ssh_connect_timeout=ssh_connect_timeout)
         log("INFO", f"Hook '{phase}' erfolgreich")
         return "ok"
     except subprocess.CalledProcessError as e:
@@ -271,7 +280,12 @@ def _repo(
 
 
 def _backup(
-    entry, source_host: str, ssh_user: str, target_host: str, target_ssh_user: str = None
+    entry,
+    source_host: str,
+    ssh_user: str,
+    target_host: str,
+    target_ssh_user: str = None,
+    ssh_connect_timeout: int = 10,
 ) -> str:
     src_local = is_local(source_host)
     connection = build_connection_string(source_host, ssh_user) if not src_local else "local"
@@ -307,7 +321,7 @@ def _backup(
         cmd = [f"BORG_PASSPHRASE={env['BORG_PASSPHRASE']}", *base_cmd, archive, src]
 
     try:
-        run_cmd(cmd, connection, env=env)
+        run_cmd(cmd, connection, env=env, ssh_connect_timeout=ssh_connect_timeout)
         log("INFO", "Borg-Backup erfolgreich.")
         return "ok"
     except subprocess.CalledProcessError as e:
@@ -329,7 +343,12 @@ def _backup(
 
 
 def _prune(
-    entry, source_host: str, ssh_user: str, target_host: str, target_ssh_user: str = None
+    entry,
+    source_host: str,
+    ssh_user: str,
+    target_host: str,
+    target_ssh_user: str = None,
+    ssh_connect_timeout: int = 10,
 ) -> str:
     src_local = is_local(source_host)
     connection = build_connection_string(source_host, ssh_user) if not src_local else "local"
@@ -364,7 +383,7 @@ def _prune(
         cmd = [f"BORG_PASSPHRASE={env['BORG_PASSPHRASE']}", *base_cmd, repo]
 
     try:
-        run_cmd(cmd, connection, env=env)
+        run_cmd(cmd, connection, env=env, ssh_connect_timeout=ssh_connect_timeout)
         log("INFO", "Borg-Prune erfolgreich.")
         return "ok"
     except subprocess.CalledProcessError as e:
@@ -374,7 +393,12 @@ def _prune(
 
 
 def _compact(
-    entry, source_host: str, ssh_user: str, target_host: str, target_ssh_user: str = None
+    entry,
+    source_host: str,
+    ssh_user: str,
+    target_host: str,
+    target_ssh_user: str = None,
+    ssh_connect_timeout: int = 10,
 ) -> str:
     src_local = is_local(source_host)
     connection = build_connection_string(source_host, ssh_user) if not src_local else "local"
@@ -393,7 +417,7 @@ def _compact(
         cmd = [f"BORG_PASSPHRASE={env['BORG_PASSPHRASE']}", *base_cmd]
 
     try:
-        run_cmd(cmd, connection, env=env)
+        run_cmd(cmd, connection, env=env, ssh_connect_timeout=ssh_connect_timeout)
         log("INFO", "Borg-Compact erfolgreich.")
         return "ok"
     except subprocess.CalledProcessError as e:

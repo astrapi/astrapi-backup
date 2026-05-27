@@ -15,8 +15,8 @@ def _get_config():
     return _load_config("rsync")
 
 
-def _get_host_info(entry: dict, host_type: str = "source") -> tuple[str, str, int]:
-    """Resolve host/ssh_user/ssh_port from Remote Device."""
+def _get_host_info(entry: dict, host_type: str = "source") -> tuple[str, str, int, int]:
+    """Resolve host/ssh_user/ssh_port/ssh_connect_timeout from Remote Device."""
     remote_id_key = f"{host_type}_remote_id"
     if entry.get(remote_id_key):
         from astrapi_backup.modules.remotes.service import get_remote_ssh
@@ -36,12 +36,12 @@ def preview(job_id) -> list[dict]:
         return []
 
     try:
-        source_host, ssh_user, ssh_port = _get_host_info(entry, "source")
+        source_host, ssh_user, ssh_port, source_connect_timeout = _get_host_info(entry, "source")
     except ValueError:
         return []
 
     try:
-        target_host, target_ssh_user, target_ssh_port = _get_host_info(entry, "target")
+        target_host, target_ssh_user, target_ssh_port, _ = _get_host_info(entry, "target")
     except ValueError:
         return []
 
@@ -57,8 +57,10 @@ def preview(job_id) -> list[dict]:
     else:
         target = f"{target_host}:{target_path}"
 
-    # SSH ConnectTimeout
-    ssh_connect_timeout = _get_global_setting("ssh_connect_timeout", 10)
+    # SSH ConnectTimeout: per-device bevorzugen, dann globaler Fallback
+    ssh_connect_timeout = source_connect_timeout or int(
+        _get_global_setting("ssh_connect_timeout", 10)
+    )
 
     # Rsync Flags
     rsync_delete = _get_module_setting("rsync", "rsync_delete", True)
@@ -109,13 +111,15 @@ def run_single(job_id, entry=None):
         log("INFO", f"=== Rsync '{entry.get('description', job_id)}' gestartet ===")
 
         try:
-            source_host, ssh_user, ssh_port = _get_host_info(entry, "source")
+            source_host, ssh_user, ssh_port, source_connect_timeout = _get_host_info(
+                entry, "source"
+            )
         except ValueError as e:
             log("ERROR", str(e))
             return
 
         try:
-            target_host, target_ssh_user, target_ssh_port = _get_host_info(entry, "target")
+            target_host, target_ssh_user, target_ssh_port, _ = _get_host_info(entry, "target")
         except ValueError as e:
             log("ERROR", str(e))
             return
@@ -127,7 +131,7 @@ def run_single(job_id, entry=None):
         ]
         if not require_hosts(hosts):
             return
-        status = _rsync(entry, source_host, ssh_user, target_host)
+        status = _rsync(entry, source_host, ssh_user, target_host, source_connect_timeout)
         from datetime import datetime
 
         _patch_item(
@@ -136,7 +140,9 @@ def run_single(job_id, entry=None):
         log("INFO", f"=== Rsync '{entry.get('description', job_id)}' abgeschlossen ===")
 
 
-def _rsync(entry, source_host: str, ssh_user: str, target_host: str):
+def _rsync(
+    entry, source_host: str, ssh_user: str, target_host: str, source_connect_timeout: int = 0
+):
     source_path = entry.get("source_path", "")
     target_path = entry.get("target_path", "")
 
@@ -153,8 +159,10 @@ def _rsync(entry, source_host: str, ssh_user: str, target_host: str):
     # rsync wird immer auf dem Source-Host ausgeführt
     connection = build_connection_string(source_host, ssh_user)
 
-    # SSH ConnectTimeout
-    ssh_connect_timeout = _get_global_setting("ssh_connect_timeout", 10)
+    # SSH ConnectTimeout: per-device bevorzugen, dann globaler Fallback
+    ssh_connect_timeout = source_connect_timeout or int(
+        _get_global_setting("ssh_connect_timeout", 10)
+    )
 
     # Rsync Flags
     rsync_delete = _get_module_setting("rsync", "rsync_delete", True)

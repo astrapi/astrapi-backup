@@ -44,6 +44,14 @@ fields:
     column: 2
     row: 3
 
+  - name: ssh_connect_timeout
+    type: number
+    label: SSH ConnectTimeout (s)
+    hint: "0 = global (10 s)"
+    default: 0
+    column: 1
+    row: 4
+
   - type: section
     label: Verwendung
     cols: 1

@@ -4,11 +4,12 @@
 def get_remote(remote_id: int | str) -> dict | None:
     """Get a single remote device by ID"""
     from astrapi_core.system.db import load_config
+
     remotes = load_config("remotes") or {}
     return remotes.get(str(remote_id))
 
 
-def get_remote_ssh(remote_id: int | str) -> tuple[str, str, int]:
+def get_remote_ssh(remote_id: int | str) -> tuple[str, str, int, int]:
     """
     Get SSH connection info from a Remote Device.
 
@@ -16,13 +17,14 @@ def get_remote_ssh(remote_id: int | str) -> tuple[str, str, int]:
         remote_id: Remote Device ID
 
     Returns:
-        (host, ssh_user, ssh_port)
+        (host, ssh_user, ssh_port, ssh_connect_timeout)
+        ssh_connect_timeout 0 means "use global default (10 s)"
 
     Raises:
         ValueError if remote not found or disabled
     """
     if str(remote_id) == "local":
-        return ("local", "backupadm", 22)
+        return ("local", "backupadm", 22, 0)
 
     remote = get_remote(remote_id)
     if not remote:
@@ -37,11 +39,14 @@ def get_remote_ssh(remote_id: int | str) -> tuple[str, str, int]:
 
     ssh_user = remote.get("ssh_user")
     ssh_port = int(remote.get("ssh_port") or 22)
+    ssh_connect_timeout = int(remote.get("ssh_connect_timeout") or 0)
 
-    return (host, ssh_user, ssh_port)
+    return (host, ssh_user, ssh_port, ssh_connect_timeout)
 
 
-def get_all_remotes_for_select(type_filter: str | None = None, include_local: bool = True) -> list[dict]:
+def get_all_remotes_for_select(
+    type_filter: str | None = None, include_local: bool = True
+) -> list[dict]:
     """Get all enabled remote devices for dropdown selection.
 
     Args:
@@ -50,6 +55,7 @@ def get_all_remotes_for_select(type_filter: str | None = None, include_local: bo
         include_local: if True (default), prepends a "Lokal" option.
     """
     from astrapi_core.system.db import load_config
+
     remotes = load_config("remotes") or {}
 
     result = [{"id": "local", "label": "Lokal"}] if include_local else []
@@ -62,12 +68,14 @@ def get_all_remotes_for_select(type_filter: str | None = None, include_local: bo
                 types = [t for t in types.split("\n") if t]
             if type_filter not in types:
                 continue
-        result.append({
-            "id":       remote_id,
-            "label":    remote.get("host"),
-            "host":     remote.get("host"),
-            "ssh_user": remote.get("ssh_user"),
-            "ssh_port": remote.get("ssh_port", 22),
-        })
+        result.append(
+            {
+                "id": remote_id,
+                "label": remote.get("host"),
+                "host": remote.get("host"),
+                "ssh_user": remote.get("ssh_user"),
+                "ssh_port": remote.get("ssh_port", 22),
+            }
+        )
 
     return result

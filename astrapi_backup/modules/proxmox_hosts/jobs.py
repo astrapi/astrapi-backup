@@ -71,7 +71,7 @@ def _get_pbs_config(entry: dict) -> dict:
     }
 
 
-def _get_proxmox_host_info(entry: dict) -> tuple[str, str, int]:
+def _get_proxmox_host_info(entry: dict) -> tuple[str, str, int, int]:
     if not entry.get("remote_id"):
         raise ValueError("Job nicht konfiguriert: 'remote_id' fehlt")
     from astrapi_backup.modules.remotes.service import get_remote_ssh
@@ -90,7 +90,7 @@ def preview(item_id) -> list[dict]:
         return []
 
     try:
-        host, ssh_user, ssh_port = _get_proxmox_host_info(entry)
+        host, ssh_user, ssh_port, host_connect_timeout = _get_proxmox_host_info(entry)
     except ValueError as e:
         return [{"label": "Error", "cmd": str(e)}]
 
@@ -104,7 +104,9 @@ def preview(item_id) -> list[dict]:
     pxar_sources = _default_sources()
     pxar_sources += entry.get("source", [])
 
-    ssh_connect_timeout = _get_global_setting("ssh_connect_timeout", 10)
+    ssh_connect_timeout = host_connect_timeout or int(
+        _get_global_setting("ssh_connect_timeout", 10)
+    )
     namespace = "host"
 
     cmd_parts = [
@@ -148,7 +150,7 @@ def run_single(item_id, entry=None):
         entry = _get_entry(_get_config(), item_id) or {}
     with log_context("proxmox_hosts", item_id):
         try:
-            host, ssh_user, ssh_port = _get_proxmox_host_info(entry)
+            host, ssh_user, ssh_port, host_connect_timeout = _get_proxmox_host_info(entry)
         except ValueError as e:
             log("ERROR", str(e))
             return
@@ -162,7 +164,7 @@ def run_single(item_id, entry=None):
         log("INFO", f"=== Host '{entry.get('description', host)}' gestartet ===")
         if not require_hosts([host], user=ssh_user):
             return
-        status = _backup(host, ssh_user, entry, pbs)
+        status = _backup(host, ssh_user, entry, pbs, host_connect_timeout)
         from datetime import datetime
 
         _patch_item(
@@ -174,13 +176,15 @@ def run_single(item_id, entry=None):
         log("INFO", f"=== Host '{entry.get('description', host)}' abgeschlossen ===")
 
 
-def _backup(host, ssh_user: str, entry, pbs: dict) -> str:
+def _backup(host, ssh_user: str, entry, pbs: dict, host_connect_timeout: int = 0) -> str:
     connection = build_connection_string(host, ssh_user)
 
     pxar_sources = _default_sources()
     pxar_sources += entry.get("source", [])
 
-    ssh_connect_timeout = _get_global_setting("ssh_connect_timeout", 10)
+    ssh_connect_timeout = host_connect_timeout or int(
+        _get_global_setting("ssh_connect_timeout", 10)
+    )
 
     env = dict(os.environ)
     env["PBS_REPOSITORY"] = pbs["repository"]
