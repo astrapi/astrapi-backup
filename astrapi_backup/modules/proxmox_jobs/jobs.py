@@ -4,11 +4,10 @@ import urllib.parse
 
 import requests
 import urllib3
+from astrapi_core.system.db import get_entry as _get_entry
+from astrapi_core.system.db import load_config as _load_config
+from astrapi_core.system.db import patch_item as _patch_item
 from astrapi_core.system.logger import log, log_context
-
-from astrapi_backup.api.storage import get_entry as _get_entry
-from astrapi_backup.api.storage import load_config as _load_config
-from astrapi_backup.api.storage import patch_item as _patch_item
 
 KEY = "proxmox_jobs"
 _PBS_PORT = 8007

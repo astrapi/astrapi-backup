@@ -7,11 +7,11 @@ from pathlib import PurePosixPath
 from urllib.parse import quote as _urlquote
 
 from astrapi_core.system.cmd import build_connection_string, is_local
+from astrapi_core.system.db import get_item
 from astrapi_core.system.logger import log
 from fastapi import HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 
-from astrapi_backup.api.storage import get_item
 from astrapi_backup.api.templates import templates
 from astrapi_backup.modules.borg.cache.storage import (
     archive_is_cached,

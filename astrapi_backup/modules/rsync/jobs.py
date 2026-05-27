@@ -1,14 +1,13 @@
 import subprocess
 
 from astrapi_core.system.cmd import build_connection_string, is_local, run_cmd
+from astrapi_core.system.db import get_entry as _get_entry
+from astrapi_core.system.db import load_config as _load_config
+from astrapi_core.system.db import patch_item as _patch_item
 from astrapi_core.system.logger import log, log_context
 from astrapi_core.system.reachability import require_hosts
 from astrapi_core.ui.settings_registry import get as _get_global_setting
 from astrapi_core.ui.settings_registry import get_module as _get_module_setting
-
-from astrapi_backup.api.storage import get_entry as _get_entry
-from astrapi_backup.api.storage import load_config as _load_config
-from astrapi_backup.api.storage import patch_item as _patch_item
 
 
 def _get_config():
