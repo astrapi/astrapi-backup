@@ -7,6 +7,10 @@ from astrapi_core.system.db import (
 from astrapi_core.system.db import (
     create_all_registered_tables,
     register_table,
+    load_config,
+    get_item,
+    get_entry,
+    patch_item,
 )
 
 from astrapi_backup._paths import db_path as _db_path
