@@ -38,7 +38,8 @@ _file_cache_building_lock = threading.Lock()
 def _get_target_info(entry: dict) -> tuple[str, str]:
     """Gibt (ssh_connection, lokaler_repo_pfad) zurück für Borg-Befehle auf dem Ziel-Host."""
     try:
-        target_host, target_ssh_user, _ = _job_get_host_info(entry, "target")
+        # target_host, target_ssh_user, _ = _job_get_host_info(entry, "target")
+        target_host, target_ssh_user, _, _ct = _job_get_host_info(entry, "target")
     except ValueError:
         target_host = None
         target_ssh_user = None
