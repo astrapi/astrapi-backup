@@ -171,6 +171,7 @@ _crud = make_crud_router(
     KEY,
     schema_path=str(_DIR.parent / "config" / "schema.yaml"),
     has_run_buttons=True,
+    has_toggle=False,
     resolve_fields_fn=_resolve_fields,
     running_fn=get_running,
     filters=[

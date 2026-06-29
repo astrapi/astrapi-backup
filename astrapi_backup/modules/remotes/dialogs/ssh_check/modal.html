@@ -1,27 +1,23 @@
-{% from "partials/components/ui_macros.html" import modal_title %}
-<div class="ds-modal-backdrop" x-data x-on:keydown.escape.window="$el.remove()">
-  <div class="ds-modal" style="max-width:900px; padding:20px 24px;">
+{% extends "partials/modal_base_info.html" %}
+{% from "partials/components/ui_macros.html" import modal_title, btn, modal_footer_actions %}
 
-    {{ modal_title(title="SSH-Erreichbarkeit") }}
+{% block modal_max_width %}900{% endblock %}
+{% block modal_padding %}20px 24px{% endblock %}
 
-    <div id="ssh-check-body" style="margin-top:16px;">
-      {% include "remotes/partials/ssh_check_spinner.html" %}
-    </div>
+{% block title %}{{ modal_title(title="SSH-Erreichbarkeit") }}{% endblock %}
 
-    <div class="ds-modal-footer-simple">
-      <svg class="htmx-indicator" width="14" height="14" viewBox="0 0 24 24"
-           fill="currentColor" stroke="none"
-           style="animation:spin 1s linear infinite; color:var(--text-3);"><use href="#icon-loading"></use></svg>
-      <button class="btn btn-ghost btn-sm"
-              hx-get="/ui/remotes/check-ssh-spinner"
-              hx-target="#ssh-check-body"
-              hx-swap="innerHTML">
-        Erneut prüfen
-      </button>
-      <button class="btn btn-ghost btn-sm" onclick="this.closest('.ds-modal-backdrop').remove()">
-        Schließen
-      </button>
-    </div>
-
+{% block body %}
+  <div id="ssh-check-body" style="margin-top:16px;">
+    {% include "remotes/partials/ssh_check_spinner.html" %}
   </div>
-</div>
+{% endblock %}
+
+{% block footer %}
+  {% call modal_footer_actions() %}
+    <svg class="htmx-indicator" width="14" height="14" viewBox="0 0 24 24"
+         fill="currentColor" stroke="none"
+         style="animation:spin 1s linear infinite; color:var(--text-3);"><use href="#icon-loading"></use></svg>
+    {{ btn('Erneut prüfen',
+           attrs='hx-get="/ui/remotes/check-ssh-spinner" hx-target="#ssh-check-body" hx-swap="innerHTML"') }}
+  {% endcall %}
+{% endblock %}

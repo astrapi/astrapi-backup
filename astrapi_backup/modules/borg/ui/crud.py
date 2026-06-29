@@ -33,6 +33,7 @@ router = make_crud_router(
     schema_path=str(_DIR.parent / "config" / "schema.yaml"),
     label="Borg Job",
     has_run_buttons=True,
+    has_toggle=False,
     resolve_fields_fn=_resolve_fields,
     running_fn=get_running,
     create_defaults={"last_status": "neu"},

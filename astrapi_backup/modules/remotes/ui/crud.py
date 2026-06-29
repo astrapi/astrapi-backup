@@ -108,6 +108,7 @@ router = make_crud_router(
     KEY,
     schema_path=str(_DIR / "config" / "schema.yaml"),
     has_run_buttons=False,
+    has_toggle=False,
     has_status=False,
     description_field="host",
     extra_buttons=[

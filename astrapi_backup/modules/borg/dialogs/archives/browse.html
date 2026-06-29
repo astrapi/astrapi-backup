@@ -15,23 +15,19 @@
     total       – Gesamtzahl der Einträge im Archiv
 #}
 
+{% from "partials/components/ui_macros.html" import btn %}
+
 {# ── Kopfzeile ──────────────────────────────────────────────────────────── #}
 <div>
 <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
-  <button class="btn btn-ghost btn-sm"
-          hx-get="/api/borg/{{ item_id }}/archives/list"
-          hx-target="#borg-archive-content"
-          hx-swap="innerHTML"
-          hx-indicator="#borg-archive-loading">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none"><use href="#icon-chevron-left"></use></svg>
-    Archive
-  </button>
+  {% call btn(attrs='hx-get="/api/borg/' ~ item_id ~ '/archives/list" hx-target="#borg-archive-content" hx-swap="innerHTML" hx-indicator="#borg-archive-loading"') %}<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none"><use href="#icon-chevron-left"></use></svg> Archive{% endcall %}
   <span style="color:var(--text-3);"> / </span>
   <span style="font-size:13px; font-weight:600; font-family:var(--mono);
                overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:300px;">{{ archive }}</span>
   <span style="margin-left:auto; display:flex; align-items:center; gap:10px; flex-shrink:0;">
     <span style="font-size:11px; color:var(--text-3);">{{ total }} Einträge gesamt</span>
     {% if not error %}
+    {# G-012-Ausnahme: Download-Link, kein Button #}
     <a class="btn btn-ghost btn-sm"
        href="/api/borg/{{ item_id }}/archives/{{ archive }}/download-bundle{% if path %}?path={{ (path + '/') | urlencode }}{% endif %}"
        title="Gesamtes Verzeichnis als .tar herunterladen">
@@ -189,13 +185,8 @@
     <span id="borg-browse-count">0</span> Datei(en) ausgewählt
   </span>
   <div style="display:flex; gap:8px;">
-    <button id="borg-browse-clear" class="btn btn-ghost btn-sm" style="color:var(--text-3);">
-      Auswahl aufheben
-    </button>
-    <button id="borg-browse-dl" class="btn btn-sm btn-primary">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><use href="#icon-download"></use></svg>
-      Ausgewählte herunterladen
-    </button>
+    {{ btn('Auswahl aufheben', attrs='id="borg-browse-clear" style="color:var(--text-3);"') }}
+    {% call btn(variant='primary', attrs='id="borg-browse-dl"') %}<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><use href="#icon-download"></use></svg> Ausgewählte herunterladen{% endcall %}
   </div>
 </div>
 

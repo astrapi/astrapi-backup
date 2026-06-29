@@ -1,53 +1,37 @@
+{% extends "partials/modal_base_form.html" %}
 {% from "partials/components/ui_macros.html" import modal_title, modal_footer %}
-<div id="create-edit-modal"
-     class="ds-modal-backdrop"
-     x-data
-     x-on:keydown.escape.window="$el.remove()">
-  <div class="ds-modal" style="max-width:480px; padding:20px 24px;">
 
-    {{ modal_title(is_edit=False, title="Proxmox Job") }}
+{% block modal_id %}create-edit-modal{% endblock %}
+{% block modal_max_width %}480{% endblock %}
 
-    <form id="create-edit-form"
-          hx-post="/api/proxmox_jobs/create"
-          hx-target="#main-content"
-          hx-swap="innerHTML"
-          hx-indicator="#{{ loading_id }}"
-          class="form-stack" style="gap:14px;">
+{% block title %}{{ modal_title(is_edit=False, title="Proxmox Job") }}{% endblock %}
+{% block submit_url %}/api/proxmox_jobs/create{% endblock %}
+{% block form_attrs %}hx-indicator="#{{ loading_id }}"{% endblock %}
+{% block form_style %}gap:14px;{% endblock %}
 
-      <div hx-get="/ui/proxmox_jobs/available-select"
-           hx-trigger="load"
-           hx-target="this"
-           hx-swap="outerHTML">
-        <div style="display:flex; align-items:center; gap:8px; color:var(--text-3); font-size:13px; padding:6px 0;">
-          <span style="display:inline-block; width:14px; height:14px; border:2px solid var(--border-1,#ccc); border-top-color:var(--accent,#4a9eff); border-radius:50%; animation:pjobs-spin .7s linear infinite;"></span>
-          Verfügbare Jobs werden geladen…
-        </div>
-        <style>@keyframes pjobs-spin{to{transform:rotate(360deg)}}</style>
-      </div>
-
-      <input type="hidden" name="job"       id="pjobs-job">
-      <input type="hidden" name="type"      id="pjobs-type">
-      <input type="hidden" name="remote_id" id="pjobs-remote-id">
-      <input type="hidden" name="enabled"   value="1">
-
-      {{ modal_footer(has_toggle=False, save_label='Erstellen',
-                      save_id='create-edit-submit', save_type='button') }}
-    </form>
+{% block form_content %}
+  <div hx-get="/ui/proxmox_jobs/available-select"
+       hx-trigger="load"
+       hx-target="this"
+       hx-swap="outerHTML">
+    <div style="display:flex; align-items:center; gap:8px; color:var(--text-3); font-size:13px; padding:6px 0;">
+      <span style="display:inline-block; width:14px; height:14px; border:2px solid var(--border-1,#ccc); border-top-color:var(--accent,#4a9eff); border-radius:50%; animation:pjobs-spin .7s linear infinite;"></span>
+      Verfügbare Jobs werden geladen…
+    </div>
+    <style>@keyframes pjobs-spin{to{transform:rotate(360deg)}}</style>
   </div>
-</div>
 
-<script>
-(function () {
-  const form      = document.getElementById('create-edit-form');
-  const submitBtn = document.getElementById('create-edit-submit');
+  <input type="hidden" name="job"       id="pjobs-job">
+  <input type="hidden" name="type"      id="pjobs-type">
+  <input type="hidden" name="remote_id" id="pjobs-remote-id">
+  <input type="hidden" name="enabled"   value="1">
+{% endblock %}
 
-  submitBtn.addEventListener('click', function () {
-    if (!document.getElementById('pjobs-job').value) return;
-    htmx.trigger(form, 'submit');
-    form.addEventListener('htmx:afterRequest', function handler(e) {
-      if (e.detail.successful) document.getElementById('create-edit-modal')?.remove();
-      form.removeEventListener('htmx:afterRequest', handler);
-    });
-  });
-})();
-</script>
+{% block footer %}
+  {{ modal_footer(has_toggle=False, save_label='Erstellen',
+                  save_id='create-edit-submit', save_type='button') }}
+{% endblock %}
+
+{% block submit_validation %}
+if (!document.getElementById('pjobs-job').value) return;
+{% endblock %}

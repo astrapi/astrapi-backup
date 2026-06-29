@@ -1,4 +1,3 @@
-{% from "partials/components/ui_macros.html" import modal_wrapper, modal_title %}
 {#
   borg/templates/modals/stats.html
   Repository-Statistiken für einen Borg-Job.
@@ -11,10 +10,16 @@
     cached_at   – Timestamp des letzten Cache-Updates | None
     error       – Fehlermeldung als str | None
 #}
-{% call modal_wrapper(id="borg-stats-modal", max_width="680px") %}
+{% extends "partials/modal_base_info.html" %}
+{% from "partials/components/ui_macros.html" import modal_title, btn, modal_footer_split %}
 
-  {{ modal_title(title="Statistiken – " ~ description) }}
+{% block modal_id %}borg-stats-modal{% endblock %}
+{% block modal_max_width %}680{% endblock %}
+{% block modal_padding %}28px 32px{% endblock %}
 
+{% block title %}{{ modal_title(title="Statistiken – " ~ description) }}{% endblock %}
+
+{% block body %}
   <div style="font-size:11px; color:var(--text-3); font-family:var(--mono);
               word-break:break-all; margin-bottom:18px;">{{ repo_path }}</div>
 
@@ -27,26 +32,16 @@
        style="text-align:center; padding:10px 0; color:var(--text-3); font-size:13px;">
     Lade …
   </div>
+{% endblock %}
 
-  <div class="ds-modal-footer">
-    <div style="display:flex; align-items:center; gap:10px;">
-      <button class="btn btn-ghost btn-sm"
-              hx-post="/api/borg/{{ item_id }}/stats/refresh"
-              hx-target="#borg-stats-content"
-              hx-swap="innerHTML"
-              hx-indicator="#borg-stats-loading"
-              title="Statistiken live vom Server abrufen">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><use href="#icon-refresh"></use></svg>
-        Aktualisieren
-      </button>
-      <span id="borg-stats-stand" style="font-size:10px; color:var(--text-3);">
-        {% if cached_at %}Stand: {{ cached_at[:16] }}{% endif %}
-      </span>
-    </div>
-    <button type="button" class="btn btn-ghost btn-sm"
-            x-on:click="$el.closest('.ds-modal-backdrop').remove()">
-      Schließen
-    </button>
-  </div>
-
-{% endcall %}
+{% block footer %}
+  {% call modal_footer_split() %}
+    {% call btn(attrs='hx-post="/api/borg/' ~ item_id ~ '/stats/refresh" hx-target="#borg-stats-content" hx-swap="innerHTML" hx-indicator="#borg-stats-loading" title="Statistiken live vom Server abrufen"') %}
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><use href="#icon-refresh"></use></svg>
+      Aktualisieren
+    {% endcall %}
+    <span id="borg-stats-stand" style="font-size:10px; color:var(--text-3);">
+      {% if cached_at %}Stand: {{ cached_at[:16] }}{% endif %}
+    </span>
+  {% endcall %}
+{% endblock %}
