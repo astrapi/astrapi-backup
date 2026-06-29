@@ -1,11 +1,15 @@
+{% from "partials/components/ui_macros.html" import form_select %}
 <div>
 {% if available %}
-<select class="form-select" onchange="
+{%- set _onchange -%}
+onchange="
   var opt = this.options[this.selectedIndex];
   document.getElementById('lxc-vmid').value        = opt.dataset.vmid    || '';
   document.getElementById('lxc-description').value = opt.dataset.name    || '';
   document.getElementById('lxc-node').value        = opt.dataset.nodeId  || '';
-">
+"
+{%- endset -%}
+{% call form_select('', attrs=_onchange) %}
   <option value="">— Container wählen —</option>
   {% for ct in available %}
   <option value="{{ ct.vmid }}"
@@ -15,7 +19,7 @@
     {{ ct.vmid }} – {{ ct.name }} ({{ ct.node_host }}{% if ct.status %}, {{ ct.status }}{% endif %})
   </option>
   {% endfor %}
-</select>
+{% endcall %}
 {% else %}
 <p style="color:var(--text-3); font-size:13px; margin:0; padding:4px 0;">
   Alle Container bereits registriert oder keine Proxmox Nodes erreichbar.

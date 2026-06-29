@@ -1,11 +1,15 @@
+{% from "partials/components/ui_macros.html" import form_select %}
 <div>
 {% if available %}
-<select class="form-select" onchange="
+{%- set _onchange -%}
+onchange="
   var opt = this.options[this.selectedIndex];
   document.getElementById('pjobs-job').value        = opt.dataset.job      || '';
   document.getElementById('pjobs-type').value       = opt.dataset.jobType  || '';
   document.getElementById('pjobs-remote-id').value  = opt.dataset.remoteId || '';
-">
+"
+{%- endset -%}
+{% call form_select('', attrs=_onchange) %}
   <option value="">— Job wählen —</option>
   {% for j in available %}
   <option value="{{ j.job }}"
@@ -15,7 +19,7 @@
     [{{ j.type }}] {{ j.job }}{% if j.store %} ({{ j.store }}){% endif %} — {{ j.host }}{% if j.schedule %}, {{ j.schedule }}{% endif %}
   </option>
   {% endfor %}
-</select>
+{% endcall %}
 {% else %}
 <p style="color:var(--text-3); font-size:13px; margin:0; padding:4px 0;">
   Alle Jobs bereits registriert, kein API-Token konfiguriert oder keine PBS-Hosts erreichbar.
