@@ -1,15 +1,11 @@
-{% extends "partials/modal_base_form.html" %}
-{% from "partials/components/ui_macros.html" import modal_title, modal_footer %}
+{% extends "dialog_form.html" %}
 
-{% block modal_id %}create-edit-modal{% endblock %}
-{% block modal_max_width %}480{% endblock %}
+{% block dialog_width %}480{% endblock %}
+{% block dialog_title %}Proxmox LXC{% endblock %}
+{% block form_action %}/api/proxmox_lxc/create{% endblock %}
+{% block form_attrs %}hx-indicator="#{{ loading_id }}" onsubmit="return !!document.getElementById('lxc-vmid').value"{% endblock %}
 
-{% block title %}{{ modal_title(is_edit=False, title="Proxmox LXC") }}{% endblock %}
-{% block submit_url %}/api/proxmox_lxc/create{% endblock %}
-{% block form_attrs %}hx-indicator="#{{ loading_id }}"{% endblock %}
-{% block form_style %}gap:14px;{% endblock %}
-
-{% block form_content %}
+{% block dialog_body %}
   <div hx-get="/ui/proxmox_lxc/available-select"
        hx-trigger="load"
        hx-target="this"
@@ -27,11 +23,9 @@
   <input type="hidden" name="enabled"     value="1">
 {% endblock %}
 
-{% block footer %}
-  {{ modal_footer(has_toggle=False, save_label='Erstellen',
-                  save_id='create-edit-submit', save_type='button') }}
-{% endblock %}
-
-{% block submit_validation %}
-if (!document.getElementById('lxc-vmid').value) return;
+{% block dialog_footer %}
+<div class="ds-modal-footer ds-modal-footer--end">
+  <button type="button" class="btn btn-sm btn-ghost" onclick="closeModal(this)">Abbrechen</button>
+  <button type="submit" class="btn btn-sm btn-primary">Erstellen</button>
+</div>
 {% endblock %}
