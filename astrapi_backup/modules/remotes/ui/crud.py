@@ -188,7 +188,7 @@ def power_action(item: str, request: Request):
                 title="Host ausschalten",
                 description=host or item,
                 verb="ausschalten",
-                qualifier="",
+
                 btn_style="danger",
                 confirm_url=f"/api/{KEY}/{item}/shutdown",
                 method="post",

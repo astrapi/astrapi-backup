@@ -129,6 +129,27 @@ def create_modal(request: Request):
     )
 
 
+@router.get(f"/ui/{KEY}/{{item_id}}/delete", response_class=HTMLResponse)
+def delete_modal(item_id: str, request: Request):
+    from astrapi_core.ui.render import render
+
+    item = store.get(item_id) or {}
+    job_type = item.get("type", "")
+    job_id = item.get("job", item_id)
+    description = f"{job_type} – {job_id}" if job_type else job_id
+    return render(
+        request,
+        "dialog_confirm.html",
+        dict(
+            title="Job löschen",
+            description=description,
+            verb="löschen",
+            confirm_url=f"/api/{KEY}/{item_id}",
+            method="delete",
+        ),
+    )
+
+
 @router.get(f"/ui/{KEY}/available-select", response_class=HTMLResponse)
 def available_select(request: Request):
     from astrapi_core.ui.render import render
