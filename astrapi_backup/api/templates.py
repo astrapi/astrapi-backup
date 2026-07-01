@@ -11,12 +11,15 @@ _APP_TEMPLATES = _APP_ROOT / "templates"
 
 import astrapi_core.ui as _astrapi_core_ui
 
-_CORE_TEMPLATES = Path(_astrapi_core_ui.__file__).resolve().parent / "templates"
+_CORE_ROOT = Path(_astrapi_core_ui.__file__).resolve().parent
+_CORE_TEMPLATES = _CORE_ROOT / "templates"
+_CORE_DIALOGS   = _CORE_ROOT / "dialogs"
 
-# Basis-Loader: app/templates/ > core/ui/templates/
+# Basis-Loader: app/templates/ > core/ui/templates/ > core/ui/dialogs/
 _base_loaders: list = [
     FileSystemLoader(str(_APP_TEMPLATES)),
     FileSystemLoader(str(_CORE_TEMPLATES)),
+    FileSystemLoader(str(_CORE_DIALOGS)),
 ]
 
 # PrefixLoader für jedes Modul:

@@ -1,30 +1,28 @@
-{% extends "partials/modal_base_info.html" %}
-{% from "partials/components/ui_macros.html" import modal_title, modal_footer_simple %}
+{% extends "dialog_core.html" %}
 
-{% block modal_max_width %}420{% endblock %}
-{% block modal_padding %}20px 24px{% endblock %}
+{% block dialog_width %}420{% endblock %}
+{% block dialog_title %}{% if no_mac %}{{ host }}{% else %}Status prüfen{% endif %}{% endblock %}
 
-{% block title %}{{ modal_title(title=host) }}{% endblock %}
-
-{% block body %}
-  {% if no_mac %}
-  <div style="margin-top:16px; font-size:13px; color:var(--text-3);">
-    Keine MAC-Adresse konfiguriert – Wake-on-LAN nicht möglich.
-  </div>
-  {% else %}
-  <div id="power-check-body-{{ item_id }}"
-       hx-post="/ui/remotes/{{ item_id }}/power"
-       hx-trigger="load"
-       hx-target="#power-check-body-{{ item_id }}"
-       hx-swap="innerHTML"
-       style="margin-top:16px; display:flex; align-items:center; justify-content:center; min-height:60px; gap:10px; color:var(--text-3); font-size:13px;">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"
-         style="animation:spin 1s linear infinite; flex-shrink:0;"><use href="#icon-loading"></use></svg>
-    SSH-Status wird geprüft …
-  </div>
-  {% endif %}
+{% block dialog_body %}
+{% if no_mac %}
+<p class="ds-modal-copy" style="color:var(--text-3);">
+  Keine MAC-Adresse konfiguriert – Wake-on-LAN nicht möglich.
+</p>
+{% else %}
+<div hx-post="/ui/remotes/{{ item_id }}/power"
+     hx-trigger="load"
+     hx-target="closest .ds-modal-backdrop"
+     hx-swap="outerHTML"
+     style="display:flex; align-items:center; justify-content:center; min-height:60px; gap:10px; color:var(--text-3); font-size:13px; padding:28px 0;">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"
+       style="animation:spin 1s linear infinite; flex-shrink:0;"><use href="#icon-loading"></use></svg>
+  Status von <strong style="color:var(--text-2);">{{ host }}</strong> wird geprüft …
+</div>
+{% endif %}
 {% endblock %}
 
-{% block footer %}
-  {% if no_mac %}{{ modal_footer_simple() }}{% endif %}
+{% block dialog_footer %}
+<div class="ds-modal-footer ds-modal-footer--end">
+  <button type="button" class="btn btn-sm btn-ghost" onclick="closeModal(this)">Abbrechen</button>
+</div>
 {% endblock %}

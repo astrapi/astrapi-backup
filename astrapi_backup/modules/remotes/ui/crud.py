@@ -121,44 +121,6 @@ router = make_crud_router(
 )
 
 
-@router.get(f"/ui/{KEY}/{{item}}/wake", response_class=HTMLResponse)
-def wake_modal(item: str, request: Request):
-    container_id = request.query_params.get("container_id", f"mod-{KEY}")
-    loading_id = request.query_params.get("loading_id", f"{KEY}-loading")
-    description = request.query_params.get("description", item)
-    return render(
-        request,
-        "partials/confirm_modal.html",
-        dict(
-            description=description,
-            verb="aufwecken (Wake on LAN)",
-            confirm_url=f"/api/{KEY}/{item}/wake",
-            method="post",
-            container_id=container_id,
-            loading_id=loading_id,
-        ),
-    )
-
-
-@router.get(f"/ui/{KEY}/{{item}}/shutdown", response_class=HTMLResponse)
-def shutdown_modal(item: str, request: Request):
-    container_id = request.query_params.get("container_id", f"mod-{KEY}")
-    loading_id = request.query_params.get("loading_id", f"{KEY}-loading")
-    description = request.query_params.get("description", item)
-    return render(
-        request,
-        "partials/confirm_modal.html",
-        dict(
-            description=description,
-            verb="herunterfahren",
-            subject="dieses Gerät",
-            confirm_url=f"/api/{KEY}/{item}/shutdown",
-            method="post",
-            container_id=container_id,
-            loading_id=loading_id,
-        ),
-    )
-
 
 @router.get(f"/ui/{KEY}/check-ssh-modal", response_class=HTMLResponse)
 def check_ssh_modal(request: Request):
@@ -221,9 +183,12 @@ def power_action(item: str, request: Request):
     if reachable:
         return render(
             request,
-            f"{KEY}/dialogs/power/confirm.html",
+            "dialog_confirm.html",
             dict(
+                title="Host ausschalten",
+                description=host or item,
                 verb="ausschalten",
+                qualifier="",
                 btn_style="danger",
                 confirm_url=f"/api/{KEY}/{item}/shutdown",
                 method="post",
@@ -231,9 +196,12 @@ def power_action(item: str, request: Request):
         )
     return render(
         request,
-        f"{KEY}/dialogs/power/confirm.html",
+        "dialog_confirm.html",
         dict(
+            title="Host einschalten",
+            description=host or item,
             verb="einschalten",
+            qualifier="",
             btn_style="primary",
             confirm_url=f"/api/{KEY}/{item}/wake",
             method="post",

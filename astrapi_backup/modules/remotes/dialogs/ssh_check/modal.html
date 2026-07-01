@@ -1,23 +1,26 @@
-{% extends "partials/modal_base_info.html" %}
-{% from "partials/components/ui_macros.html" import modal_title, btn, modal_footer_actions %}
+{% extends "dialog_core.html" %}
 
-{% block modal_max_width %}900{% endblock %}
-{% block modal_padding %}20px 24px{% endblock %}
+{% block dialog_width %}900{% endblock %}
+{% block dialog_title %}SSH-Erreichbarkeit{% endblock %}
 
-{% block title %}{{ modal_title(title="SSH-Erreichbarkeit") }}{% endblock %}
-
-{% block body %}
-  <div id="ssh-check-body" style="margin-top:16px;">
-    {% include "remotes/partials/ssh_check_spinner.html" %}
-  </div>
+{% block dialog_body %}
+<div id="ssh-check-body">
+  {% include "remotes/dialogs/ssh_check/spinner.html" %}
+</div>
 {% endblock %}
 
-{% block footer %}
-  {% call modal_footer_actions() %}
-    <svg class="htmx-indicator" width="14" height="14" viewBox="0 0 24 24"
-         fill="currentColor" stroke="none"
-         style="animation:spin 1s linear infinite; color:var(--text-3);"><use href="#icon-loading"></use></svg>
-    {{ btn('Erneut prüfen',
-           attrs='hx-get="/ui/remotes/check-ssh-spinner" hx-target="#ssh-check-body" hx-swap="innerHTML"') }}
-  {% endcall %}
+{% block dialog_footer %}
+<div class="ds-modal-footer">
+  <svg class="htmx-indicator" width="14" height="14" viewBox="0 0 24 24"
+       fill="currentColor" stroke="none"
+       style="animation:spin 1s linear infinite; color:var(--text-3);"><use href="#icon-loading"></use></svg>
+  <div style="display:flex; gap:8px;">
+    <button type="button" class="btn btn-sm btn-ghost"
+            onclick="closeModal(this)">Schließen</button>
+    <button type="button" class="btn btn-sm btn-secondary"
+            hx-get="/ui/remotes/check-ssh-spinner"
+            hx-target="#ssh-check-body"
+            hx-swap="innerHTML">Erneut prüfen</button>
+  </div>
+</div>
 {% endblock %}
