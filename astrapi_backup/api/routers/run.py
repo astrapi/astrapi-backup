@@ -74,7 +74,7 @@ def make_run_router(module: str, *, has_run_buttons: bool = True) -> APIRouter:
         cfg = load_config(module)
         return _get_templates().TemplateResponse(
             request,
-            "partials/status_oob.html",
+            "partials/oob/status_oob.html",
             {
                 "cfg": cfg,
                 "module": module,
@@ -132,7 +132,7 @@ def make_run_router(module: str, *, has_run_buttons: bool = True) -> APIRouter:
             _get_templates()
             .TemplateResponse(
                 request,
-                "partials/row_single.html",
+                "partials/lists/row_single.html",
                 {
                     "item_name": item_id,
                     "item_data": item_data,
@@ -233,7 +233,7 @@ def make_run_router(module: str, *, has_run_buttons: bool = True) -> APIRouter:
         lines = [r["line"] for r in get_log_lines(int(log_id))] if log_id.isdigit() else []
         return _get_templates().TemplateResponse(
             request,
-            "partials/log_content.html",
+            "partials/dialogs/log_content.html",
             {"lines": lines, "date": log_id},
         )
 
