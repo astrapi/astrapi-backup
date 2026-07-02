@@ -117,16 +117,10 @@ router = make_crud_router(
 @router.get(f"/ui/{KEY}/{{item}}/power-modal", response_class=HTMLResponse)
 def power_modal(item: str, request: Request):
     entry = get_item(KEY, item) or {}
-    if not (entry.get("mac") or "").strip():
-        return render(
-            request,
-            f"{KEY}/dialogs/power/modal.html",
-            {"item_id": item, "host": entry.get("host", item), "no_mac": True},
-        )
     return render(
         request,
         f"{KEY}/dialogs/power/modal.html",
-        {"item_id": item, "host": entry.get("host", item), "no_mac": False},
+        {"item_id": item, "host": entry.get("host", item)},
     )
 
 

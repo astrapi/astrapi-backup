@@ -7,3 +7,4 @@ nav_default: false
 card_actions:
   - type: power-on
     url: /ui/remotes/{item}/power-modal
+    show_if_field: mac
