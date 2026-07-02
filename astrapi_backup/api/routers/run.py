@@ -216,7 +216,7 @@ def make_run_router(module: str, *, has_run_buttons: bool = True) -> APIRouter:
 
         return _get_templates().TemplateResponse(
             request,
-            "partials/log_modal.html",
+            "dialog_log.html",
             {
                 "module": module,
                 "item_id": item_id,
