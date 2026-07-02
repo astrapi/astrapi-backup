@@ -111,25 +111,7 @@ router = make_crud_router(
     has_toggle=False,
     has_status=False,
     description_field="host",
-    extra_buttons=[
-        {
-            "label": "SSH prüfen",
-            "url": f"/ui/{KEY}/check-ssh-modal",
-            "title": "SSH-Keys aller Hosts prüfen",
-        }
-    ],
 )
-
-
-
-@router.get(f"/ui/{KEY}/check-ssh-modal", response_class=HTMLResponse)
-def check_ssh_modal(request: Request):
-    return render(request, f"{KEY}/dialogs/ssh_check/modal.html", {})
-
-
-@router.get(f"/ui/{KEY}/check-ssh-spinner", response_class=HTMLResponse)
-def check_ssh_spinner(request: Request):
-    return render(request, f"{KEY}/dialogs/ssh_check/spinner.html", {})
 
 
 @router.get(f"/ui/{KEY}/{{item}}/power-modal", response_class=HTMLResponse)
@@ -209,42 +191,3 @@ def power_action(item: str, request: Request):
     )
 
 
-@router.post(f"/ui/{KEY}/check-ssh-all", response_class=HTMLResponse)
-def check_ssh_all(request: Request):
-    results = []
-    for item_id, entry in store.list().items():
-        if not entry.get("enabled"):
-            continue
-        host = (entry.get("host") or "").strip()
-        ssh_user = (entry.get("ssh_user") or "root").strip()
-        ssh_port = str(entry.get("ssh_port") or 22)
-        if not host:
-            results.append(
-                {"host": f"#{item_id}", "user": "—", "ok": None, "error": "Kein Hostname"}
-            )
-            continue
-        try:
-            r = subprocess.run(
-                [
-                    "ssh",
-                    "-o",
-                    "BatchMode=yes",
-                    "-o",
-                    "ConnectTimeout=5",
-                    "-o",
-                    "StrictHostKeyChecking=no",
-                    "-p",
-                    ssh_port,
-                    f"{ssh_user}@{host}",
-                    "echo ok",
-                ],
-                capture_output=True,
-                text=True,
-                timeout=8,
-            )
-            ok = r.returncode == 0 and "ok" in r.stdout
-            error = r.stderr.strip().splitlines()[0] if not ok and r.stderr.strip() else None
-        except subprocess.TimeoutExpired:
-            ok, error = False, "Timeout"
-        results.append({"host": host, "user": ssh_user, "ok": ok, "error": error})
-    return render(request, f"{KEY}/dialogs/ssh_check/table.html", {"results": results})
