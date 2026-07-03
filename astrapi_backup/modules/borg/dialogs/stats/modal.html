@@ -16,7 +16,7 @@
 {% block dialog_id %}borg-stats-modal{% endblock %}
 {% block dialog_width %}680{% endblock %}
 {% block dialog_padding %}28px 32px{% endblock %}
-{% block dialog_title %}Statistiken – {{ description }}{% endblock %}
+{% block dialog_title %}Info – {{ description }}{% endblock %}
 
 {% block dialog_body %}
   <div style="font-size:11px; color:var(--text-3); font-family:var(--mono);
@@ -36,7 +36,7 @@
 {% block dialog_footer %}
 <div class="ds-modal-footer">
   <div style="display:flex; align-items:center; gap:10px;">
-    {% call btn(attrs='hx-post="/api/borg/' ~ item_id ~ '/stats/refresh" hx-target="#borg-stats-content" hx-swap="innerHTML" hx-indicator="#borg-stats-loading" title="Statistiken live vom Server abrufen"') %}
+    {% call btn(attrs='hx-post="/api/borg/' ~ item_id ~ '/stats/refresh" hx-target="#borg-stats-content" hx-swap="innerHTML" hx-indicator="#borg-stats-loading" title="Info live vom Server abrufen"') %}
       <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><use href="#icon-refresh"></use></svg>
       Aktualisieren
     {% endcall %}
