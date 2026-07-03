@@ -30,7 +30,7 @@ from urllib.parse import urlparse
 
 # Remote-Host-Resolver für resolve_remote_host() in Templates registrieren
 from astrapi_core.ui.app import register_remote_resolver as _reg_remote_resolver
-from astrapi_core.ui.controls import Col, ContentTable  # noqa: E402
+from astrapi_core.ui.controls import Col, ContentTable, Header  # noqa: E402
 
 # Dynamische Feld-Optionen für options_endpoint in schema.yaml registrieren
 from astrapi_core.ui.field_resolver import register_options_fetcher as _reg
@@ -68,6 +68,9 @@ module = load_modul(
     _KEY,
     router,
     ui_router,
+    ui_header=Header([
+        Header.action_button("Neu", hx_get=f"/ui/{_KEY}/create", hx_target="body"),
+    ]),
     ui_content=ContentTable(
         has_run_buttons=False,
         columns=[

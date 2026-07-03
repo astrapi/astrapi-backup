@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from astrapi_core.ui.controls import Header
 from astrapi_core.ui.module_loader import load_modul
 
 from astrapi_backup.modules.proxmox_hosts.ui.crud import api_router as router
@@ -13,7 +14,18 @@ module = load_modul(
     _KEY,
     router,
     ui_router,
-    # proxmox_hosts: keine modul-spezifischen Spalten (list_header.html ist leer)
+    ui_header=Header([
+        Header.filter_select(
+            "last_status",
+            [
+                {"value": "neu", "label": "Neu"},
+                {"value": "ok", "label": "OK"},
+                {"value": "error", "label": "Fehler"},
+            ],
+            all_label="Alle Status",
+        ),
+        Header.action_button("Neu", hx_get=f"/ui/{_KEY}/create", hx_target="body"),
+    ]),
 )
 
 try:
