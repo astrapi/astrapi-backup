@@ -71,24 +71,30 @@ def create_modal(request: Request):
     from astrapi_core.ui.render import render
 
     options = _available_host_options(exclude_ids=_registered_remote_ids())
-    if not options:
-        return render(request, f"{KEY}/dialogs/no_hosts/modal.html", {})
-    fields = [
-        {
-            "name": "remote_id",
-            "type": "select",
-            "label": "Proxmox Host",
-            "options": options,
-            "row": 1,
-        },
-        {"name": "enabled", "type": "boolean", "label": "Aktiviert"},
-        {"name": "source", "type": "list", "label": "Zusätzliche Quellen", "row": 2},
-    ]
+    if options:
+        schema = [
+            {
+                "name": "remote_id",
+                "type": "select",
+                "label": "Proxmox Host",
+                "options": options,
+                "row": 1,
+            },
+            {"name": "enabled", "type": "boolean", "label": "Aktiviert"},
+            {"name": "source", "type": "list", "label": "Zusätzliche Quellen", "row": 2},
+        ]
+        error = None
+    else:
+        schema = []
+        error = (
+            "Keine Remote-Geräte mit dem Typ »Proxmox Host« konfiguriert. "
+            "Bitte zuerst ein Remote-Gerät mit diesem Typ anlegen."
+        )
     return render(
         request,
         "partials/create_edit/create_edit_modal.html",
         dict(
-            schema=fields,
+            schema=schema,
             id_field=None,
             modal_width=_MODAL_WIDTH,
             item=None,
@@ -100,6 +106,7 @@ def create_modal(request: Request):
             container_id=request.query_params.get("container_id", _C_ID),
             loading_id=request.query_params.get("loading_id", _L_ID),
             prefill_template=None,
+            error=error,
         ),
     )
 
@@ -143,6 +150,8 @@ async def create_apply(request: Request):
 
     form = await request.form()
     remote_id = form.get("remote_id", "")
+    if not remote_id:
+        return HTMLResponse("Kein Proxmox Host ausgewählt.", status_code=400)
     data = {
         "description": _description_from_remote(remote_id),
         "enabled": "enabled" in form,
