@@ -141,7 +141,7 @@ def preview(item_id) -> list[dict]:
 def run():
     from astrapi_core.system.runner import run_all
 
-    run_all("proxmox_hosts", _get_config(), run_single)
+    return run_all("proxmox_hosts", _get_config(), run_single)
 
 
 def run_single(item_id, entry=None):
