@@ -4,7 +4,7 @@ from astrapi_core.ui.controls import Col, ContentTable, Header
 from astrapi_core.ui.module_loader import load_modul
 
 from astrapi_backup.modules.proxmox_lxc.ui.crud import api_router as router
-from astrapi_backup.modules.proxmox_lxc.ui.crud import router as ui_router
+from astrapi_backup.modules.proxmox_lxc.ui.crud import router as ui_router, store
 
 from .jobs import run, run_single  # re-export fuer api/routers/run.py
 
