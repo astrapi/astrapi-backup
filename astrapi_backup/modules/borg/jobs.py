@@ -8,6 +8,7 @@ from astrapi_core.system.db import load_config as _load_config
 from astrapi_core.system.db import patch_item as _patch_item
 from astrapi_core.system.logger import log, log_context
 from astrapi_core.system.reachability import require_hosts
+from astrapi_core.system.runner import worst_status as _worst
 from astrapi_core.ui.settings_registry import get_module as _get_module_setting
 
 from astrapi_backup.modules.borg.utils import borg_bin_for as _borg_bin_for
@@ -21,12 +22,6 @@ def _get_config():
 def _s(key, default):
     return _get_module_setting("borg", key, default)
 
-
-_STATUS_ORDER = {"ok": 0, "warning": 1, "error": 2}
-
-
-def _worst(a: str, b: str) -> str:
-    return a if _STATUS_ORDER.get(a, 0) >= _STATUS_ORDER.get(b, 0) else b
 
 
 def _get_host_info(entry: dict, host_type: str = "source") -> tuple[str, str, int, int]:
