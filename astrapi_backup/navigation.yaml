@@ -17,7 +17,7 @@
   group: Jobs
 
 - key:   proxmox_client
-  label: Proxmox Hosts
+  label: Proxmox Client
   group: Jobs
 
 - key:   proxmox_jobs
