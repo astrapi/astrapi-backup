@@ -81,6 +81,24 @@ def _trigger_job(host: str, job_type: str, job_name: str, remote: dict) -> str:
     return upid
 
 
+def _fetch_task_log(host: str, upid: str, remote: dict) -> str:
+    """Ruft den Task-Log vom PBS-Server ab und gibt ihn als String zurück."""
+    token_id, token_secret = _api_token_for_remote(remote)
+    verify_ssl = _verify_ssl_for_remote(remote)
+    node = _parse_upid_node(upid)
+    upid_enc = urllib.parse.quote(upid, safe="")
+    url = f"https://{host}:{_PBS_PORT}/api2/json/nodes/{node}/tasks/{upid_enc}/log"
+    try:
+        resp = requests.get(
+            url, headers=_auth_headers(token_id, token_secret), verify=verify_ssl, timeout=15
+        )
+        resp.raise_for_status()
+        lines = resp.json().get("data", {}).get("lines", [])
+        return "\n".join(entry.get("t", "") for entry in lines)
+    except Exception as e:
+        return f"Log nicht abrufbar: {e}"
+
+
 def _wait_for_task(
     host: str, upid: str, remote: dict, poll_interval: int = 5, timeout: int = 3600
 ) -> str:
@@ -172,10 +190,13 @@ def run_single(item_id, job=None):
 
         log("INFO", f"=== Job '{job_name}' ({job_type}) gestartet ===")
         last_status = "error"
+        last_log = ""
+        upid = None
         try:
             upid = _trigger_job(host, job_type, job_name, remote_obj)
             log("INFO", f"{job_type}-job '{job_name}': Task gestartet ({upid})")
             exitstatus = _wait_for_task(host, upid, remote_obj)
+            last_log = _fetch_task_log(host, upid, remote_obj)
             if exitstatus == "OK":
                 last_status = "ok"
                 log("INFO", f"{job_type}-job '{job_name}' auf '{host}' erfolgreich")
@@ -186,6 +207,8 @@ def run_single(item_id, job=None):
                     f"{job_type}-job '{job_name}' auf '{host}' abgeschlossen mit Status: {exitstatus}",
                 )
         except Exception as e:
+            if upid:
+                last_log = _fetch_task_log(host, upid, remote_obj)
             log("WARNING", f"{job_type}-job '{job_name}' auf '{host}' fehlgeschlagen")
             log("ERROR", str(e))
 
@@ -196,5 +219,6 @@ def run_single(item_id, job=None):
             item_id,
             last_run=datetime.now().strftime("%d.%m.%Y %H:%M"),
             last_status=last_status,
+            last_log=last_log[-20_000:] if last_log else None,
         )
         log("INFO", f"=== Job '{job_name}' abgeschlossen ===")

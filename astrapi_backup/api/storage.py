@@ -89,7 +89,8 @@ _APP_TABLES = {
                 type        TEXT    NOT NULL DEFAULT '',
                 enabled     INTEGER NOT NULL DEFAULT 1,
                 last_run    TEXT,
-                last_status TEXT
+                last_status TEXT,
+                last_log    TEXT
             )""",
     },
 }
@@ -126,6 +127,7 @@ def _run_migrations() -> None:
         ("remotes", "ssh_connect_timeout", "INTEGER NOT NULL DEFAULT 0"),
         ("remotes", "poweroff_cmd", "TEXT NOT NULL DEFAULT 'sudo shutdown -h now'"),
         ("rsync", "last_log", "TEXT"),
+        ("proxmox_jobs", "last_log", "TEXT"),
     ]
     for table, column, col_def in _migrations:
         try:
