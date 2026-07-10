@@ -212,10 +212,8 @@ def _run_single_job(item_id, vmid: int, name: str):
 
     from astrapi_core.system.runner import run_logged
 
-    try:
-        run_logged(KEY, str(item_id), name, lambda v=vmid, n=name: _backup_lxc(v, n))
-    finally:
-        _patch_item(KEY, item_id, last_run=datetime.now().strftime("%d.%m.%Y %H:%M"))
+    status = run_logged(KEY, str(item_id), name, lambda v=vmid, n=name: _backup_lxc(v, n))
+    _patch_item(KEY, item_id, last_run=datetime.now().strftime("%d.%m.%Y %H:%M"), last_status=status)
 
 
 def _backup_lxc(vmid: int, name: str) -> str:
