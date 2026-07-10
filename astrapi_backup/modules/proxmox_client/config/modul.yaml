@@ -1,0 +1,15 @@
+# app/modules/proxmox_client/modul.yaml – Modul-Konfiguration
+
+label:       Proxmox Hosts
+nav_group:   Proxmox
+nav_default: false
+
+card_actions:
+  - type: run
+    url:  /api/proxmox_client/{item}/run
+  - type: log
+    url:  /api/proxmox_client/{item}/logs
+  - type: preview
+    url:  /api/proxmox_client/{item}/preview
+
+settings_button: false

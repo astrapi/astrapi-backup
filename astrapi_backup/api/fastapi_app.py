@@ -40,7 +40,7 @@ def create(modules: list | None = None) -> FastAPI:
 
     # ── Run/Log-Router pro Modul (Framework-Standard: /api/{module}/{item}/run) ─
     from astrapi_backup.api.routers.run import make_run_router
-    _RUN_MODULES = ["borg", "rsync", "proxmox_lxc", "proxmox_hosts", "proxmox_jobs"]
+    _RUN_MODULES = ["borg", "rsync", "proxmox_lxc", "proxmox_client", "proxmox_jobs"]
     for _mod_key in _RUN_MODULES:
         app.include_router(make_run_router(_mod_key), prefix=f"/api/{_mod_key}")
         app.include_router(make_run_router(_mod_key), prefix=f"/ui/{_mod_key}")

@@ -1,4 +1,4 @@
-# modules/proxmox_hosts/ui/crud.py
+# modules/proxmox_client/ui/crud.py
 from pathlib import Path
 
 from astrapi_core.ui.crud_blueprint import make_crud_router
@@ -8,9 +8,9 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
 from astrapi_backup.api.routers.run import get_running
-from astrapi_backup.modules.proxmox_hosts.jobs import preview as _preview
+from astrapi_backup.modules.proxmox_client.jobs import preview as _preview
 
-KEY = "proxmox_hosts"
+KEY = "proxmox_client"
 _DIR = Path(__file__).parent
 store = SqliteTableStore(KEY)
 

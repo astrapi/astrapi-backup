@@ -1,4 +1,4 @@
-# modules/proxmox_hosts.py
+# modules/proxmox_client.py
 #
 # Warum kein API-Zugriff?
 # proxmox-backup-client muss auf dem zu sichernden Host selbst ausgeführt werden
@@ -21,7 +21,7 @@ from astrapi_core.ui.settings_registry import get_module as _get_module_setting
 
 
 def _get_config():
-    return _load_config("proxmox_hosts")
+    return _load_config("proxmox_client")
 
 
 _FALLBACK_SOURCES = [
@@ -34,7 +34,7 @@ _FALLBACK_SOURCES = [
 
 
 def _default_sources() -> list[str]:
-    sources = _get_module_setting("proxmox_hosts", "default_sources", [])
+    sources = _get_module_setting("proxmox_client", "default_sources", [])
     if isinstance(sources, list):
         return list(sources) if sources else list(_FALLBACK_SOURCES)
     # Fallback für ältere String-Werte (textarea)
@@ -46,7 +46,7 @@ def _get_pbs_config(entry: dict) -> dict:
     """Liest PBS-Verbindungsdaten aus dem in den Einstellungen gewählten PBS-Remote."""
     from astrapi_backup.modules.remotes.service import get_remote
 
-    pbs_remote_id = _get_module_setting("proxmox_hosts", "pbs_remote_id", "")
+    pbs_remote_id = _get_module_setting("proxmox_client", "pbs_remote_id", "")
     if not pbs_remote_id:
         raise ValueError(
             "Kein PBS-Remote konfiguriert — bitte in den Einstellungen von 'Proxmox Hosts' auswählen"
@@ -141,13 +141,13 @@ def preview(item_id) -> list[dict]:
 def run():
     from astrapi_core.system.runner import run_all
 
-    return run_all("proxmox_hosts", _get_config(), run_single)
+    return run_all("proxmox_client", _get_config(), run_single)
 
 
 def run_single(item_id, entry=None):
     if entry is None:
         entry = _get_entry(_get_config(), item_id) or {}
-    with log_context("proxmox_hosts", item_id):
+    with log_context("proxmox_client", item_id):
         try:
             host, ssh_user, ssh_port, host_connect_timeout = _get_proxmox_host_info(entry)
         except ValueError as e:
@@ -167,7 +167,7 @@ def run_single(item_id, entry=None):
         from datetime import datetime
 
         _patch_item(
-            "proxmox_hosts",
+            "proxmox_client",
             item_id,
             last_run=datetime.now().strftime("%d.%m.%Y %H:%M"),
             last_status=status,

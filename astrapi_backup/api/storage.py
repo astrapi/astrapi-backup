@@ -65,9 +65,9 @@ _APP_TABLES = {
                 last_status TEXT
             )""",
     },
-    "proxmox_hosts": {
+    "proxmox_client": {
         "ddl": """
-            CREATE TABLE IF NOT EXISTS proxmox_hosts (
+            CREATE TABLE IF NOT EXISTS proxmox_client (
                 id            INTEGER PRIMARY KEY AUTOINCREMENT,
                 description   TEXT    NOT NULL DEFAULT '',
                 enabled       INTEGER NOT NULL DEFAULT 1,
@@ -107,10 +107,21 @@ def _register_app_tables() -> None:
 
 
 def _run_migrations() -> None:
-    """Fügt fehlende Spalten zu bestehenden Tabellen hinzu (ALTER TABLE … ADD COLUMN)."""
+    """Fügt fehlende Spalten zu bestehenden Tabellen hinzu und benennt Tabellen um."""
     from astrapi_core.system.db import _conn
 
     con = _conn()
+    # Tabellen umbenennen
+    _renames = [
+        ("proxmox_hosts", "proxmox_client"),
+    ]
+    for old, new in _renames:
+        try:
+            con.execute(f"ALTER TABLE {old} RENAME TO {new}")
+            con.commit()
+        except Exception:
+            pass  # Tabelle existiert bereits unter neuem Namen oder gar nicht
+
     _migrations = [
         ("remotes", "ssh_connect_timeout", "INTEGER NOT NULL DEFAULT 0"),
         ("remotes", "poweroff_cmd", "TEXT NOT NULL DEFAULT 'sudo shutdown -h now'"),

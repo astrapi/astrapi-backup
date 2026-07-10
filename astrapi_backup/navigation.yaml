@@ -16,7 +16,7 @@
   label: Proxmox LXC
   group: Jobs
 
-- key:   proxmox_hosts
+- key:   proxmox_client
   label: Proxmox Hosts
   group: Jobs
 

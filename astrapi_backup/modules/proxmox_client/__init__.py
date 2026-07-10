@@ -3,8 +3,8 @@ from pathlib import Path
 from astrapi_core.ui.controls import Header
 from astrapi_core.ui.module_loader import load_modul
 
-from astrapi_backup.modules.proxmox_hosts.ui.crud import api_router as router
-from astrapi_backup.modules.proxmox_hosts.ui.crud import router as ui_router
+from astrapi_backup.modules.proxmox_client.ui.crud import api_router as router
+from astrapi_backup.modules.proxmox_client.ui.crud import router as ui_router
 
 from .jobs import run, run_single  # re-export fuer api/routers/run.py
 
