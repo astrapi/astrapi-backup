@@ -75,6 +75,7 @@ def shutdown_item(item_id: str):
     ssh_user = item.get("ssh_user")
     if not host:
         raise HTTPException(400, "Kein Hostname konfiguriert")
+    poweroff_cmd = item.get("poweroff_cmd") or "sudo shutdown -h now"
     try:
         subprocess.run(
             [
@@ -84,7 +85,7 @@ def shutdown_item(item_id: str):
                 "-o",
                 "ConnectTimeout=10",
                 f"{ssh_user}@{host}",
-                "sudo shutdown -h now",
+                poweroff_cmd,
             ],
             check=True,
             timeout=30,

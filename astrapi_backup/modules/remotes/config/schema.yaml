@@ -24,6 +24,18 @@ fields:
     column: 1
     row: 2
 
+  - name: poweroff_cmd
+    type: select
+    label: Shutdown-Befehl
+    column: 2
+    row: 2
+    default: "sudo shutdown -h now"
+    options:
+      - value: "sudo shutdown -h now"
+        label: "sudo shutdown -h now"
+      - value: "sudo systemctl poweroff"
+        label: "sudo systemctl poweroff"
+
   - type: section
     label: SSH-Authentifizierung (Backups)
     cols: 2

@@ -83,10 +83,11 @@ def poweroff_single(item_id):
     if not host:
         log.warning("Remote '%s': kein Hostname konfiguriert", desc)
         return
+    poweroff_cmd = entry.get("poweroff_cmd") or "sudo shutdown -h now"
     try:
         subprocess.run(
             ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10",
-             f"{ssh_user}@{host}", "sudo shutdown -h now"],
+             f"{ssh_user}@{host}", poweroff_cmd],
             check=True, timeout=30,
         )
         log.info("Remote '%s' (%s@%s): Shutdown-Befehl gesendet", desc, ssh_user, host)

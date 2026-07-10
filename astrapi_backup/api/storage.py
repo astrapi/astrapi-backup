@@ -113,6 +113,7 @@ def _run_migrations() -> None:
     con = _conn()
     _migrations = [
         ("remotes", "ssh_connect_timeout", "INTEGER NOT NULL DEFAULT 0"),
+        ("remotes", "poweroff_cmd", "TEXT NOT NULL DEFAULT 'sudo shutdown -h now'"),
         ("rsync", "last_log", "TEXT"),
     ]
     for table, column, col_def in _migrations:

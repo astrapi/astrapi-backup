@@ -20,7 +20,8 @@ _DDL = """
         api_token_secret TEXT    NOT NULL DEFAULT '',
         api_verify_ssl   INTEGER NOT NULL DEFAULT 0,
         pbs_fingerprint  TEXT    NOT NULL DEFAULT '',
-        pbs_datastore    TEXT    NOT NULL DEFAULT ''
+        pbs_datastore    TEXT    NOT NULL DEFAULT '',
+        poweroff_cmd     TEXT    NOT NULL DEFAULT 'sudo shutdown -h now'
     )"""
 
 register_table(_KEY, _DDL, list_fields=["types"], secret_fields=["api_token_secret"])
