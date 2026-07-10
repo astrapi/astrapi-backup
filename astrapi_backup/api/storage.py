@@ -49,7 +49,8 @@ _APP_TABLES = {
                 target_remote_id TEXT,
                 target_path      TEXT    NOT NULL DEFAULT '',
                 last_run         TEXT,
-                last_status      TEXT
+                last_status      TEXT,
+                last_log         TEXT
             )""",
     },
     "proxmox_lxc": {
@@ -112,6 +113,7 @@ def _run_migrations() -> None:
     con = _conn()
     _migrations = [
         ("remotes", "ssh_connect_timeout", "INTEGER NOT NULL DEFAULT 0"),
+        ("rsync", "last_log", "TEXT"),
     ]
     for table, column, col_def in _migrations:
         try:

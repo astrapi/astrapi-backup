@@ -130,11 +130,15 @@ def run_single(job_id, entry=None):
         ]
         if not require_hosts(hosts):
             return
-        status = _rsync(entry, source_host, ssh_user, target_host, source_connect_timeout)
+        status, output = _rsync(entry, source_host, ssh_user, target_host, source_connect_timeout)
         from datetime import datetime
 
         _patch_item(
-            "rsync", job_id, last_run=datetime.now().strftime("%d.%m.%Y %H:%M"), last_status=status
+            "rsync",
+            job_id,
+            last_run=datetime.now().strftime("%d.%m.%Y %H:%M"),
+            last_status=status,
+            last_log=output[-20_000:],
         )
         log("INFO", f"=== Rsync '{entry.get('description', job_id)}' abgeschlossen ===")
 
@@ -146,14 +150,17 @@ def _rsync(
     target_path = entry.get("target_path", "")
 
     if not source_host or not target_host:
-        log("ERROR", "Rsync abgebrochen: source_host oder target_host fehlt.")
-        return
+        msg = "Rsync abgebrochen: source_host oder target_host fehlt."
+        log("ERROR", msg)
+        return "error", msg
     if not source_path or not source_path.strip():
-        log("ERROR", "Rsync abgebrochen: source_path ist leer (--delete würde Ziel löschen).")
-        return
+        msg = "Rsync abgebrochen: source_path ist leer (--delete würde Ziel löschen)."
+        log("ERROR", msg)
+        return "error", msg
     if not target_path or not target_path.strip():
-        log("ERROR", "Rsync abgebrochen: target_path ist leer.")
-        return
+        msg = "Rsync abgebrochen: target_path ist leer."
+        log("ERROR", msg)
+        return "error", msg
 
     # rsync wird immer auf dem Source-Host ausgeführt
     connection = build_connection_string(source_host, ssh_user)
@@ -187,15 +194,18 @@ def _rsync(
 
     try:
         result = run_cmd(cmd, connection, ssh_connect_timeout=ssh_connect_timeout)
-        for line in (result.stdout or "").splitlines():
+        output = result.stdout or ""
+        for line in output.splitlines():
             if line.strip():
                 log("INFO", line)
         log("INFO", "Rsync erfolgreich.")
-        return "ok"
+        return "ok", output
     except subprocess.CalledProcessError as e:
-        log("WARNING", "Rsync fehlgeschlagen:")
-        for line in (e.stdout or "").splitlines():
+        stdout = e.stdout or ""
+        stderr = e.stderr.strip() if e.stderr else "Unbekannter Fehler."
+        for line in stdout.splitlines():
             if line.strip():
                 log("INFO", line)
-        log("ERROR", e.stderr.strip() if e.stderr else "Unbekannter Fehler.")
-        return "error"
+        log("WARNING", "Rsync fehlgeschlagen:")
+        log("ERROR", stderr)
+        return "error", stdout + ("\n" + stderr if stderr else "")
