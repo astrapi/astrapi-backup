@@ -8,6 +8,7 @@
 # Host-Dateisysteme. SSH ist daher hier zwingend erforderlich.
 #
 import os
+import shlex
 import subprocess
 
 from astrapi_core.system.cmd import build_connection_string, is_local, run_cmd
@@ -211,9 +212,9 @@ def _backup(host, ssh_user: str, entry, pbs: dict, host_connect_timeout: int = 0
         cmd = base_cmd
     else:
         cmd = [
-            f"PBS_REPOSITORY={env['PBS_REPOSITORY']}",
-            f"PBS_PASSWORD={env['PBS_PASSWORD']}",
-            f"PBS_FINGERPRINT={env['PBS_FINGERPRINT']}",
+            f"PBS_REPOSITORY={shlex.quote(env['PBS_REPOSITORY'])}",
+            f"PBS_PASSWORD={shlex.quote(env['PBS_PASSWORD'])}",
+            f"PBS_FINGERPRINT={shlex.quote(env['PBS_FINGERPRINT'])}",
             *base_cmd,
         ]
 

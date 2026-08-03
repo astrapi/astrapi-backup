@@ -1,5 +1,6 @@
 # modules/borg/jobs.py
 import os
+import shlex
 import subprocess
 from datetime import datetime
 
@@ -188,18 +189,26 @@ def run_single(job_id, entry=None):
         status = "ok"
         if entry.get("pre"):
             status = _worst(status, _hook("pre", entry, source_host, ssh_user, _ct))
-        status = _worst(
-            status, _backup(entry, source_host, ssh_user, target_host, target_ssh_user, _ct)
+        backup_status = _backup(
+            entry, source_host, ssh_user, target_host, target_ssh_user, _ct
         )
+        status = _worst(status, backup_status)
         if entry.get("post"):
             status = _worst(status, _hook("post", entry, source_host, ssh_user, _ct))
-        status = _worst(
-            status, _prune(entry, source_host, ssh_user, target_host, target_ssh_user, _ct)
-        )
-        if _s("compact_after_prune", "1") in ("1", "true", True):
+        # Retention nur wenn ein neues Archiv entstanden ist. Sonst würde prune
+        # alte Archive nach Schema löschen, ohne dass Ersatz existiert (T-053).
+        # RC=1 (= "warning") ist ein gültiges Archiv, da läuft prune weiter.
+        if backup_status == "error":
+            log("WARNING", "Prune/Compact übersprungen – Backup fehlgeschlagen")
+        else:
             status = _worst(
-                status, _compact(entry, source_host, ssh_user, target_host, target_ssh_user, _ct)
+                status, _prune(entry, source_host, ssh_user, target_host, target_ssh_user, _ct)
             )
+            if _s("compact_after_prune", "1") in ("1", "true", True):
+                status = _worst(
+                    status,
+                    _compact(entry, source_host, ssh_user, target_host, target_ssh_user, _ct),
+                )
         from astrapi_backup.modules.borg import cache as _cache
 
         _cache.update(job_id, entry)
@@ -313,7 +322,7 @@ def _backup(
     if src_local:
         cmd = [*base_cmd, archive, src]
     else:
-        cmd = [f"BORG_PASSPHRASE={env['BORG_PASSPHRASE']}", *base_cmd, archive, src]
+        cmd = [f"BORG_PASSPHRASE={shlex.quote(env['BORG_PASSPHRASE'])}", *base_cmd, archive, src]
 
     try:
         run_cmd(cmd, connection, env=env, ssh_connect_timeout=ssh_connect_timeout)
@@ -375,7 +384,7 @@ def _prune(
     if src_local:
         cmd = [*base_cmd, repo]
     else:
-        cmd = [f"BORG_PASSPHRASE={env['BORG_PASSPHRASE']}", *base_cmd, repo]
+        cmd = [f"BORG_PASSPHRASE={shlex.quote(env['BORG_PASSPHRASE'])}", *base_cmd, repo]
 
     try:
         run_cmd(cmd, connection, env=env, ssh_connect_timeout=ssh_connect_timeout)
@@ -409,7 +418,7 @@ def _compact(
     if src_local:
         cmd = base_cmd
     else:
-        cmd = [f"BORG_PASSPHRASE={env['BORG_PASSPHRASE']}", *base_cmd]
+        cmd = [f"BORG_PASSPHRASE={shlex.quote(env['BORG_PASSPHRASE'])}", *base_cmd]
 
     try:
         run_cmd(cmd, connection, env=env, ssh_connect_timeout=ssh_connect_timeout)
