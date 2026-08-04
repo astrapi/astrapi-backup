@@ -1,6 +1,8 @@
 # api/storage.py
 """SQLite-Backend mit einer Tabelle pro Modul."""
 
+import logging
+
 from astrapi_core.system.db import (
     configure as _configure_db,
 )
@@ -12,6 +14,8 @@ from astrapi_core.system.db import (
 from astrapi_backup._paths import db_path as _db_path
 
 DB_PATH = _db_path()
+
+log = logging.getLogger(__name__)
 
 
 # ── App-Tabellen-Konfiguration ─────────────────────────────────────
@@ -107,22 +111,77 @@ def _register_app_tables() -> None:
         )
 
 
-def _run_migrations() -> None:
-    """Fügt fehlende Spalten zu bestehenden Tabellen hinzu und benennt Tabellen um."""
+# Tabellen, die in früheren Versionen anders hießen
+_RENAMES = [
+    ("proxmox_hosts", "proxmox_client"),
+]
+
+
+def _table_exists(con, name: str) -> bool:
+    row = con.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)
+    ).fetchone()
+    return row is not None
+
+
+def _columns(con, table: str) -> list[str]:
+    return [r[1] for r in con.execute(f'PRAGMA table_info("{table}")').fetchall()]
+
+
+def _run_table_renames() -> None:
+    """Benennt Tabellen aus früheren Versionen um.
+
+    Läuft VOR create_all_registered_tables(): sonst existiert die Zieltabelle
+    bereits (leer, per CREATE TABLE IF NOT EXISTS) und das RENAME scheitert.
+
+    Ist auf einer Instanz beides vorhanden – alte Tabelle mit Daten, neue leer –
+    dann wurde genau dieser Fall schon ausgelöst. Die Zeilen werden dann über
+    die gemeinsamen Spaltennamen kopiert (nicht per SELECT *, die Reihenfolge
+    kann abweichen) und die alte Tabelle als `<name>_alt` beiseitegelegt.
+    """
     from astrapi_core.system.db import _conn
 
     con = _conn()
-    # Tabellen umbenennen
-    _renames = [
-        ("proxmox_hosts", "proxmox_client"),
-    ]
-    for old, new in _renames:
-        try:
-            con.execute(f"ALTER TABLE {old} RENAME TO {new}")
-            con.commit()
-        except Exception:
-            pass  # Tabelle existiert bereits unter neuem Namen oder gar nicht
+    for old, new in _RENAMES:
+        if not _table_exists(con, old):
+            continue
 
+        if not _table_exists(con, new):
+            con.execute(f'ALTER TABLE "{old}" RENAME TO "{new}"')
+            con.commit()
+            log.info("DB-Migration: Tabelle %s → %s umbenannt", old, new)
+            continue
+
+        # Beide vorhanden: nur zusammenführen wenn die neue leer ist.
+        count = con.execute(f'SELECT count(*) FROM "{new}"').fetchone()[0]
+        if count:
+            log.warning(
+                "DB-Migration: %s und %s existieren beide und %s enthält %d Zeilen – "
+                "kein automatisches Zusammenführen, bitte manuell prüfen",
+                old, new, new, count,
+            )
+            continue
+
+        shared = [c for c in _columns(con, old) if c in _columns(con, new)]
+        if not shared:
+            log.warning("DB-Migration: %s und %s haben keine gemeinsamen Spalten", old, new)
+            continue
+
+        cols = ", ".join(f'"{c}"' for c in shared)
+        con.execute(f'INSERT INTO "{new}" ({cols}) SELECT {cols} FROM "{old}"')
+        con.execute(f'ALTER TABLE "{old}" RENAME TO "{old}_alt"')
+        con.commit()
+        log.info(
+            "DB-Migration: %d Zeilen aus %s nach %s übernommen, alte Tabelle als %s_alt gesichert",
+            con.execute(f'SELECT count(*) FROM "{new}"').fetchone()[0], old, new, old,
+        )
+
+
+def _run_column_migrations() -> None:
+    """Fügt fehlende Spalten zu bestehenden Tabellen hinzu."""
+    from astrapi_core.system.db import _conn
+
+    con = _conn()
     _migrations = [
         ("remotes", "ssh_connect_timeout", "INTEGER NOT NULL DEFAULT 0"),
         ("remotes", "poweroff_cmd", "TEXT NOT NULL DEFAULT 'sudo shutdown -h now'"),
@@ -140,8 +199,9 @@ def _run_migrations() -> None:
 def init_db() -> None:
     _configure_db(DB_PATH)
     _register_app_tables()
+    _run_table_renames()          # vor dem Anlegen: sonst ist das Ziel schon da
     create_all_registered_tables()
-    _run_migrations()
+    _run_column_migrations()      # nach dem Anlegen: braucht die Tabellen
 
 
 # Borg-spezifischer Cache → app/modules/borg/cache/storage.py
