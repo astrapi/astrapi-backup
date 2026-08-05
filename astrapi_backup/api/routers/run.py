@@ -146,23 +146,19 @@ def make_run_router(module: str, *, has_run_buttons: bool = True) -> APIRouter:
             .body.decode()
         )
 
-        # Poll-Div per OOB scharfschalten: die Antwort enthaelt nur die eine
-        # Zeile, ohne das hier bliebe der Badge bis zum manuellen Neuladen auf
-        # dem alten Stand. status_oob.html schaltet ihn wieder ab, sobald
-        # nichts mehr laeuft.
-        row_html += (
-            f'<div id="poll-{module}" hx-swap-oob="true" style="display:none" '
-            f'hx-get="/ui/{module}/status" hx-trigger="every 2s" hx-swap="none"></div>'
-        )
+        # Die Antwort ist eine <tr>. Ein <div> daran anzuhaengen geht nicht:
+        # beim Parsen eines Zeilen-Fragments hebt der HTML-Parser fremde
+        # Elemente aus dem Tabellenkontext heraus und die Zeile geht verloren.
+        # Das Polling wird deshalb per Event angestossen; den Poll-Div gibt es
+        # bereits im DOM, status_oob.html schaltet ihn spaeter wieder ab.
+        events: dict = {"jobStarted": {"module": module}}
 
         # Log-Modal nur beim Debug-Lauf: dort will man zusehen. Beim normalen
         # Ausfuehren war das ungefragte Aufpoppen stoerend.
-        headers = {}
         if debug:
-            headers["HX-Trigger"] = json.dumps(
-                {"openLogModal": {"module": module, "itemId": log_id}}
-            )
-        return HTMLResponse(row_html, headers=headers)
+            events["openLogModal"] = {"module": module, "itemId": log_id}
+
+        return HTMLResponse(row_html, headers={"HX-Trigger": json.dumps(events)})
 
     # ── SSE: Live-Log-Stream (DB-basiert) ─────────────────────────────
 
