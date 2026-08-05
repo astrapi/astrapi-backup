@@ -146,8 +146,23 @@ def make_run_router(module: str, *, has_run_buttons: bool = True) -> APIRouter:
             .body.decode()
         )
 
-        trigger = json.dumps({"openLogModal": {"module": module, "itemId": log_id}})
-        return HTMLResponse(row_html, headers={"HX-Trigger": trigger})
+        # Poll-Div per OOB scharfschalten: die Antwort enthaelt nur die eine
+        # Zeile, ohne das hier bliebe der Badge bis zum manuellen Neuladen auf
+        # dem alten Stand. status_oob.html schaltet ihn wieder ab, sobald
+        # nichts mehr laeuft.
+        row_html += (
+            f'<div id="poll-{module}" hx-swap-oob="true" style="display:none" '
+            f'hx-get="/ui/{module}/status" hx-trigger="every 2s" hx-swap="none"></div>'
+        )
+
+        # Log-Modal nur beim Debug-Lauf: dort will man zusehen. Beim normalen
+        # Ausfuehren war das ungefragte Aufpoppen stoerend.
+        headers = {}
+        if debug:
+            headers["HX-Trigger"] = json.dumps(
+                {"openLogModal": {"module": module, "itemId": log_id}}
+            )
+        return HTMLResponse(row_html, headers=headers)
 
     # ── SSE: Live-Log-Stream (DB-basiert) ─────────────────────────────
 
