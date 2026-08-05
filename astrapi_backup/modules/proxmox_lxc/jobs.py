@@ -314,12 +314,17 @@ def _backup_lxc(vmid: int, name: str, ziel: tuple | None = None) -> str:
         upid = _trigger_vzdump(host, node_name, vmid, remote)
         log("INFO", f"LXC '{name}': Task gestartet ({upid})")
         exitstatus = _wait_for_task(host, node_name, upid, remote)
-        if exitstatus == "OK":
+        from astrapi_backup.api.proxmox import log_level, task_status
+
+        status = task_status(exitstatus)
+        if status == "ok":
             log("INFO", f"LXC '{name}' erfolgreich")
-            return "ok"
         else:
-            log("WARNING", f"LXC '{name}' abgeschlossen mit Status: {exitstatus}")
-            return "warning"
+            log(
+                log_level(status),
+                f"LXC '{name}' abgeschlossen mit Status: {exitstatus}",
+            )
+        return status
     except Exception as e:
         log("WARNING", f"LXC '{name}' fehlgeschlagen")
         log("ERROR", str(e))

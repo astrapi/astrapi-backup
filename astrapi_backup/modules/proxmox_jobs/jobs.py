@@ -198,14 +198,16 @@ def run_single(item_id, job=None):
             log("INFO", f"{job_type}-job '{job_name}': Task gestartet ({upid})")
             exitstatus = _wait_for_task(host, upid, remote_obj)
             last_log = _fetch_task_log(host, upid, remote_obj)
-            if exitstatus == "OK":
-                last_status = "ok"
+            from astrapi_backup.api.proxmox import log_level, task_status
+
+            last_status = task_status(exitstatus)
+            if last_status == "ok":
                 log("INFO", f"{job_type}-job '{job_name}' auf '{host}' erfolgreich")
             else:
-                last_status = "error"
                 log(
-                    "WARNING",
-                    f"{job_type}-job '{job_name}' auf '{host}' abgeschlossen mit Status: {exitstatus}",
+                    log_level(last_status),
+                    f"{job_type}-job '{job_name}' auf '{host}' "
+                    f"abgeschlossen mit Status: {exitstatus}",
                 )
         except Exception as e:
             if upid:
