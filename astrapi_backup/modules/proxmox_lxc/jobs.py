@@ -213,6 +213,10 @@ def _run_single_job(item_id, vmid: int, name: str):
 
     from astrapi_core.system.runner import run_logged
 
+    # Auch im parallelen Pfad als laufend markieren. run() geht nicht ueber
+    # run_single(), deshalb fehlte der Spinner hier – anders als bei borg,
+    # das ueber run_all(..., run_single) laeuft.
+    _patch_item(KEY, item_id, last_status="running")
     status = run_logged(KEY, str(item_id), name, lambda v=vmid, n=name: _backup_lxc(v, n))
     _patch_item(KEY, item_id, last_run=datetime.now().strftime("%d.%m.%Y %H:%M"), last_status=status)
 
