@@ -173,7 +173,15 @@ def run():
     if not jobs:
         return
 
-    with ThreadPoolExecutor() as executor:
+    # Ohne max_workers nimmt Python cpu_count()+4 – auf einem Vierkerner also
+    # acht gleichzeitige vzdump-Auftraege gegen dieselbe Proxmox-Installation.
+    try:
+        parallel = max(1, int(_get_module_setting(KEY, "max_parallel", 2)))
+    except (TypeError, ValueError):
+        parallel = 2
+    log("INFO", f"LXC: {len(jobs)} Eintrag/Eintraege, max. {parallel} gleichzeitig")
+
+    with ThreadPoolExecutor(max_workers=parallel) as executor:
         futures = {
             executor.submit(_run_single_job, j["item_id"], j["vmid"], j["name"]): j["name"]
             for j in jobs

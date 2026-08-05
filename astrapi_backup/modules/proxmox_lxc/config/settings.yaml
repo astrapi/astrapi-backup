@@ -32,4 +32,19 @@ fields:
     default: "{{guestname}}"
     description: Template für die Backup-Notiz in Proxmox (--notes-template)
 
+  - type: section
+    label: Ausführung
+    cols: 2
+
+  - key: max_parallel
+    label: Gleichzeitige Sicherungen
+    type: number
+    min: 1
+    max: 16
+    default: 2
+    description: >
+      Wie viele LXC-Sicherungen der Scheduler gleichzeitig anstößt. Ohne
+      Begrenzung startete Python so viele wie CPU-Kerne plus vier — auf einem
+      Vierkerner also acht auf einmal.
+
 
