@@ -229,6 +229,56 @@ def _run_value_renames() -> None:
             log.warning("DB-Migration: %s.%s %s → %s: %s", table, column, old, new, e)
 
 
+def _run_settings_key_renames() -> None:
+    """Zieht Modul-Einstellungen auf den neuen Modul-Key um.
+
+    Einstellungen liegen im kvstore (collection "_settings") unter
+    "module.<modulkey>.<feld>". Beim Umbenennen eines Moduls bleiben die
+    gespeicherten Werte unter dem alten Key liegen, waehrend der Code schon
+    unter dem neuen liest – die Einstellung wirkt dann wie nie gesetzt.
+
+    seed_defaults() legt den neuen Key beim Start mit dem Default an. Ein
+    blosses UPDATE wuerde deshalb am Primaerschluessel scheitern; uebernommen
+    wird nur, wenn der neue Key fehlt oder leer ist.
+    """
+    from astrapi_core.system.db import _conn
+
+    con = _conn()
+    for old, new in _RENAMES:
+        praefix_alt, praefix_neu = f"module.{old}.", f"module.{new}."
+        try:
+            zeilen = con.execute(
+                "SELECT key, value FROM kvstore WHERE collection='_settings' AND key LIKE ?",
+                (f"{praefix_alt}%",),
+            ).fetchall()
+            uebernommen = 0
+            for key, value in zeilen:
+                neuer_key = praefix_neu + key[len(praefix_alt):]
+                vorhanden = con.execute(
+                    "SELECT value FROM kvstore WHERE collection='_settings' AND key=?",
+                    (neuer_key,),
+                ).fetchone()
+                # Nur uebernehmen wenn drueben nichts Sinnvolles steht.
+                if vorhanden is None or vorhanden[0] in ('""', "", "null"):
+                    con.execute(
+                        "INSERT INTO kvstore (collection, key, value) VALUES ('_settings', ?, ?) "
+                        "ON CONFLICT(collection, key) DO UPDATE SET value = excluded.value",
+                        (neuer_key, value),
+                    )
+                    uebernommen += 1
+                con.execute(
+                    "DELETE FROM kvstore WHERE collection='_settings' AND key=?", (key,)
+                )
+            con.commit()
+            if zeilen:
+                log.info(
+                    "DB-Migration: %d von %d Einstellung(en) von %s nach %s uebernommen",
+                    uebernommen, len(zeilen), old, new,
+                )
+        except Exception as e:
+            log.warning("DB-Migration: Einstellungen %s → %s: %s", old, new, e)
+
+
 def _run_scheduler_step_renames() -> None:
     """Zieht umbenannte Modul-Keys in gespeicherten Scheduler-Schritten nach.
 
@@ -266,6 +316,7 @@ def init_db() -> None:
     create_all_registered_tables()
     _run_column_migrations()      # nach dem Anlegen: braucht die Tabellen
     _run_value_renames()
+    _run_settings_key_renames()
     _run_scheduler_step_renames()
 
     # Beim Start kann nichts laufen: was noch auf "running" steht, stammt aus
