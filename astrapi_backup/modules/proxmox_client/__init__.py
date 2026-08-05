@@ -32,7 +32,7 @@ try:
     from astrapi_core.modules.scheduler.engine import register_action
 
     register_action(
-        f"{_KEY}.run", "Proxmox Hosts: Sichern", run, source=_KEY, source_label="Proxmox Hosts"
+        f"{_KEY}.run", "Proxmox Client: Sichern", run, source=_KEY, source_label="Proxmox Client"
     )
 except Exception:
     pass

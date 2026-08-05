@@ -50,7 +50,9 @@ def _get_pbs_config(entry: dict) -> dict:
     pbs_remote_id = _get_module_setting("proxmox_client", "pbs_remote_id", "")
     if not pbs_remote_id:
         raise ValueError(
-            "Kein PBS-Remote konfiguriert — bitte in den Einstellungen von 'Proxmox Hosts' auswählen"
+            "Kein PBS-Server konfiguriert — in den Einstellungen von 'Proxmox Client' "
+            "ein Remote-Gerät vom Typ 'Proxmox Backup' auswählen. "
+            "Der Typ 'Proxmox Host' bezeichnet die zu sichernden Maschinen, nicht den PBS-Server."
         )
     remote = get_remote(pbs_remote_id)
     if not remote:
