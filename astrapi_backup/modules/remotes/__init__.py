@@ -74,6 +74,8 @@ module = load_modul(
     ]),
     ui_content=ContentTable(
         has_run_buttons=False,
+        # Remote-Geräte werden nicht ausgeführt – sie haben keinen Lauf-Status.
+        has_status=False,
         columns=[
             Col.badge_list(
                 "types",
