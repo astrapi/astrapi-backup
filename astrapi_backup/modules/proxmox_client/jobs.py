@@ -149,6 +149,7 @@ def run_single(item_id, entry=None):
     if entry is None:
         entry = _get_entry(_get_config(), item_id) or {}
     with log_context("proxmox_client", item_id):
+        _patch_item("proxmox_client", item_id, last_status="running")
         try:
             host, ssh_user, ssh_port, host_connect_timeout = _get_proxmox_host_info(entry)
         except ValueError as e:

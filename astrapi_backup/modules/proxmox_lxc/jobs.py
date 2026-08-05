@@ -197,6 +197,7 @@ def run_single(item_id, entry=None):
             log("ERROR", f"LXC-Eintrag '{item_id}': Pflichtfeld vmid fehlt")
             return
         name = entry.get("description", item_id)
+        _patch_item(KEY, item_id, last_status="running")
         log("INFO", f"=== LXC '{name}' gestartet ===")
         status = _backup_lxc(int(vmid), name)
         from datetime import datetime

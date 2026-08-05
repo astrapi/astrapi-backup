@@ -178,6 +178,7 @@ def run_single(item_id, job=None):
         if not job_name or not job_type:
             log("ERROR", f"Proxmox-Job '{item_id}': Pflichtfelder (job, type) fehlen")
             return
+        _patch_item(KEY, item_id, last_status="running")
 
         try:
             from astrapi_backup.modules.remotes.service import get_remote

@@ -107,6 +107,7 @@ def run_single(job_id, entry=None):
         log("ERROR", f"Rsync-Eintrag '{job_id}' nicht gefunden")
         return
     with log_context("rsync", job_id):
+        _patch_item("rsync", job_id, last_status="running")
         log("INFO", f"=== Rsync '{entry.get('description', job_id)}' gestartet ===")
 
         try:

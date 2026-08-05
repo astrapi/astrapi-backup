@@ -234,5 +234,11 @@ def init_db() -> None:
     _run_column_migrations()      # nach dem Anlegen: braucht die Tabellen
     _run_scheduler_step_renames()
 
+    # Beim Start kann nichts laufen: was noch auf "running" steht, stammt aus
+    # einem abgebrochenen Lauf (Neustart, Absturz, Update).
+    from astrapi_core.system.db import reset_stale_status
+
+    reset_stale_status()
+
 
 # Borg-spezifischer Cache → app/modules/borg/cache/storage.py

@@ -155,6 +155,10 @@ def run_single(job_id, entry=None):
         return
 
     with log_context("borg", job_id):
+        # Sofort als laufend markieren, damit die Liste den Spinner zeigt und
+        # das Status-Polling anspringt – vorher stand dort bis zum Ende der
+        # Status des vorigen Laufs.
+        _patch_item("borg", job_id, last_status="running")
         log("INFO", f"=== Borg '{entry.get('description', job_id)}' gestartet ===")
 
         try:
