@@ -218,6 +218,13 @@ def run():
             continue
         j["host"], j["remote"] = _node_target(node, node_remotes, cluster_remote)
         j["node"] = node
+        # Node-Spalte in der Liste fuellen. Das Schema fuehrt "node" als
+        # info-Feld mit resolve: remote_host, es wurde aber nie geschrieben --
+        # die Spalte zeigte deshalb fuer jeden Eintrag "Lokal". Gespeichert
+        # wird die Remote-ID, denn resolve_remote_host() erwartet diese.
+        remote_id = str(j["remote"].get("id", "")) if j["remote"] else ""
+        if remote_id:
+            _patch_item(KEY, j["item_id"], node=remote_id)
         nach_node.setdefault(node, []).append(j)
 
     if not nach_node:
