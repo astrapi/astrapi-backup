@@ -196,12 +196,43 @@ def _run_column_migrations() -> None:
             pass  # Spalte existiert bereits
 
 
+def _run_scheduler_step_renames() -> None:
+    """Zieht umbenannte Modul-Keys in gespeicherten Scheduler-Schritten nach.
+
+    Scheduler-Jobs liegen als JSON im kvstore (collection "scheduler_jobs") und
+    verweisen ueber "<modul>.<aktion>" auf registrierte Aktionen. Beim Umbenennen
+    eines Moduls (T-023) wurde nur die Tabelle migriert -- die Schritte zeigten
+    weiter auf den alten Key. Der Scheduler findet die Aktion dann nicht und
+    quittiert jeden Lauf mit "Unbekannte Aktion: proxmox_hosts.run".
+    """
+    from astrapi_core.system.db import _conn
+
+    con = _conn()
+    for old, new in _RENAMES:
+        alt, neu = f"{old}.", f"{new}."
+        try:
+            cur = con.execute(
+                "UPDATE kvstore SET value = replace(value, ?, ?) "
+                "WHERE collection = 'scheduler_jobs' AND value LIKE ?",
+                (alt, neu, f"%{alt}%"),
+            )
+            con.commit()
+            if cur.rowcount:
+                log.info(
+                    "DB-Migration: %d Scheduler-Job(s) von %s auf %s umgestellt",
+                    cur.rowcount, old, new,
+                )
+        except Exception as e:
+            log.warning("DB-Migration: Scheduler-Schritte %s → %s: %s", old, new, e)
+
+
 def init_db() -> None:
     _configure_db(DB_PATH)
     _register_app_tables()
     _run_table_renames()          # vor dem Anlegen: sonst ist das Ziel schon da
     create_all_registered_tables()
     _run_column_migrations()      # nach dem Anlegen: braucht die Tabellen
+    _run_scheduler_step_renames()
 
 
 # Borg-spezifischer Cache → app/modules/borg/cache/storage.py
