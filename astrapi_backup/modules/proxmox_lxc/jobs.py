@@ -30,9 +30,11 @@ def _api_token(remote: dict) -> tuple[str, str]:
     return token_id, token_secret
 
 
-def _resolve_node_for_vmid(vmid: int) -> tuple[str, str, dict]:
-    """Ermittelt via Cluster-API welcher Node den Container hat.
-    Gibt (host, node_name, remote) zurück.
+def _cluster_vm_map() -> tuple[dict, dict, dict]:
+    """Fragt /cluster/resources EINMAL ab.
+
+    Gibt (vmid → node_name, node_name → remote, cluster_remote) zurück.
+    Eine Abfrage liefert alle Container; vorher lief sie einmal pro VMID.
     """
     from astrapi_backup.modules.remotes.service import get_all_remotes_for_select, get_remote
 
@@ -69,14 +71,30 @@ def _resolve_node_for_vmid(vmid: int) -> tuple[str, str, dict]:
     resp = requests.get(url, headers=headers, verify=verify_ssl, timeout=10)
     resp.raise_for_status()
 
+    vm_nodes = {}
     for r in resp.json().get("data", []):
-        if int(r.get("vmid", 0)) == vmid:
-            node_name = r["node"]
-            remote = node_remotes.get(node_name, cluster_remote)
-            host = remote.get("host", first_host)
-            return host, node_name, remote
+        try:
+            vm_nodes[int(r.get("vmid", 0))] = r["node"]
+        except (TypeError, ValueError, KeyError):
+            continue
+    return vm_nodes, node_remotes, cluster_remote
 
-    raise ValueError(f"VMID {vmid} nicht im Cluster gefunden")
+
+def _node_target(node_name: str, node_remotes: dict, cluster_remote: dict) -> tuple[str, dict]:
+    remote = node_remotes.get(node_name, cluster_remote)
+    return remote.get("host", cluster_remote.get("host", "")), remote
+
+
+def _resolve_node_for_vmid(vmid: int) -> tuple[str, str, dict]:
+    """Ermittelt via Cluster-API welcher Node den Container hat.
+    Gibt (host, node_name, remote) zurück.
+    """
+    vm_nodes, node_remotes, cluster_remote = _cluster_vm_map()
+    node_name = vm_nodes.get(vmid)
+    if node_name is None:
+        raise ValueError(f"VMID {vmid} nicht im Cluster gefunden")
+    host, remote = _node_target(node_name, node_remotes, cluster_remote)
+    return host, node_name, remote
 
 
 def _auth_headers(token_id: str, token_secret: str) -> dict:
@@ -174,24 +192,70 @@ def run():
         return
 
     # Ohne max_workers nimmt Python cpu_count()+4 – auf einem Vierkerner also
-    # acht gleichzeitige vzdump-Auftraege gegen dieselbe Proxmox-Installation.
+    # acht gleichzeitige vzdump-Auftraege. Das Limit gilt PRO NODE: verschiedene
+    # Nodes arbeiten unabhaengig voneinander, nur derselbe Node wird gedrosselt.
     try:
-        parallel = max(1, int(_get_module_setting(KEY, "max_parallel", 2)))
+        pro_node = max(1, int(_get_module_setting(KEY, "max_parallel", 2)))
     except (TypeError, ValueError):
-        parallel = 2
-    log("INFO", f"LXC: {len(jobs)} Eintrag/Eintraege, max. {parallel} gleichzeitig")
+        pro_node = 2
 
-    with ThreadPoolExecutor(max_workers=parallel) as executor:
-        futures = {
-            executor.submit(_run_single_job, j["item_id"], j["vmid"], j["name"]): j["name"]
-            for j in jobs
+    # Einmal aufloesen statt einmal pro VMID – und noetig, um vor dem Start
+    # nach Node gruppieren zu koennen.
+    try:
+        vm_nodes, node_remotes, cluster_remote = _cluster_vm_map()
+    except Exception as e:
+        log("ERROR", f"Cluster-Abfrage fehlgeschlagen: {e}")
+        for j in jobs:
+            _patch_item(KEY, j["item_id"], last_status="error")
+        return
+
+    nach_node: dict = {}
+    for j in jobs:
+        node = vm_nodes.get(j["vmid"])
+        if node is None:
+            log("ERROR", f"LXC '{j['name']}': VMID {j['vmid']} nicht im Cluster gefunden")
+            _patch_item(KEY, j["item_id"], last_status="error")
+            continue
+        j["host"], j["remote"] = _node_target(node, node_remotes, cluster_remote)
+        j["node"] = node
+        nach_node.setdefault(node, []).append(j)
+
+    if not nach_node:
+        return
+
+    log(
+        "INFO",
+        f"LXC: {sum(len(v) for v in nach_node.values())} Eintrag/Eintraege auf "
+        f"{len(nach_node)} Node(s), max. {pro_node} je Node",
+    )
+
+    def _node_abarbeiten(node: str, node_jobs: list):
+        """Arbeitet die Eintraege EINES Nodes mit hoechstens pro_node Threads ab."""
+        with ThreadPoolExecutor(max_workers=pro_node) as pool:
+            futures = {
+                pool.submit(_run_single_job, j["item_id"], j["vmid"], j["name"],
+                            j["host"], j["node"], j["remote"]): j["name"]
+                for j in node_jobs
+            }
+            for future in as_completed(futures):
+                name = futures[future]
+                try:
+                    future.result()
+                except Exception as e:
+                    log("ERROR", f"LXC '{name}': {e}")
+
+    # Ein Thread je Node, der seinen eigenen begrenzten Pool fuehrt.
+    with ThreadPoolExecutor(max_workers=len(nach_node)) as nodes:
+        node_futures = {
+            nodes.submit(_node_abarbeiten, node, node_jobs): node
+            for node, node_jobs in nach_node.items()
         }
-        for future in as_completed(futures):
-            name = futures[future]
+        for future in as_completed(node_futures):
+            node = node_futures[future]
             try:
                 future.result()
             except Exception as e:
-                log("ERROR", f"LXC '{name}': {e}")
+                log("ERROR", f"Node '{node}': {e}")
 
 
 def run_single(item_id, entry=None):
@@ -216,7 +280,7 @@ def run_single(item_id, entry=None):
         log("INFO", f"=== LXC '{name}' abgeschlossen ===")
 
 
-def _run_single_job(item_id, vmid: int, name: str):
+def _run_single_job(item_id, vmid: int, name: str, host=None, node=None, remote=None):
     from datetime import datetime
 
     from astrapi_core.system.runner import run_logged
@@ -225,13 +289,18 @@ def _run_single_job(item_id, vmid: int, name: str):
     # run_single(), deshalb fehlte der Spinner hier – anders als bei borg,
     # das ueber run_all(..., run_single) laeuft.
     _patch_item(KEY, item_id, last_status="running")
-    status = run_logged(KEY, str(item_id), name, lambda v=vmid, n=name: _backup_lxc(v, n))
+    ziel = (host, node, remote) if node else None
+    status = run_logged(
+        KEY, str(item_id), name, lambda v=vmid, n=name, z=ziel: _backup_lxc(v, n, z)
+    )
     _patch_item(KEY, item_id, last_run=datetime.now().strftime("%d.%m.%Y %H:%M"), last_status=status)
 
 
-def _backup_lxc(vmid: int, name: str) -> str:
+def _backup_lxc(vmid: int, name: str, ziel: tuple | None = None) -> str:
+    """ziel: (host, node_name, remote) falls bereits aufgeloest – run() gibt es
+    gebuendelt mit, run_single() loest einzeln auf."""
     try:
-        host, node_name, remote = _resolve_node_for_vmid(vmid)
+        host, node_name, remote = ziel if ziel else _resolve_node_for_vmid(vmid)
         log("INFO", f"LXC '{name}': Node {node_name} ({host})")
         upid = _trigger_vzdump(host, node_name, vmid, remote)
         log("INFO", f"LXC '{name}': Task gestartet ({upid})")

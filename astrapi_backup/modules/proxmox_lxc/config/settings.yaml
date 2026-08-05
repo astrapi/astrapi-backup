@@ -37,14 +37,14 @@ fields:
     cols: 2
 
   - key: max_parallel
-    label: Gleichzeitige Sicherungen
+    label: Gleichzeitige Sicherungen je Node
     type: number
     min: 1
     max: 16
     default: 2
     description: >
-      Wie viele LXC-Sicherungen der Scheduler gleichzeitig anstößt. Ohne
-      Begrenzung startete Python so viele wie CPU-Kerne plus vier — auf einem
-      Vierkerner also acht auf einmal.
+      Wie viele LXC-Sicherungen gleichzeitig auf demselben Proxmox-Node laufen.
+      Verschiedene Nodes arbeiten unabhängig voneinander: bei 2 und drei Nodes
+      laufen also bis zu sechs gleichzeitig, zwei je Node.
 
 
