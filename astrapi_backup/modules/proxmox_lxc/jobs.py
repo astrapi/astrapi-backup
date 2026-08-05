@@ -290,9 +290,18 @@ def _run_single_job(item_id, vmid: int, name: str, host=None, node=None, remote=
     # das ueber run_all(..., run_single) laeuft.
     _patch_item(KEY, item_id, last_status="running")
     ziel = (host, node, remote) if node else None
-    status = run_logged(
-        KEY, str(item_id), name, lambda v=vmid, n=name, z=ziel: _backup_lxc(v, n, z)
-    )
+
+    def _mit_rahmen(v=vmid, n=name, z=ziel):
+        # Dieselben Rahmenzeilen wie run_single(). Ohne sie sieht derselbe
+        # Vorgang im Log unterschiedlich aus, je nachdem ob er von Hand oder
+        # vom Scheduler ausgeloest wurde – das macht jede Suche unnoetig schwer.
+        log("INFO", f"=== LXC '{n}' gestartet ===")
+        try:
+            return _backup_lxc(v, n, z)
+        finally:
+            log("INFO", f"=== LXC '{n}' abgeschlossen ===")
+
+    status = run_logged(KEY, str(item_id), name, _mit_rahmen)
     _patch_item(KEY, item_id, last_run=datetime.now().strftime("%d.%m.%Y %H:%M"), last_status=status)
 
 
