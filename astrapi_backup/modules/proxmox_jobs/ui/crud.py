@@ -22,7 +22,7 @@ def _resolve_fields(fields: list) -> list:
 
 
 def fetch_available_jobs() -> list[dict]:
-    """Gibt PBS-Jobs aller proxmox_host-Remotes zurück, die noch nicht registriert sind.
+    """Gibt PBS-Jobs aller proxmox_client-Remotes zurück, die noch nicht registriert sind.
 
     Fragt je Remote verify-job, sync-job und prune-job ab und filtert
     bereits eingetragene (remote_id, type, job)-Kombinationen heraus.

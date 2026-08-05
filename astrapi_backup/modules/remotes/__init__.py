@@ -83,7 +83,7 @@ module = load_modul(
                     "borg_target": {"label": "Borg Target", "cls": "badge-live"},
                     "rsync": {"label": "Rsync", "cls": "badge-live"},
                     "proxmox_node": {"label": "Proxmox Node", "cls": "badge-warn"},
-                    "proxmox_host": {"label": "Proxmox Host", "cls": "badge-warn"},
+                    "proxmox_client": {"label": "Proxmox Client", "cls": "badge-warn"},
                     "proxmox_backup": {"label": "Proxmox Backup", "cls": "badge-muted"},
                 },
             ),

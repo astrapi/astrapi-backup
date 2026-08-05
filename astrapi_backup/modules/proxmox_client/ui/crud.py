@@ -32,7 +32,7 @@ def _derive_description(payload: dict) -> dict:
 def _available_host_options(exclude_ids: set[str] | None = None) -> list[dict]:
     from astrapi_backup.modules.remotes.service import get_all_remotes_for_select
 
-    remotes = get_all_remotes_for_select(type_filter="proxmox_host", include_local=False)
+    remotes = get_all_remotes_for_select(type_filter="proxmox_client", include_local=False)
     return sorted(
         [
             {"value": r["id"], "label": r["label"]}
@@ -76,7 +76,7 @@ def create_modal(request: Request):
             {
                 "name": "remote_id",
                 "type": "select",
-                "label": "Proxmox Host",
+                "label": "Proxmox Client",
                 "options": options,
                 "row": 1,
             },
@@ -87,7 +87,7 @@ def create_modal(request: Request):
     else:
         schema = []
         error = (
-            "Keine Remote-Geräte mit dem Typ »Proxmox Host« konfiguriert. "
+            "Keine Remote-Geräte mit dem Typ »Proxmox Client« konfiguriert. "
             "Bitte zuerst ein Remote-Gerät mit diesem Typ anlegen."
         )
     return render(

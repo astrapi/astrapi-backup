@@ -196,6 +196,39 @@ def _run_column_migrations() -> None:
             pass  # Spalte existiert bereits
 
 
+# Umbenannte Werte in Spalten: (Tabelle, Spalte, alt, neu)
+_VALUE_RENAMES = [
+    ("remotes", "types", "proxmox_host", "proxmox_client"),
+]
+
+
+def _run_value_renames() -> None:
+    """Zieht umbenannte Auswahl-Werte in bestehenden Zeilen nach.
+
+    `types` ist ein list_field, also '\\n'-getrennt. Ein einfaches replace()
+    genuegt, weil kein anderer Typ-Wert 'proxmox_host' als Teilzeichenkette
+    enthaelt – proxmox_node und proxmox_backup sind eigenstaendig.
+    """
+    from astrapi_core.system.db import _conn
+
+    con = _conn()
+    for table, column, old, new in _VALUE_RENAMES:
+        try:
+            cur = con.execute(
+                f'UPDATE "{table}" SET "{column}" = replace("{column}", ?, ?) '
+                f'WHERE "{column}" LIKE ?',
+                (old, new, f"%{old}%"),
+            )
+            con.commit()
+            if cur.rowcount:
+                log.info(
+                    "DB-Migration: %d Zeile(n) in %s.%s von %s auf %s umgestellt",
+                    cur.rowcount, table, column, old, new,
+                )
+        except Exception as e:
+            log.warning("DB-Migration: %s.%s %s → %s: %s", table, column, old, new, e)
+
+
 def _run_scheduler_step_renames() -> None:
     """Zieht umbenannte Modul-Keys in gespeicherten Scheduler-Schritten nach.
 
@@ -232,6 +265,7 @@ def init_db() -> None:
     _run_table_renames()          # vor dem Anlegen: sonst ist das Ziel schon da
     create_all_registered_tables()
     _run_column_migrations()      # nach dem Anlegen: braucht die Tabellen
+    _run_value_renames()
     _run_scheduler_step_renames()
 
     # Beim Start kann nichts laufen: was noch auf "running" steht, stammt aus

@@ -80,8 +80,8 @@ fields:
         label: Rsync
       - value: proxmox_node
         label: Proxmox Node
-      - value: proxmox_host
-        label: Proxmox Host
+      - value: proxmox_client
+        label: Proxmox Client
       - value: proxmox_backup
         label: Proxmox Backup
 
