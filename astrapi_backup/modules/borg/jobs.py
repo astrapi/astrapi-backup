@@ -1,6 +1,5 @@
 # modules/borg/jobs.py
 import os
-import shlex
 import subprocess
 from datetime import datetime
 
@@ -85,7 +84,7 @@ def preview(job_id) -> list[dict]:
     # Borg Backup
     compression = _s("compression", "auto,zstd")
     base_cmd = [
-        "BORG_PASSPHRASE=***",
+        "BORG_PASSPHRASE_FD=0",
         _borg_bin_for(entry.get("source_remote_id")),
         "create",
         "--verbose",
@@ -115,7 +114,7 @@ def preview(job_id) -> list[dict]:
     keep_yearly = _s("keep_yearly", "5")
     keep_within = _s("keep_within", "7")
     prune_cmd = [
-        "BORG_PASSPHRASE=***",
+        "BORG_PASSPHRASE_FD=0",
         _borg_bin_for(entry.get("source_remote_id")),
         "prune",
         f"--keep-daily={keep_daily}",
@@ -131,7 +130,7 @@ def preview(job_id) -> list[dict]:
     # Borg Compact
     if _s("compact_after_prune", "1") in ("1", "true", True):
         compact_cmd = [
-            "BORG_PASSPHRASE=***",
+            "BORG_PASSPHRASE_FD=0",
             _borg_bin_for(entry.get("source_remote_id")),
             "compact",
             repo,
@@ -223,6 +222,16 @@ def run_single(job_id, entry=None):
 
 
 def _hook(phase: str, entry, host: str, ssh_user: str, ssh_connect_timeout: int = 10) -> str:
+    """Führt einen benutzerdefinierten Pre-/Post-Hook aus.
+
+    cmd ist freier, vom Nutzer eingetragener Shell-Text und kann $BORG_PASSPHRASE
+    referenzieren. Anders als beim eigentlichen Borg-Aufruf gibt es hier kein
+    "_FD"-Flag eines bekannten Tools -- die Passphrase wird deshalb per stdin
+    in die gesendete Shell-Zeile exportiert, bevor der Hook läuft. Funktioniert
+    lokal wie remote identisch, da kein SSH-Env-Forwarding nötig ist.
+    Einschränkung: liest der Hook selbst von stdin, kollidiert das -- bei
+    typischen Backup-Hooks (systemctl, mysqldump > datei) unwahrscheinlich.
+    """
     connection = build_connection_string(host, ssh_user)
     hooks = entry.get(phase) or []
     if isinstance(hooks, str):
@@ -230,8 +239,10 @@ def _hook(phase: str, entry, host: str, ssh_user: str, ssh_connect_timeout: int 
     cmd = "; ".join(hooks)
     if not cmd:
         return "ok"
+    passphrase = _borg_env()["BORG_PASSPHRASE"]
+    wrapped = f'BORG_PASSPHRASE="$(cat)"; export BORG_PASSPHRASE; {cmd}'
     try:
-        run_cmd(cmd, connection, env=_borg_env(), ssh_connect_timeout=ssh_connect_timeout)
+        run_cmd(wrapped, connection, stdin=passphrase, ssh_connect_timeout=ssh_connect_timeout)
         log("INFO", f"Hook '{phase}' erfolgreich")
         return "ok"
     except subprocess.CalledProcessError as e:
@@ -326,10 +337,14 @@ def _backup(
     if src_local:
         cmd = [*base_cmd, archive, src]
     else:
-        cmd = [f"BORG_PASSPHRASE={shlex.quote(env['BORG_PASSPHRASE'])}", *base_cmd, archive, src]
+        cmd = ["BORG_PASSPHRASE_FD=0", *base_cmd, archive, src]
 
     try:
-        run_cmd(cmd, connection, env=env, ssh_connect_timeout=ssh_connect_timeout)
+        if src_local:
+            run_cmd(cmd, connection, env=env, ssh_connect_timeout=ssh_connect_timeout)
+        else:
+            run_cmd(cmd, connection, stdin=env["BORG_PASSPHRASE"],
+                    ssh_connect_timeout=ssh_connect_timeout)
         log("INFO", "Borg-Backup erfolgreich.")
         return "ok"
     except subprocess.CalledProcessError as e:
@@ -388,10 +403,14 @@ def _prune(
     if src_local:
         cmd = [*base_cmd, repo]
     else:
-        cmd = [f"BORG_PASSPHRASE={shlex.quote(env['BORG_PASSPHRASE'])}", *base_cmd, repo]
+        cmd = ["BORG_PASSPHRASE_FD=0", *base_cmd, repo]
 
     try:
-        run_cmd(cmd, connection, env=env, ssh_connect_timeout=ssh_connect_timeout)
+        if src_local:
+            run_cmd(cmd, connection, env=env, ssh_connect_timeout=ssh_connect_timeout)
+        else:
+            run_cmd(cmd, connection, stdin=env["BORG_PASSPHRASE"],
+                    ssh_connect_timeout=ssh_connect_timeout)
         log("INFO", "Borg-Prune erfolgreich.")
         return "ok"
     except subprocess.CalledProcessError as e:
@@ -422,10 +441,14 @@ def _compact(
     if src_local:
         cmd = base_cmd
     else:
-        cmd = [f"BORG_PASSPHRASE={shlex.quote(env['BORG_PASSPHRASE'])}", *base_cmd]
+        cmd = ["BORG_PASSPHRASE_FD=0", *base_cmd]
 
     try:
-        run_cmd(cmd, connection, env=env, ssh_connect_timeout=ssh_connect_timeout)
+        if src_local:
+            run_cmd(cmd, connection, env=env, ssh_connect_timeout=ssh_connect_timeout)
+        else:
+            run_cmd(cmd, connection, stdin=env["BORG_PASSPHRASE"],
+                    ssh_connect_timeout=ssh_connect_timeout)
         log("INFO", "Borg-Compact erfolgreich.")
         return "ok"
     except subprocess.CalledProcessError as e:

@@ -55,10 +55,17 @@ def _repo_path(entry: dict) -> str:
     return path
 
 
-def _borg_cmd_str(cmd_args: list, env: dict) -> str:
-    """Baut einen sicheren Shell-Befehl mit gequoteten Argumenten."""
-    passphrase = env.get("BORG_PASSPHRASE", "")
-    parts = [f"BORG_PASSPHRASE={shlex.quote(passphrase)}", shlex.quote(_borg_bin())]
+def _borg_cmd_str(cmd_args: list, connection: str) -> str:
+    """Baut einen sicheren Shell-Befehl mit gequoteten Argumenten.
+
+    Lokal wirkt env=env am subprocess.run/Popen-Aufruf bereits korrekt, ein
+    Prefix ist dort unnötig. Remote leitet SSH die lokale Umgebung nicht
+    weiter -- die Passphrase kommt stattdessen per stdin über
+    BORG_PASSPHRASE_FD=0 (siehe run_cmd_remote() in astrapi-core), kein
+    Geheimnis mehr in argv (T-052).
+    """
+    prefix = ["BORG_PASSPHRASE_FD=0"] if connection != "local" else []
+    parts = [*prefix, shlex.quote(_borg_bin())]
     parts += [shlex.quote(a) for a in cmd_args]
     return " ".join(parts)
 
@@ -67,7 +74,7 @@ def _borg_run(
     cmd_args: list, connection: str, env: dict, timeout: int = 60
 ) -> subprocess.CompletedProcess:
     """Führt einen Borg-Befehl auf dem Ziel-Host aus (lokal oder per SSH)."""
-    cmd_str = _borg_cmd_str(cmd_args, env)
+    cmd_str = _borg_cmd_str(cmd_args, connection)
     if connection == "local":
         return subprocess.run(
             ["bash", "-c", cmd_str], capture_output=True, text=True, timeout=timeout, env=env
@@ -77,21 +84,27 @@ def _borg_run(
         capture_output=True,
         text=True,
         timeout=timeout,
+        input=env.get("BORG_PASSPHRASE", ""),
     )
 
 
 def _borg_popen(cmd_args: list, connection: str, env: dict) -> subprocess.Popen:
     """Öffnet einen Borg-Prozess auf dem Ziel-Host (für Streaming)."""
-    cmd_str = _borg_cmd_str(cmd_args, env)
+    cmd_str = _borg_cmd_str(cmd_args, connection)
     if connection == "local":
         return subprocess.Popen(
             ["bash", "-c", cmd_str], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env
         )
-    return subprocess.Popen(
+    proc = subprocess.Popen(
         ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", connection, cmd_str],
+        stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
+    # Popen laeuft hier im Bytes-Modus (kein text=True), daher encode().
+    proc.stdin.write(env.get("BORG_PASSPHRASE", "").encode())
+    proc.stdin.close()
+    return proc
 
 
 def _list_archives(repo_path: str, env: dict, connection: str = "local") -> tuple[list, str | None]:

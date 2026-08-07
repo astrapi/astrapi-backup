@@ -114,10 +114,10 @@ def preview(item_id) -> list[dict]:
 
     cmd_parts = [
         f"PBS_REPOSITORY={pbs['repository']}",
-        "PBS_PASSWORD=***",
+        "PBS_PASSWORD_FD=0",
         "PBS_FINGERPRINT=***",
         "sudo",
-        "--preserve-env=PBS_REPOSITORY,PBS_PASSWORD,PBS_FINGERPRINT",
+        "--preserve-env=PBS_REPOSITORY,PBS_PASSWORD_FD,PBS_FINGERPRINT",
         "/usr/bin/proxmox-backup-client",
         "backup",
         *pxar_sources,
@@ -198,7 +198,11 @@ def _backup(host, ssh_user: str, entry, pbs: dict, host_connect_timeout: int = 0
     namespace = "host"
     base_cmd = [
         "sudo",
-        "--preserve-env=PBS_REPOSITORY,PBS_PASSWORD,PBS_FINGERPRINT",
+        # PBS_PASSWORD_FD statt PBS_PASSWORD: die Passphrase kommt per stdin,
+        # nur die FD-Nummer landet in argv (T-052). Setzt voraus, dass die
+        # sudoers-Konfiguration auf dem Zielhost PBS_PASSWORD_FD durchlaesst
+        # (frueher war es PBS_PASSWORD an derselben Stelle).
+        "--preserve-env=PBS_REPOSITORY,PBS_PASSWORD_FD,PBS_FINGERPRINT",
         "/usr/bin/proxmox-backup-client",
         "backup",
         *pxar_sources,
@@ -217,13 +221,17 @@ def _backup(host, ssh_user: str, entry, pbs: dict, host_connect_timeout: int = 0
     else:
         cmd = [
             f"PBS_REPOSITORY={shlex.quote(env['PBS_REPOSITORY'])}",
-            f"PBS_PASSWORD={shlex.quote(env['PBS_PASSWORD'])}",
+            "PBS_PASSWORD_FD=0",
             f"PBS_FINGERPRINT={shlex.quote(env['PBS_FINGERPRINT'])}",
             *base_cmd,
         ]
 
     try:
-        run_cmd(cmd, connection, env=env, ssh_connect_timeout=ssh_connect_timeout)
+        if is_local(host):
+            run_cmd(cmd, connection, env=env, ssh_connect_timeout=ssh_connect_timeout)
+        else:
+            run_cmd(cmd, connection, stdin=env["PBS_PASSWORD"],
+                     ssh_connect_timeout=ssh_connect_timeout)
         log("INFO", f"Host-Backup '{host}' erfolgreich")
         return "ok"
     except subprocess.CalledProcessError as e:
