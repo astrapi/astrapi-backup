@@ -455,3 +455,107 @@ def _compact(
         log("WARNING", "Borg-Compact fehlgeschlagen")
         log("ERROR", e.stderr.strip() if e.stderr else "Unbekannter Fehler.")
         return "error"
+
+
+def _check(
+    entry,
+    source_host: str,
+    ssh_user: str,
+    target_host: str,
+    target_ssh_user: str = None,
+    ssh_connect_timeout: int = 10,
+) -> str:
+    """Prüft die Integrität des Repos (borg check), ohne Daten zu verändern."""
+    src_local = is_local(source_host)
+    connection = build_connection_string(source_host, ssh_user) if not src_local else "local"
+
+    env = _borg_env()
+    borg = _borg_bin_for(entry.get("source_remote_id"))
+
+    repo = _repo(
+        source_host, target_host, entry.get("target_path"), src_local, ssh_user, target_ssh_user
+    )
+    base_cmd = [borg, "check", repo]
+
+    max_duration = _s("check_max_duration", "")
+    if max_duration and str(max_duration) != "0":
+        base_cmd.append(f"--max-duration={max_duration}")
+
+    if src_local:
+        cmd = base_cmd
+    else:
+        cmd = ["BORG_PASSPHRASE_FD=0", *base_cmd]
+
+    try:
+        if src_local:
+            run_cmd(cmd, connection, env=env, ssh_connect_timeout=ssh_connect_timeout)
+        else:
+            run_cmd(cmd, connection, stdin=env["BORG_PASSPHRASE"],
+                    ssh_connect_timeout=ssh_connect_timeout)
+        log("INFO", "Borg-Check erfolgreich – Repo unbeschädigt.")
+        return "ok"
+    except subprocess.CalledProcessError as e:
+        # ERROR statt WARNING wie bei Prune/Compact: ein beschädigtes Repo ist
+        # kein leichtgewichtiges Problem, das man ignorieren kann.
+        log("ERROR", "Borg-Check fehlgeschlagen – Repo evtl. beschädigt")
+        log("ERROR", e.stderr.strip() if e.stderr else "Unbekannter Fehler.")
+        return "error"
+
+
+def check():
+    """Scheduler-Aktion: prüft alle konfigurierten Repos auf Integrität,
+    unabhängig vom regulären Backup-Lauf (T-059)."""
+    from astrapi_core.system.runner import run_all
+
+    return run_all(
+        "borg",
+        _get_config(),
+        check_single,
+        desc_fn=lambda _id, e: f"{e.get('description', _id)} – Integritätsprüfung",
+    )
+
+
+def check_single(job_id, entry=None):
+    """Führt borg check für einen einzelnen Eintrag aus.
+
+    Schreibt bewusst nicht last_status/last_run des Eintrags - das bleibt
+    der Status des letzten Backup-Laufs (run_single()); eine Prüfung ist
+    ein eigener Vorgang, kein Ersatz dafür. Der Erfolg landet stattdessen
+    wie bei jedem geloggten Lauf im Activity-Log (via run_logged() in
+    run_all(), oder direkt sichtbar wenn manuell ausgelöst).
+    """
+    if entry is None:
+        entry = _get_config().get(str(job_id))
+    if entry is None:
+        log("ERROR", f"Borg-Eintrag '{job_id}' nicht gefunden")
+        return
+
+    with log_context("borg", job_id):
+        log("INFO", f"=== Borg-Check '{entry.get('description', job_id)}' gestartet ===")
+
+        try:
+            source_host, ssh_user, ssh_port, source_connect_timeout = _get_host_info(
+                entry, "source"
+            )
+        except ValueError as e:
+            log("ERROR", str(e))
+            return
+
+        try:
+            target_host, target_ssh_user, target_ssh_port, _ = _get_host_info(entry, "target")
+        except ValueError:
+            target_host = None
+            target_ssh_user = None
+
+        src_local = is_local(source_host)
+        hosts = []
+        if not src_local:
+            hosts.append((source_host, ssh_user))
+        if target_host and not is_local(target_host):
+            hosts.append((target_host, target_ssh_user))
+        if not require_hosts(hosts):
+            return
+
+        _ct = source_connect_timeout or 10
+        _check(entry, source_host, ssh_user, target_host, target_ssh_user, _ct)
+        log("INFO", f"=== Borg-Check '{entry.get('description', job_id)}' abgeschlossen ===")

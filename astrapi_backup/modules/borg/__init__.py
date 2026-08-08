@@ -3,7 +3,7 @@ from pathlib import Path
 from astrapi_core.ui.controls import Col, ContentTable, Header
 from astrapi_core.ui.module_loader import load_modul
 
-from .jobs import run, run_single  # re-export fuer api/routers/run.py
+from .jobs import check, run, run_single  # re-export fuer api/routers/run.py
 from .ui.archives import router
 from .ui.crud import router as ui_router
 
@@ -56,5 +56,8 @@ try:
     from astrapi_core.modules.scheduler.engine import register_action
 
     register_action(f"{_KEY}.run", "Borg: Backup ausführen", run, source=_KEY, source_label="Borg")
+    register_action(
+        f"{_KEY}.check", "Borg: Integrität prüfen", check, source=_KEY, source_label="Borg"
+    )
 except Exception:
     pass

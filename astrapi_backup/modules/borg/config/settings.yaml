@@ -110,3 +110,14 @@ fields:
     checkbox_label: Speicher nach Prune freigeben (borg compact)
     default: "1"
     description: "Borg compact nach Prune ausführen um Speicherplatz freizugeben (empfohlen für Borg ≥ 1.2)"
+
+  - type: section
+    label: Integritätsprüfung
+    cols: 1
+
+  - key: check_max_duration
+    label: Max. Dauer (Sekunden)
+    type: number
+    default: ""
+    placeholder: "z.B. 3600"
+    description: "Begrenzt 'borg check' per --max-duration; Borg setzt beim nächsten Lauf dort fort, wo die Zeit abgelaufen ist. Leer = vollständige Prüfung, kann bei großen Repos lange dauern."
