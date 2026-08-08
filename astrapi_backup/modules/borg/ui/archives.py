@@ -35,23 +35,24 @@ _file_cache_building: set[tuple[str, str]] = set()
 _file_cache_building_lock = threading.Lock()
 
 
-def _get_target_info(entry: dict) -> tuple[str, str]:
-    """Gibt (ssh_connection, lokaler_repo_pfad) zurück für Borg-Befehle auf dem Ziel-Host."""
+def _get_target_info(entry: dict) -> tuple[str, str, int]:
+    """Gibt (ssh_connection, lokaler_repo_pfad, ssh_port) zurück für Borg-Befehle
+    auf dem Ziel-Host."""
     try:
-        # target_host, target_ssh_user, _ = _job_get_host_info(entry, "target")
-        target_host, target_ssh_user, _, _ct = _job_get_host_info(entry, "target")
+        target_host, target_ssh_user, target_ssh_port, _ct = _job_get_host_info(entry, "target")
     except ValueError:
         target_host = None
         target_ssh_user = None
+        target_ssh_port = None
     target_path = entry.get("target_path", "")
     if not target_host or is_local(target_host):
-        return "local", target_path
-    return build_connection_string(target_host, target_ssh_user), target_path
+        return "local", target_path, None
+    return build_connection_string(target_host, target_ssh_user), target_path, target_ssh_port
 
 
 def _repo_path(entry: dict) -> str:
     """Repo-Pfad für Anzeige."""
-    _, path = _get_target_info(entry)
+    _, path, _ = _get_target_info(entry)
     return path
 
 
@@ -70,8 +71,15 @@ def _borg_cmd_str(cmd_args: list, connection: str) -> str:
     return " ".join(parts)
 
 
+def _ssh_prefix(ssh_port: int = None) -> list:
+    cmd = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10"]
+    if ssh_port and int(ssh_port) != 22:
+        cmd += ["-p", str(ssh_port)]
+    return cmd
+
+
 def _borg_run(
-    cmd_args: list, connection: str, env: dict, timeout: int = 60
+    cmd_args: list, connection: str, env: dict, timeout: int = 60, ssh_port: int = None
 ) -> subprocess.CompletedProcess:
     """Führt einen Borg-Befehl auf dem Ziel-Host aus (lokal oder per SSH)."""
     cmd_str = _borg_cmd_str(cmd_args, connection)
@@ -80,7 +88,7 @@ def _borg_run(
             ["bash", "-c", cmd_str], capture_output=True, text=True, timeout=timeout, env=env
         )
     return subprocess.run(
-        ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", connection, cmd_str],
+        [*_ssh_prefix(ssh_port), connection, cmd_str],
         capture_output=True,
         text=True,
         timeout=timeout,
@@ -88,7 +96,7 @@ def _borg_run(
     )
 
 
-def _borg_popen(cmd_args: list, connection: str, env: dict) -> subprocess.Popen:
+def _borg_popen(cmd_args: list, connection: str, env: dict, ssh_port: int = None) -> subprocess.Popen:
     """Öffnet einen Borg-Prozess auf dem Ziel-Host (für Streaming)."""
     cmd_str = _borg_cmd_str(cmd_args, connection)
     if connection == "local":
@@ -96,7 +104,7 @@ def _borg_popen(cmd_args: list, connection: str, env: dict) -> subprocess.Popen:
             ["bash", "-c", cmd_str], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env
         )
     proc = subprocess.Popen(
-        ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", connection, cmd_str],
+        [*_ssh_prefix(ssh_port), connection, cmd_str],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -107,9 +115,11 @@ def _borg_popen(cmd_args: list, connection: str, env: dict) -> subprocess.Popen:
     return proc
 
 
-def _list_archives(repo_path: str, env: dict, connection: str = "local") -> tuple[list, str | None]:
+def _list_archives(
+    repo_path: str, env: dict, connection: str = "local", ssh_port: int = None
+) -> tuple[list, str | None]:
     try:
-        r = _borg_run(["list", "--json", repo_path], connection, env)
+        r = _borg_run(["list", "--json", repo_path], connection, env, ssh_port=ssh_port)
         if r.returncode == 0:
             archives = json.loads(r.stdout).get("archives", [])
             archives.sort(key=lambda a: a.get("time", ""), reverse=True)
@@ -120,10 +130,13 @@ def _list_archives(repo_path: str, env: dict, connection: str = "local") -> tupl
 
 
 def _load_archive_entries(
-    repo_path: str, archive: str, env: dict, timeout: int = 60, connection: str = "local"
+    repo_path: str, archive: str, env: dict, timeout: int = 60, connection: str = "local",
+    ssh_port: int = None,
 ) -> list[dict]:
     try:
-        r = _borg_run(["list", "--json-lines", f"{repo_path}::{archive}"], connection, env, timeout)
+        r = _borg_run(
+            ["list", "--json-lines", f"{repo_path}::{archive}"], connection, env, timeout, ssh_port
+        )
         if r.returncode != 0:
             log(
                 "WARNING",
@@ -176,11 +189,11 @@ def _validate_path_in_cache(item_id: str, archive: str, path: str) -> None:
 
 
 def _repo_info(
-    repo_path: str, env: dict, connection: str = "local"
+    repo_path: str, env: dict, connection: str = "local", ssh_port: int = None
 ) -> tuple[dict | None, str | None]:
     """Ruft borg info --json für ein Repo auf und gibt das geparste Dict zurück."""
     try:
-        r = _borg_run(["info", "--json", repo_path], connection, env)
+        r = _borg_run(["info", "--json", repo_path], connection, env, ssh_port=ssh_port)
         if r.returncode == 0:
             return json.loads(r.stdout), None
         return None, r.stderr.strip()
@@ -295,8 +308,8 @@ def refresh_archives(item_id: str, request: Request):
     if entry is None:
         raise HTTPException(404, "Item not found")
     env = _borg_env()
-    connection, repo = _get_target_info(entry)
-    archives, live_error = _list_archives(repo, env, connection)
+    connection, repo, ssh_port = _get_target_info(entry)
+    archives, live_error = _list_archives(repo, env, connection, ssh_port)
     if not live_error and archives:
         cached_at = save_archive_list_cache(item_id, archives)
         error = None
@@ -334,8 +347,8 @@ def browse_archive(item_id: str, archive: str, request: Request, path: str = "")
         cached = False
     if not entries and not cached:
         env = _borg_env()
-        connection, repo = _get_target_info(entry)
-        entries = _load_archive_entries(repo, archive, env, connection=connection)
+        connection, repo, ssh_port = _get_target_info(entry)
+        entries = _load_archive_entries(repo, archive, env, connection=connection, ssh_port=ssh_port)
         if entries:
             key = (item_id, archive)
             with _file_cache_building_lock:
@@ -393,11 +406,13 @@ def download_archive_file(item_id: str, archive: str, path: str):
     clean = _sanitize_path(path)
     _validate_path_in_cache(item_id, archive, clean)
     env = _borg_env()
-    connection, repo = _get_target_info(entry)
+    connection, repo, ssh_port = _get_target_info(entry)
     filename = PurePosixPath(clean).name
 
     def _stream():
-        proc = _borg_popen(["extract", "--stdout", f"{repo}::{archive}", clean], connection, env)
+        proc = _borg_popen(
+            ["extract", "--stdout", f"{repo}::{archive}", clean], connection, env, ssh_port
+        )
         try:
             while chunk := proc.stdout.read(65536):
                 yield chunk
@@ -427,7 +442,7 @@ def download_bundle(item_id: str, archive: str, path: list[str] = Query(default=
     if entry is None:
         raise HTTPException(404, "Item not found")
     env = _borg_env()
-    connection, repo = _get_target_info(entry)
+    connection, repo, ssh_port = _get_target_info(entry)
 
     clean = []
     for p in path:
@@ -452,7 +467,9 @@ def download_bundle(item_id: str, archive: str, path: list[str] = Query(default=
         filename = f"{archive}.tar"
 
     def _stream():
-        proc = _borg_popen(["extract", "--stdout", f"{repo}::{archive}", *clean], connection, env)
+        proc = _borg_popen(
+            ["extract", "--stdout", f"{repo}::{archive}", *clean], connection, env, ssh_port
+        )
         try:
             while chunk := proc.stdout.read(65536):
                 yield chunk
@@ -550,8 +567,8 @@ def refresh_stats(item_id: str, request: Request):
     if entry is None:
         raise HTTPException(404, "Item not found")
     env = _borg_env()
-    connection, repo = _get_target_info(entry)
-    info, live_error = _repo_info(repo, env, connection)
+    connection, repo, ssh_port = _get_target_info(entry)
+    info, live_error = _repo_info(repo, env, connection, ssh_port)
     if info:
         cached_at = save_stats_cache(item_id, info)
         error = None

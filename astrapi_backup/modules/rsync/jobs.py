@@ -51,10 +51,11 @@ def preview(job_id) -> list[dict]:
 
     connection = build_connection_string(source_host, ssh_user)
 
-    if is_local(target_host) or target_host == source_host:
-        target = target_path
-    else:
+    target_is_remote = not is_local(target_host) and target_host != source_host
+    if target_is_remote:
         target = f"{target_host}:{target_path}"
+    else:
+        target = target_path
 
     # SSH ConnectTimeout: per-device bevorzugen, dann globaler Fallback
     ssh_connect_timeout = source_connect_timeout or int(
@@ -69,13 +70,17 @@ def preview(job_id) -> list[dict]:
         cmd_parts.append("--delete")
     if rsync_compress:
         cmd_parts.append("-z")
+    if target_is_remote and target_ssh_port and int(target_ssh_port) != 22:
+        cmd_parts += ["--rsh", f"ssh -p {target_ssh_port}"]
     cmd_str = " ".join(cmd_parts)
 
     if connection == "local":
         full_cmd = cmd_str
     else:
+        port_flag = f" -p {ssh_port}" if ssh_port and int(ssh_port) != 22 else ""
         full_cmd = (
-            f"ssh -o BatchMode=yes -o ConnectTimeout={ssh_connect_timeout} {connection} '{cmd_str}'"
+            f"ssh -o BatchMode=yes -o ConnectTimeout={ssh_connect_timeout}{port_flag} "
+            f"{connection} '{cmd_str}'"
         )
 
     return [{"label": "Rsync", "cmd": full_cmd}]
@@ -125,13 +130,19 @@ def run_single(job_id, entry=None):
             return
 
         hosts = [
-            (h, u)
-            for h, u in [(source_host, ssh_user), (target_host, target_ssh_user)]
+            (h, u, p)
+            for h, u, p in [
+                (source_host, ssh_user, ssh_port),
+                (target_host, target_ssh_user, target_ssh_port),
+            ]
             if h and not is_local(h)
         ]
         if not require_hosts(hosts):
             return
-        status, output = _rsync(entry, source_host, ssh_user, target_host, source_connect_timeout)
+        status, output = _rsync(
+            entry, source_host, ssh_user, target_host, source_connect_timeout,
+            ssh_port, target_ssh_port,
+        )
         from datetime import datetime
 
         _patch_item(
@@ -145,7 +156,8 @@ def run_single(job_id, entry=None):
 
 
 def _rsync(
-    entry, source_host: str, ssh_user: str, target_host: str, source_connect_timeout: int = 0
+    entry, source_host: str, ssh_user: str, target_host: str, source_connect_timeout: int = 0,
+    ssh_port: int = None, target_ssh_port: int = None,
 ):
     source_path = entry.get("source_path", "")
     target_path = entry.get("target_path", "")
@@ -176,10 +188,11 @@ def _rsync(
     rsync_compress = _get_module_setting("rsync", "rsync_compress", False)
 
     # Ziel: lokal, gleicher Host wie Source, oder remote
-    if is_local(target_host) or target_host == source_host:
-        target = target_path
-    else:
+    target_is_remote = not is_local(target_host) and target_host != source_host
+    if target_is_remote:
         target = f"{target_host}:{target_path}"
+    else:
+        target = target_path
 
     src_label = source_path if connection == "local" else f"{connection}:{source_path}"
     log("INFO", f"Quelle : {src_label}")
@@ -190,11 +203,16 @@ def _rsync(
         cmd.append("--delete")
     if rsync_compress:
         cmd.append("-z")
+    if target_is_remote and target_ssh_port and int(target_ssh_port) != 22:
+        # rsync verbindet sich fuer das Ziel selbst per SSH (unabhaengig von der
+        # aeusseren run_cmd()-Verbindung zum Source-Host) - der Port muss ihm
+        # deshalb separat mitgegeben werden.
+        cmd += ["--rsh", f"ssh -p {target_ssh_port}"]
 
     log("INFO", f"Befehl : {' '.join(cmd)}")
 
     try:
-        result = run_cmd(cmd, connection, ssh_connect_timeout=ssh_connect_timeout)
+        result = run_cmd(cmd, connection, ssh_connect_timeout=ssh_connect_timeout, ssh_port=ssh_port)
         output = result.stdout or ""
         for line in output.splitlines():
             if line.strip():

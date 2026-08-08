@@ -135,8 +135,10 @@ def preview(item_id) -> list[dict]:
     if connection == "local":
         full_cmd = cmd_str
     else:
+        port_flag = f" -p {ssh_port}" if ssh_port and int(ssh_port) != 22 else ""
         full_cmd = (
-            f"ssh -o BatchMode=yes -o ConnectTimeout={ssh_connect_timeout} {connection} '{cmd_str}'"
+            f"ssh -o BatchMode=yes -o ConnectTimeout={ssh_connect_timeout}{port_flag} "
+            f"{connection} '{cmd_str}'"
         )
 
     return [{"label": "proxmox-backup-client", "cmd": full_cmd}]
@@ -166,9 +168,9 @@ def run_single(item_id, entry=None):
             return
 
         log("INFO", f"=== Host '{entry.get('description', host)}' gestartet ===")
-        if not require_hosts([host], user=ssh_user):
+        if not require_hosts([(host, ssh_user, ssh_port)]):
             return
-        status = _backup(host, ssh_user, entry, pbs, host_connect_timeout)
+        status = _backup(host, ssh_user, entry, pbs, host_connect_timeout, ssh_port)
         from datetime import datetime
 
         _patch_item(
@@ -180,7 +182,9 @@ def run_single(item_id, entry=None):
         log("INFO", f"=== Host '{entry.get('description', host)}' abgeschlossen ===")
 
 
-def _backup(host, ssh_user: str, entry, pbs: dict, host_connect_timeout: int = 0) -> str:
+def _backup(
+    host, ssh_user: str, entry, pbs: dict, host_connect_timeout: int = 0, ssh_port: int = None
+) -> str:
     connection = build_connection_string(host, ssh_user)
 
     pxar_sources = _default_sources()
@@ -231,7 +235,7 @@ def _backup(host, ssh_user: str, entry, pbs: dict, host_connect_timeout: int = 0
             run_cmd(cmd, connection, env=env, ssh_connect_timeout=ssh_connect_timeout)
         else:
             run_cmd(cmd, connection, stdin=env["PBS_PASSWORD"],
-                     ssh_connect_timeout=ssh_connect_timeout)
+                     ssh_connect_timeout=ssh_connect_timeout, ssh_port=ssh_port)
         log("INFO", f"Host-Backup '{host}' erfolgreich")
         return "ok"
     except subprocess.CalledProcessError as e:

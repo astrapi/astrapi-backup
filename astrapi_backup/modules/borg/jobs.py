@@ -55,7 +55,8 @@ def preview(job_id) -> list[dict]:
     src_local = is_local(source_host)
     archive_name = datetime.now().strftime("%Y%m%d_%H%M%S")
     repo = _repo(
-        source_host, target_host, entry.get("target_path"), src_local, ssh_user, target_ssh_user
+        source_host, target_host, entry.get("target_path"), src_local, ssh_user,
+        target_ssh_user, target_ssh_port,
     )
     archive = f"{repo}::{archive_name}"
     src = f"{entry.get('source_path')}/./"
@@ -66,7 +67,8 @@ def preview(job_id) -> list[dict]:
         cmd_str = " ".join(parts) if isinstance(parts, list) else parts
         if connection == "local":
             return cmd_str
-        return f"ssh -o BatchMode=yes -o ConnectTimeout={_ct} {connection} '{cmd_str}'"
+        port_flag = f" -p {ssh_port}" if ssh_port and int(ssh_port) != 22 else ""
+        return f"ssh -o BatchMode=yes -o ConnectTimeout={_ct}{port_flag} {connection} '{cmd_str}'"
 
     conn = "local" if src_local else build_connection_string(source_host, ssh_user)
 
@@ -177,9 +179,9 @@ def run_single(job_id, entry=None):
         src_local = is_local(source_host)
         hosts = []
         if not src_local:
-            hosts.append((source_host, ssh_user))
+            hosts.append((source_host, ssh_user, ssh_port))
         if target_host and not is_local(target_host):
-            hosts.append((target_host, target_ssh_user))
+            hosts.append((target_host, target_ssh_user, target_ssh_port))
         if not require_hosts(hosts):
             _patch_item(
                 "borg",
@@ -191,13 +193,14 @@ def run_single(job_id, entry=None):
         _ct = source_connect_timeout or 10
         status = "ok"
         if entry.get("pre"):
-            status = _worst(status, _hook("pre", entry, source_host, ssh_user, _ct))
+            status = _worst(status, _hook("pre", entry, source_host, ssh_user, _ct, ssh_port))
         backup_status = _backup(
-            entry, source_host, ssh_user, target_host, target_ssh_user, _ct
+            entry, source_host, ssh_user, target_host, target_ssh_user, _ct,
+            ssh_port, target_ssh_port,
         )
         status = _worst(status, backup_status)
         if entry.get("post"):
-            status = _worst(status, _hook("post", entry, source_host, ssh_user, _ct))
+            status = _worst(status, _hook("post", entry, source_host, ssh_user, _ct, ssh_port))
         # Retention nur wenn ein neues Archiv entstanden ist. Sonst würde prune
         # alte Archive nach Schema löschen, ohne dass Ersatz existiert (T-053).
         # RC=1 (= "warning") ist ein gültiges Archiv, da läuft prune weiter.
@@ -205,12 +208,19 @@ def run_single(job_id, entry=None):
             log("WARNING", "Prune/Compact übersprungen – Backup fehlgeschlagen")
         else:
             status = _worst(
-                status, _prune(entry, source_host, ssh_user, target_host, target_ssh_user, _ct)
+                status,
+                _prune(
+                    entry, source_host, ssh_user, target_host, target_ssh_user, _ct,
+                    ssh_port, target_ssh_port,
+                ),
             )
             if _s("compact_after_prune", "1") in ("1", "true", True):
                 status = _worst(
                     status,
-                    _compact(entry, source_host, ssh_user, target_host, target_ssh_user, _ct),
+                    _compact(
+                        entry, source_host, ssh_user, target_host, target_ssh_user, _ct,
+                        ssh_port, target_ssh_port,
+                    ),
                 )
         from astrapi_backup.modules.borg import cache as _cache
 
@@ -221,7 +231,10 @@ def run_single(job_id, entry=None):
         log("INFO", f"=== Borg '{entry.get('description', job_id)}' abgeschlossen ===")
 
 
-def _hook(phase: str, entry, host: str, ssh_user: str, ssh_connect_timeout: int = 10) -> str:
+def _hook(
+    phase: str, entry, host: str, ssh_user: str, ssh_connect_timeout: int = 10,
+    ssh_port: int = None,
+) -> str:
     """Führt einen benutzerdefinierten Pre-/Post-Hook aus.
 
     cmd ist freier, vom Nutzer eingetragener Shell-Text und kann $BORG_PASSPHRASE
@@ -242,7 +255,8 @@ def _hook(phase: str, entry, host: str, ssh_user: str, ssh_connect_timeout: int 
     passphrase = _borg_env()["BORG_PASSPHRASE"]
     wrapped = f'BORG_PASSPHRASE="$(cat)"; export BORG_PASSPHRASE; {cmd}'
     try:
-        run_cmd(wrapped, connection, stdin=passphrase, ssh_connect_timeout=ssh_connect_timeout)
+        run_cmd(wrapped, connection, stdin=passphrase, ssh_connect_timeout=ssh_connect_timeout,
+                ssh_port=ssh_port)
         log("INFO", f"Hook '{phase}' erfolgreich")
         return "ok"
     except subprocess.CalledProcessError as e:
@@ -280,6 +294,7 @@ def _repo(
     src_local: bool = False,
     ssh_user: str = None,
     target_ssh_user: str = None,
+    target_ssh_port: int = None,
 ) -> str:
     """
     Borg-Repository-Pfad aus Sicht des ausführenden Hosts (source_host).
@@ -288,13 +303,23 @@ def _repo(
     source lokal  + target remote  →  target_ssh_user@target:/pfad
     source remote + target lokal   →  ssh_user@backup01.fqdn:/pfad
     source remote + target remote  →  target_ssh_user@target:/pfad
+
+    Bei Nicht-Standard-Port fuer das Ziel wird auf die "ssh://"-Repo-URL-Form
+    umgestellt (T-051) - das kurze "user@host:pfad"-Format kennt keinen Port.
+    Bei Port 22/None bleibt es beim bisherigen Format, damit bestehende
+    Repo-Adressierungen unveraendert bleiben.
     """
     if is_local(target_host):
         if src_local or is_local(source_host):
             return target_path
         else:
+            # Ziel ist "wir selbst" - der Port eines Remote-Eintrags passt hier
+            # nicht (das ist nicht der Port des lokalen Servers), bewusst
+            # unveraendert gelassen.
             return f"{ssh_user}@{_local_fqdn()}:{target_path}"
     else:
+        if target_ssh_port and int(target_ssh_port) != 22:
+            return f"ssh://{target_ssh_user}@{target_host}:{target_ssh_port}{target_path}"
         return f"{target_ssh_user}@{target_host}:{target_path}"
 
 
@@ -305,6 +330,8 @@ def _backup(
     target_host: str,
     target_ssh_user: str = None,
     ssh_connect_timeout: int = 10,
+    ssh_port: int = None,
+    target_ssh_port: int = None,
 ) -> str:
     src_local = is_local(source_host)
     connection = build_connection_string(source_host, ssh_user) if not src_local else "local"
@@ -314,7 +341,8 @@ def _backup(
     borg = _borg_bin_for(entry.get("source_remote_id"))
 
     repo = _repo(
-        source_host, target_host, entry.get("target_path"), src_local, ssh_user, target_ssh_user
+        source_host, target_host, entry.get("target_path"), src_local, ssh_user,
+        target_ssh_user, target_ssh_port,
     )
     archive = f"{repo}::{archive_name}"
     src = f"{entry.get('source_path')}/./"
@@ -344,7 +372,7 @@ def _backup(
             run_cmd(cmd, connection, env=env, ssh_connect_timeout=ssh_connect_timeout)
         else:
             run_cmd(cmd, connection, stdin=env["BORG_PASSPHRASE"],
-                    ssh_connect_timeout=ssh_connect_timeout)
+                    ssh_connect_timeout=ssh_connect_timeout, ssh_port=ssh_port)
         log("INFO", "Borg-Backup erfolgreich.")
         return "ok"
     except subprocess.CalledProcessError as e:
@@ -372,6 +400,8 @@ def _prune(
     target_host: str,
     target_ssh_user: str = None,
     ssh_connect_timeout: int = 10,
+    ssh_port: int = None,
+    target_ssh_port: int = None,
 ) -> str:
     src_local = is_local(source_host)
     connection = build_connection_string(source_host, ssh_user) if not src_local else "local"
@@ -380,7 +410,8 @@ def _prune(
     borg = _borg_bin_for(entry.get("source_remote_id"))
 
     repo = _repo(
-        source_host, target_host, entry.get("target_path"), src_local, ssh_user, target_ssh_user
+        source_host, target_host, entry.get("target_path"), src_local, ssh_user,
+        target_ssh_user, target_ssh_port,
     )
 
     keep_daily = _s("keep_daily", "7")
@@ -410,7 +441,7 @@ def _prune(
             run_cmd(cmd, connection, env=env, ssh_connect_timeout=ssh_connect_timeout)
         else:
             run_cmd(cmd, connection, stdin=env["BORG_PASSPHRASE"],
-                    ssh_connect_timeout=ssh_connect_timeout)
+                    ssh_connect_timeout=ssh_connect_timeout, ssh_port=ssh_port)
         log("INFO", "Borg-Prune erfolgreich.")
         return "ok"
     except subprocess.CalledProcessError as e:
@@ -426,6 +457,8 @@ def _compact(
     target_host: str,
     target_ssh_user: str = None,
     ssh_connect_timeout: int = 10,
+    ssh_port: int = None,
+    target_ssh_port: int = None,
 ) -> str:
     src_local = is_local(source_host)
     connection = build_connection_string(source_host, ssh_user) if not src_local else "local"
@@ -434,7 +467,8 @@ def _compact(
     borg = _borg_bin_for(entry.get("source_remote_id"))
 
     repo = _repo(
-        source_host, target_host, entry.get("target_path"), src_local, ssh_user, target_ssh_user
+        source_host, target_host, entry.get("target_path"), src_local, ssh_user,
+        target_ssh_user, target_ssh_port,
     )
     base_cmd = [borg, "compact", repo]
 
@@ -448,7 +482,7 @@ def _compact(
             run_cmd(cmd, connection, env=env, ssh_connect_timeout=ssh_connect_timeout)
         else:
             run_cmd(cmd, connection, stdin=env["BORG_PASSPHRASE"],
-                    ssh_connect_timeout=ssh_connect_timeout)
+                    ssh_connect_timeout=ssh_connect_timeout, ssh_port=ssh_port)
         log("INFO", "Borg-Compact erfolgreich.")
         return "ok"
     except subprocess.CalledProcessError as e:
@@ -464,6 +498,8 @@ def _check(
     target_host: str,
     target_ssh_user: str = None,
     ssh_connect_timeout: int = 10,
+    ssh_port: int = None,
+    target_ssh_port: int = None,
 ) -> str:
     """Prüft die Integrität des Repos (borg check), ohne Daten zu verändern."""
     src_local = is_local(source_host)
@@ -473,7 +509,8 @@ def _check(
     borg = _borg_bin_for(entry.get("source_remote_id"))
 
     repo = _repo(
-        source_host, target_host, entry.get("target_path"), src_local, ssh_user, target_ssh_user
+        source_host, target_host, entry.get("target_path"), src_local, ssh_user,
+        target_ssh_user, target_ssh_port,
     )
     base_cmd = [borg, "check", repo]
 
@@ -491,7 +528,7 @@ def _check(
             run_cmd(cmd, connection, env=env, ssh_connect_timeout=ssh_connect_timeout)
         else:
             run_cmd(cmd, connection, stdin=env["BORG_PASSPHRASE"],
-                    ssh_connect_timeout=ssh_connect_timeout)
+                    ssh_connect_timeout=ssh_connect_timeout, ssh_port=ssh_port)
         log("INFO", "Borg-Check erfolgreich – Repo unbeschädigt.")
         return "ok"
     except subprocess.CalledProcessError as e:
@@ -550,12 +587,15 @@ def check_single(job_id, entry=None):
         src_local = is_local(source_host)
         hosts = []
         if not src_local:
-            hosts.append((source_host, ssh_user))
+            hosts.append((source_host, ssh_user, ssh_port))
         if target_host and not is_local(target_host):
-            hosts.append((target_host, target_ssh_user))
+            hosts.append((target_host, target_ssh_user, target_ssh_port))
         if not require_hosts(hosts):
             return
 
         _ct = source_connect_timeout or 10
-        _check(entry, source_host, ssh_user, target_host, target_ssh_user, _ct)
+        _check(
+            entry, source_host, ssh_user, target_host, target_ssh_user, _ct,
+            ssh_port, target_ssh_port,
+        )
         log("INFO", f"=== Borg-Check '{entry.get('description', job_id)}' abgeschlossen ===")

@@ -56,6 +56,7 @@ def wait_for_single(item_id, timeout: int = 300, interval: int = 10):
         return
     host     = entry.get("host", "").strip()
     ssh_user = entry.get("ssh_user") or "root"
+    ssh_port = entry.get("ssh_port")
     desc     = entry.get("host", str(item_id))
     if not host:
         log.warning("Remote '%s': kein Hostname konfiguriert", desc)
@@ -63,7 +64,7 @@ def wait_for_single(item_id, timeout: int = 300, interval: int = 10):
     deadline = time.monotonic() + timeout
     log.info("Remote '%s' (%s): warte auf SSH-Erreichbarkeit (max %ds) …", desc, host, timeout)
     while time.monotonic() < deadline:
-        if check_ssh(host, ssh_user):
+        if check_ssh(host, ssh_user, ssh_port=ssh_port):
             log.info("Remote '%s' (%s): erreichbar", desc, host)
             return
         time.sleep(interval)
@@ -79,17 +80,18 @@ def poweroff_single(item_id):
         return
     host     = entry.get("host", "").strip()
     ssh_user = entry.get("ssh_user") or "root"
+    ssh_port = entry.get("ssh_port")
     desc     = entry.get("host", str(item_id))
     if not host:
         log.warning("Remote '%s': kein Hostname konfiguriert", desc)
         return
     poweroff_cmd = entry.get("poweroff_cmd") or "sudo shutdown -h now"
+    ssh_cmd = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10"]
+    if ssh_port and int(ssh_port) != 22:
+        ssh_cmd += ["-p", str(ssh_port)]
+    ssh_cmd += [f"{ssh_user}@{host}", poweroff_cmd]
     try:
-        subprocess.run(
-            ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10",
-             f"{ssh_user}@{host}", poweroff_cmd],
-            check=True, timeout=30,
-        )
+        subprocess.run(ssh_cmd, check=True, timeout=30)
         log.info("Remote '%s' (%s@%s): Shutdown-Befehl gesendet", desc, ssh_user, host)
     except subprocess.TimeoutExpired:
         log.error("Remote '%s': SSH-Verbindung zu %s hat das Timeout überschritten", desc, host)
