@@ -9,6 +9,7 @@ from astrapi_core.system.db import get_entry as _get_entry
 from astrapi_core.system.db import load_config as _load_config
 from astrapi_core.system.db import patch_item as _patch_item
 from astrapi_core.system.logger import log, log_context
+from astrapi_core.system.runner import worst_status as _worst
 from astrapi_core.ui.settings_registry import get_module as _get_module_setting
 
 KEY = "proxmox_lxc"
@@ -181,7 +182,7 @@ def preview(item_id) -> list[dict]:
     return [{"label": "vzdump (API)", "cmd": cmd}]
 
 
-def run():
+def run() -> str:
     config = _get_config()
     jobs = [
         {"item_id": item_id, "vmid": int(e["vmid"]), "name": e.get("description", item_id)}
@@ -189,7 +190,7 @@ def run():
         if e.get("enabled") and e.get("vmid") is not None
     ]
     if not jobs:
-        return
+        return "ok"
 
     # Ohne max_workers nimmt Python cpu_count()+4 – auf einem Vierkerner also
     # acht gleichzeitige vzdump-Auftraege. Das Limit gilt PRO NODE: verschiedene
@@ -207,14 +208,16 @@ def run():
         log("ERROR", f"Cluster-Abfrage fehlgeschlagen: {e}")
         for j in jobs:
             _patch_item(KEY, j["item_id"], last_status="error")
-        return
+        return "error"
 
+    overall = "ok"
     nach_node: dict = {}
     for j in jobs:
         node = vm_nodes.get(j["vmid"])
         if node is None:
             log("ERROR", f"LXC '{j['name']}': VMID {j['vmid']} nicht im Cluster gefunden")
             _patch_item(KEY, j["item_id"], last_status="error")
+            overall = _worst(overall, "error")
             continue
         j["host"], j["remote"] = _node_target(node, node_remotes, cluster_remote)
         j["node"] = node
@@ -228,7 +231,7 @@ def run():
         nach_node.setdefault(node, []).append(j)
 
     if not nach_node:
-        return
+        return overall
 
     log(
         "INFO",
@@ -236,8 +239,10 @@ def run():
         f"{len(nach_node)} Node(s), max. {pro_node} je Node",
     )
 
-    def _node_abarbeiten(node: str, node_jobs: list):
-        """Arbeitet die Eintraege EINES Nodes mit hoechstens pro_node Threads ab."""
+    def _node_abarbeiten(node: str, node_jobs: list) -> str:
+        """Arbeitet die Eintraege EINES Nodes mit hoechstens pro_node Threads ab.
+        Gibt den schlechtesten Status ueber alle Eintraege dieses Nodes zurueck (T-056)."""
+        node_status = "ok"
         with ThreadPoolExecutor(max_workers=pro_node) as pool:
             futures = {
                 pool.submit(_run_single_job, j["item_id"], j["vmid"], j["name"],
@@ -247,9 +252,11 @@ def run():
             for future in as_completed(futures):
                 name = futures[future]
                 try:
-                    future.result()
+                    node_status = _worst(node_status, future.result())
                 except Exception as e:
                     log("ERROR", f"LXC '{name}': {e}")
+                    node_status = _worst(node_status, "error")
+        return node_status
 
     # Ein Thread je Node, der seinen eigenen begrenzten Pool fuehrt.
     with ThreadPoolExecutor(max_workers=len(nach_node)) as nodes:
@@ -260,9 +267,12 @@ def run():
         for future in as_completed(node_futures):
             node = node_futures[future]
             try:
-                future.result()
+                overall = _worst(overall, future.result())
             except Exception as e:
                 log("ERROR", f"Node '{node}': {e}")
+                overall = _worst(overall, "error")
+
+    return overall
 
 
 def run_single(item_id, entry=None):
@@ -310,6 +320,7 @@ def _run_single_job(item_id, vmid: int, name: str, host=None, node=None, remote=
 
     status = run_logged(KEY, str(item_id), name, _mit_rahmen)
     _patch_item(KEY, item_id, last_run=datetime.now().strftime("%d.%m.%Y %H:%M"), last_status=status)
+    return status
 
 
 def _backup_lxc(vmid: int, name: str, ziel: tuple | None = None) -> str:
