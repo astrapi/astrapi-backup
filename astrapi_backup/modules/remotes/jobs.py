@@ -15,7 +15,9 @@ import subprocess
 import time
 import logging
 
-log = logging.getLogger(__name__)
+from astrapi_core.system.logger import log, log_context
+
+_logger = logging.getLogger(__name__)
 
 
 def _get_config():
@@ -24,79 +26,98 @@ def _get_config():
 
 
 # ── Einzelaktionen ─────────────────────────────────────────────────────────────
+# Alle drei geben "ok"/"error" zurueck (T-055): vorher fiel bei jedem Fehler
+# (Eintrag fehlt, kein Host konfiguriert, SSH-Timeout, wakeonlan fehlgeschlagen)
+# die Funktion einfach durch und gab implizit None zurueck - fuer den Scheduler
+# ununterscheidbar von Erfolg. Job-Status, Benachrichtigung ("abgeschlossen"
+# statt "fehlgeschlagen") und Activity-Log waren dadurch falsch. Nachfolgende
+# Steps im selben Job werden dadurch weiterhin nicht gestoppt (siehe G-018) -
+# nur der gemeldete Status ist jetzt wahrheitsgemaess. Ausserdem log_context()
+# + core.system.log() statt logging.getLogger(), damit die Meldungen im
+# Activity-Log der App landen statt nur im Server-Journal (analog borg/rsync).
 
 def wake_single(item_id):
     """Sendet ein Wake-on-LAN Magic Packet an einen bestimmten Eintrag."""
     from astrapi_core.system.db import get_item
-    entry = get_item("remotes", item_id)
-    if entry is None:
-        log.error("Remote-Gerät '%s' nicht gefunden", item_id)
-        return
-    mac  = entry.get("mac", "").strip()
-    desc = entry.get("host", str(item_id))
-    if not mac:
-        log.warning("Remote '%s': keine MAC-Adresse konfiguriert", desc)
-        return
-    try:
-        subprocess.run(["wakeonlan", mac], check=True, timeout=10)
-        log.info("Remote '%s' (%s): Magic Packet gesendet", desc, mac)
-    except FileNotFoundError:
-        log.error("Remote '%s': wakeonlan nicht gefunden – bitte installieren", desc)
-    except subprocess.CalledProcessError as ex:
-        log.error("Remote '%s': Wake-on-LAN fehlgeschlagen: %s", desc, ex)
+    with log_context("remotes", item_id):
+        entry = get_item("remotes", item_id)
+        if entry is None:
+            log("ERROR", f"Remote-Gerät '{item_id}' nicht gefunden")
+            return "error"
+        mac  = entry.get("mac", "").strip()
+        desc = entry.get("host", str(item_id))
+        if not mac:
+            log("WARNING", f"Remote '{desc}': keine MAC-Adresse konfiguriert")
+            return "error"
+        try:
+            subprocess.run(["wakeonlan", mac], check=True, timeout=10)
+            log("INFO", f"Remote '{desc}' ({mac}): Magic Packet gesendet")
+            return "ok"
+        except FileNotFoundError:
+            log("ERROR", f"Remote '{desc}': wakeonlan nicht gefunden – bitte installieren")
+            return "error"
+        except subprocess.CalledProcessError as ex:
+            log("ERROR", f"Remote '{desc}': Wake-on-LAN fehlgeschlagen: {ex}")
+            return "error"
 
 
 def wait_for_single(item_id, timeout: int = 300, interval: int = 10):
     """Blockiert bis das Remote-Gerät per SSH erreichbar ist (oder Timeout abläuft)."""
     from astrapi_core.system.db import get_item
     from astrapi_core.system.reachability import check_ssh
-    entry = get_item("remotes", item_id)
-    if entry is None:
-        log.error("Remote-Gerät '%s' nicht gefunden", item_id)
-        return
-    host     = entry.get("host", "").strip()
-    ssh_user = entry.get("ssh_user") or "root"
-    ssh_port = entry.get("ssh_port")
-    desc     = entry.get("host", str(item_id))
-    if not host:
-        log.warning("Remote '%s': kein Hostname konfiguriert", desc)
-        return
-    deadline = time.monotonic() + timeout
-    log.info("Remote '%s' (%s): warte auf SSH-Erreichbarkeit (max %ds) …", desc, host, timeout)
-    while time.monotonic() < deadline:
-        if check_ssh(host, ssh_user, ssh_port=ssh_port):
-            log.info("Remote '%s' (%s): erreichbar", desc, host)
-            return
-        time.sleep(interval)
-    log.error("Remote '%s' (%s): nach %ds nicht erreichbar – Timeout", desc, host, timeout)
+    with log_context("remotes", item_id):
+        entry = get_item("remotes", item_id)
+        if entry is None:
+            log("ERROR", f"Remote-Gerät '{item_id}' nicht gefunden")
+            return "error"
+        host     = entry.get("host", "").strip()
+        ssh_user = entry.get("ssh_user") or "root"
+        ssh_port = entry.get("ssh_port")
+        desc     = entry.get("host", str(item_id))
+        if not host:
+            log("WARNING", f"Remote '{desc}': kein Hostname konfiguriert")
+            return "error"
+        deadline = time.monotonic() + timeout
+        log("INFO", f"Remote '{desc}' ({host}): warte auf SSH-Erreichbarkeit (max {timeout}s) …")
+        while time.monotonic() < deadline:
+            if check_ssh(host, ssh_user, ssh_port=ssh_port):
+                log("INFO", f"Remote '{desc}' ({host}): erreichbar")
+                return "ok"
+            time.sleep(interval)
+        log("ERROR", f"Remote '{desc}' ({host}): nach {timeout}s nicht erreichbar – Timeout")
+        return "error"
 
 
 def poweroff_single(item_id):
     """Fährt ein bestimmtes Remote-Gerät per SSH herunter."""
     from astrapi_core.system.db import get_item
-    entry = get_item("remotes", item_id)
-    if entry is None:
-        log.error("Remote-Gerät '%s' nicht gefunden", item_id)
-        return
-    host     = entry.get("host", "").strip()
-    ssh_user = entry.get("ssh_user") or "root"
-    ssh_port = entry.get("ssh_port")
-    desc     = entry.get("host", str(item_id))
-    if not host:
-        log.warning("Remote '%s': kein Hostname konfiguriert", desc)
-        return
-    poweroff_cmd = entry.get("poweroff_cmd") or "sudo shutdown -h now"
-    ssh_cmd = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10"]
-    if ssh_port and int(ssh_port) != 22:
-        ssh_cmd += ["-p", str(ssh_port)]
-    ssh_cmd += [f"{ssh_user}@{host}", poweroff_cmd]
-    try:
-        subprocess.run(ssh_cmd, check=True, timeout=30)
-        log.info("Remote '%s' (%s@%s): Shutdown-Befehl gesendet", desc, ssh_user, host)
-    except subprocess.TimeoutExpired:
-        log.error("Remote '%s': SSH-Verbindung zu %s hat das Timeout überschritten", desc, host)
-    except subprocess.CalledProcessError as ex:
-        log.error("Remote '%s': Poweroff fehlgeschlagen: %s", desc, ex)
+    with log_context("remotes", item_id):
+        entry = get_item("remotes", item_id)
+        if entry is None:
+            log("ERROR", f"Remote-Gerät '{item_id}' nicht gefunden")
+            return "error"
+        host     = entry.get("host", "").strip()
+        ssh_user = entry.get("ssh_user") or "root"
+        ssh_port = entry.get("ssh_port")
+        desc     = entry.get("host", str(item_id))
+        if not host:
+            log("WARNING", f"Remote '{desc}': kein Hostname konfiguriert")
+            return "error"
+        poweroff_cmd = entry.get("poweroff_cmd") or "sudo shutdown -h now"
+        ssh_cmd = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10"]
+        if ssh_port and int(ssh_port) != 22:
+            ssh_cmd += ["-p", str(ssh_port)]
+        ssh_cmd += [f"{ssh_user}@{host}", poweroff_cmd]
+        try:
+            subprocess.run(ssh_cmd, check=True, timeout=30)
+            log("INFO", f"Remote '{desc}' ({ssh_user}@{host}): Shutdown-Befehl gesendet")
+            return "ok"
+        except subprocess.TimeoutExpired:
+            log("ERROR", f"Remote '{desc}': SSH-Verbindung zu {host} hat das Timeout überschritten")
+            return "error"
+        except subprocess.CalledProcessError as ex:
+            log("ERROR", f"Remote '{desc}': Poweroff fehlgeschlagen: {ex}")
+            return "error"
 
 
 # ── Scheduler-Registrierung ────────────────────────────────────────────────────
@@ -131,7 +152,7 @@ def register_item_actions(item_id, entry: dict) -> None:
             source_label="Remote-Geräte",
         )
     except Exception as e:
-        log.debug("Remotes: Scheduler-Aktionen für '%s' nicht registriert: %s", item_id, e)
+        _logger.debug("Remotes: Scheduler-Aktionen für '%s' nicht registriert: %s", item_id, e)
 
 
 def unregister_item_actions(item_id) -> None:
@@ -143,7 +164,7 @@ def unregister_item_actions(item_id) -> None:
         _actions.pop(f"remotes.wait.{iid}",     None)
         _actions.pop(f"remotes.poweroff.{iid}", None)
     except Exception as e:
-        log.debug("Remotes: Scheduler-Aktionen für '%s' nicht abgemeldet: %s", item_id, e)
+        _logger.debug("Remotes: Scheduler-Aktionen für '%s' nicht abgemeldet: %s", item_id, e)
 
 
 def sync_all_item_actions() -> None:
@@ -152,4 +173,4 @@ def sync_all_item_actions() -> None:
         for item_id, entry in _get_config().items():
             register_item_actions(item_id, entry)
     except Exception as e:
-        log.debug("Remotes: Sync der Scheduler-Aktionen fehlgeschlagen: %s", e)
+        _logger.debug("Remotes: Sync der Scheduler-Aktionen fehlgeschlagen: %s", e)
