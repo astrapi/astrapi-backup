@@ -95,14 +95,24 @@ def run_intern():
     from astrapi_core.system.runner import run_all
 
     items = {k: v for k, v in _get_config().items() if v.get("type") == "intern"}
-    return run_all("rsync", items, run_single)
+    return run_all(
+        "rsync",
+        items,
+        run_single,
+        mark_pending_fn=lambda iid, e: _patch_item("rsync", iid, last_status="pending"),
+    )
 
 
 def run_extern():
     from astrapi_core.system.runner import run_all
 
     items = {k: v for k, v in _get_config().items() if v.get("type") == "extern"}
-    return run_all("rsync", items, run_single)
+    return run_all(
+        "rsync",
+        items,
+        run_single,
+        mark_pending_fn=lambda iid, e: _patch_item("rsync", iid, last_status="pending"),
+    )
 
 
 def run_single(job_id, entry=None):

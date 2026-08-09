@@ -155,7 +155,13 @@ def preview(item_id) -> list[dict]:
 def run():
     from astrapi_core.system.runner import run_all
 
-    return run_all(KEY, _get_config(), run_single, desc_fn=lambda iid, e: e.get("job", iid))
+    return run_all(
+        KEY,
+        _get_config(),
+        run_single,
+        desc_fn=lambda iid, e: e.get("job", iid),
+        mark_pending_fn=lambda iid, e: _patch_item(KEY, iid, last_status="pending"),
+    )
 
 
 def run_by_type(job_type: str):
@@ -163,7 +169,13 @@ def run_by_type(job_type: str):
     from astrapi_core.system.runner import run_all
 
     filtered = {iid: e for iid, e in _get_config().items() if e.get("type") == job_type}
-    return run_all(KEY, filtered, run_single, desc_fn=lambda iid, e: e.get("job", iid))
+    return run_all(
+        KEY,
+        filtered,
+        run_single,
+        desc_fn=lambda iid, e: e.get("job", iid),
+        mark_pending_fn=lambda iid, e: _patch_item(KEY, iid, last_status="pending"),
+    )
 
 
 def run_single(item_id, job=None):

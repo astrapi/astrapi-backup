@@ -147,7 +147,12 @@ def preview(item_id) -> list[dict]:
 def run():
     from astrapi_core.system.runner import run_all
 
-    return run_all("proxmox_client", _get_config(), run_single)
+    return run_all(
+        "proxmox_client",
+        _get_config(),
+        run_single,
+        mark_pending_fn=lambda iid, e: _patch_item("proxmox_client", iid, last_status="pending"),
+    )
 
 
 def run_single(item_id, entry=None):

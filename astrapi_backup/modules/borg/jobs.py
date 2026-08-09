@@ -145,7 +145,12 @@ def preview(job_id) -> list[dict]:
 def run():
     from astrapi_core.system.runner import run_all
 
-    return run_all("borg", _get_config(), run_single)
+    return run_all(
+        "borg",
+        _get_config(),
+        run_single,
+        mark_pending_fn=lambda iid, e: _patch_item("borg", iid, last_status="pending"),
+    )
 
 
 def run_single(job_id, entry=None):

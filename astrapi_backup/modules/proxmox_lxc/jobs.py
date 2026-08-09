@@ -192,6 +192,12 @@ def run() -> str:
     if not jobs:
         return "ok"
 
+    # Ganze Liste vorab als eingeplant markieren – anders als bei run_all()
+    # (borg etc.) geht dieser Pfad nicht ueber dessen mark_pending_fn, weil
+    # run() hier komplett eigenstaendig ist (Cluster-Aufloesung + Node-Pools).
+    for j in jobs:
+        _patch_item(KEY, j["item_id"], last_status="pending")
+
     # Ohne max_workers nimmt Python cpu_count()+4 – auf einem Vierkerner also
     # acht gleichzeitige vzdump-Auftraege. Das Limit gilt PRO NODE: verschiedene
     # Nodes arbeiten unabhaengig voneinander, nur derselbe Node wird gedrosselt.
