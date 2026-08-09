@@ -58,8 +58,8 @@ module = load_modul(
                 "type",
                 "Typ",
                 {
-                    "intern": {"label": "Intern", "cls": "badge-live"},
-                    "extern": {"label": "Extern", "cls": "badge-live"},
+                    "intern": {"label": "Intern", "cls": "badge-blue"},
+                    "extern": {"label": "Extern", "cls": "badge-blue"},
                 },
             ),
             Col.remote_path("source_remote_id", "source_path", "Quelle"),
