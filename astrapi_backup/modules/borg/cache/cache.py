@@ -71,9 +71,9 @@ def _run(item_id: str, entry: dict, lock: threading.Lock) -> None:
         from astrapi_backup.modules.borg.utils import borg_env as _borg_env
 
         env = _borg_env()
-        connection, repo = _get_target_info(entry)
+        connection, repo, ssh_port = _get_target_info(entry)
 
-        archives, error = _list_archives(repo, env, connection)
+        archives, error = _list_archives(repo, env, connection, ssh_port)
         if error or not archives:
             log("WARNING", f"[cache] Archivliste nicht abrufbar: {error}")
             return
@@ -101,7 +101,7 @@ def _run(item_id: str, entry: dict, lock: threading.Lock) -> None:
 
             def _load_one(archive_name: str) -> tuple[str, list]:
                 entries = _load_archive_entries(
-                    repo, archive_name, env, timeout=600, connection=connection
+                    repo, archive_name, env, timeout=600, connection=connection, ssh_port=ssh_port
                 )
                 slim = [{k: e[k] for k in _NEEDED_FIELDS if k in e} for e in entries]
                 log("INFO", f"[cache] {archive_name}: {len(slim)} Einträge gecacht")
@@ -120,7 +120,7 @@ def _run(item_id: str, entry: dict, lock: threading.Lock) -> None:
 
             save_archive_cache_incremental(item_id, archives, file_map)
 
-        info, _ = _repo_info(repo, env, connection)
+        info, _ = _repo_info(repo, env, connection, ssh_port)
         if info:
             save_stats_cache(item_id, info)
             log("INFO", f"[cache] Statistiken für Job {item_id} gecacht")
