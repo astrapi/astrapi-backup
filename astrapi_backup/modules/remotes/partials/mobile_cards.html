@@ -1,0 +1,34 @@
+{#
+  remotes/partials/mobile_cards.html
+  Mobile-Karten für Remote-Geräte -- kein Run/Status (has_run_buttons=False,
+  has_status=False in astrapi_backup.modules.remotes), stattdessen ein
+  optionaler Power-On-Button (card_actions, nur wenn mac gesetzt ist).
+#}
+{% import 'partials/components/mobile_card_macros.html' as mc %}
+
+{% set _type_labels = {
+  'borg_source': 'Borg Source', 'borg_target': 'Borg Target', 'rsync': 'Rsync',
+  'proxmox_node': 'Proxmox Node', 'proxmox_client': 'Proxmox Client', 'proxmox_backup': 'Proxmox Backup',
+} %}
+
+{% if cfg %}
+  {% for item_id, item in cfg.items() %}
+    {% set _t_names = [] %}
+    {% for t in item.get('types') or [] %}{% set _t_names = _t_names + [_type_labels.get(t, t)] %}{% endfor %}
+    {% call mc.m_card(item.get('description') or item_id, enabled=item.get('enabled', True)) %}
+      {{ mc.m_card_row('Typen', _t_names | join(', ')) }}
+      {{ mc.m_card_row('Host', item.get('host')) }}
+      {{ mc.m_card_row('SSH-Benutzer', item.get('ssh_user')) }}
+      {{ mc.m_card_row('MAC', item.get('mac')) }}
+    {% endcall %}
+    {% call mc.m_card_footer() %}
+      {{ mc.m_card_actions_default(module, item_id, item, container_id, loading_id, card_actions=_card_actions) }}
+    {% endcall %}
+  {% endfor %}
+{% else %}
+  <div class="empty-state">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor" stroke="none"><use href="#icon-file-text"></use></svg>
+    <div class="empty-state-title">Keine Einträge vorhanden</div>
+    <div class="empty-state-sub">Erstelle den ersten Eintrag mit „Neu"</div>
+  </div>
+{% endif %}

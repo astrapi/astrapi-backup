@@ -1,0 +1,26 @@
+{#
+  proxmox_jobs/partials/mobile_cards.html
+  Mobile-Karten für Proxmox-Jobs (vzdump/sync/verify/prune).
+#}
+{% import 'partials/components/mobile_card_macros.html' as mc %}
+
+{% set _type_labels = {'vzdump': 'Backup', 'sync': 'Sync', 'verify': 'Verify', 'prune': 'Prune'} %}
+
+{% if cfg %}
+  {% for item_id, item in cfg.items() %}
+    {% call mc.m_card(item.get('description') or item_id, status=item.get('last_status'), enabled=item.get('enabled', True)) %}
+      {{ mc.m_card_row('Typ', _type_labels.get(item.get('type'), item.get('type'))) }}
+      {{ mc.m_card_row('Host', resolve_remote_host(item.get('remote_id')) if item.get('remote_id') else none) }}
+      {{ mc.m_card_row('Letzter Lauf', item.get('last_run')) }}
+    {% endcall %}
+    {% call mc.m_card_footer() %}
+      {{ mc.m_card_actions_default(module, item_id, item, container_id, loading_id, card_actions=_card_actions) }}
+    {% endcall %}
+  {% endfor %}
+{% else %}
+  <div class="empty-state">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor" stroke="none"><use href="#icon-file-text"></use></svg>
+    <div class="empty-state-title">Keine Einträge vorhanden</div>
+    <div class="empty-state-sub">Erstelle den ersten Eintrag mit „Neu"</div>
+  </div>
+{% endif %}
