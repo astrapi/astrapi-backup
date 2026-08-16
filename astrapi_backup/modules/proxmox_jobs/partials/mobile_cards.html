@@ -8,13 +8,11 @@
 
 {% if cfg %}
   {% for item_id, item in cfg.items() %}
-    {% call mc.m_card(item.get('description') or item_id, status=item.get('last_status'), enabled=item.get('enabled', True)) %}
+    {% set _footer %}{{ mc.m_card_actions_default(module, item_id, item, container_id, loading_id, card_actions=_card_actions) }}{% endset %}
+    {% call mc.m_card(item.get('description') or item_id, status=item.get('last_status'), enabled=item.get('enabled', True), footer=_footer) %}
       {{ mc.m_card_row('Typ', _type_labels.get(item.get('type'), item.get('type'))) }}
       {{ mc.m_card_row('Host', resolve_remote_host(item.get('remote_id')) if item.get('remote_id') else none) }}
       {{ mc.m_card_row('Letzter Lauf', item.get('last_run')) }}
-    {% endcall %}
-    {% call mc.m_card_footer() %}
-      {{ mc.m_card_actions_default(module, item_id, item, container_id, loading_id, card_actions=_card_actions) }}
     {% endcall %}
   {% endfor %}
 {% else %}

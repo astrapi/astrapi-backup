@@ -15,14 +15,14 @@
   {% for item_id, item in cfg.items() %}
     {% set _t_names = [] %}
     {% for t in item.get('types') or [] %}{% set _t_names = _t_names + [_type_labels.get(t, t)] %}{% endfor %}
-    {% call mc.m_card(item.get('description') or item_id, enabled=item.get('enabled', True)) %}
+    {% set _title = item.get('description') or item.get('host') or item_id %}
+    {% set _footer %}{{ mc.m_card_actions_default(module, item_id, item, container_id, loading_id, card_actions=_card_actions) }}{% endset %}
+    {% call mc.m_card(_title, enabled=item.get('enabled', True), footer=_footer) %}
       {{ mc.m_card_row('Typen', _t_names | join(', ')) }}
-      {{ mc.m_card_row('Host', item.get('host')) }}
+      {# Host nur als eigene Zeile, wenn er nicht schon der Titel ist (sonst doppelt). #}
+      {% if _title != item.get('host') %}{{ mc.m_card_row('Host', item.get('host')) }}{% endif %}
       {{ mc.m_card_row('SSH-Benutzer', item.get('ssh_user')) }}
       {{ mc.m_card_row('MAC', item.get('mac')) }}
-    {% endcall %}
-    {% call mc.m_card_footer() %}
-      {{ mc.m_card_actions_default(module, item_id, item, container_id, loading_id, card_actions=_card_actions) }}
     {% endcall %}
   {% endfor %}
 {% else %}

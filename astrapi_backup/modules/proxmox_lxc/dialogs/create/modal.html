@@ -6,10 +6,14 @@
 {% block form_attrs %}hx-indicator="#{{ loading_id }}" onsubmit="return !!document.getElementById('lxc-vmid').value"{% endblock %}
 
 {% block dialog_body %}
+  {# siehe proxmox_jobs/dialogs/create/modal.html: verhindert, dass dieser
+     Nachlade-Request faelschlich als Formular-Submit erkannt wird und das
+     Modal vorzeitig schliesst. #}
   <div hx-get="/ui/proxmox_lxc/available-select"
        hx-trigger="load"
        hx-target="this"
-       hx-swap="outerHTML">
+       hx-swap="outerHTML"
+       hx-on::after-request="event.stopPropagation()">
     <div style="display:flex; align-items:center; gap:8px; color:var(--text-3); font-size:13px; padding:6px 0;">
       <span style="display:inline-block; width:14px; height:14px; border:2px solid var(--border-1,#ccc); border-top-color:var(--accent,#4a9eff); border-radius:50%; animation:lxc-spin .7s linear infinite;"></span>
       Verfügbare Container werden geladen…

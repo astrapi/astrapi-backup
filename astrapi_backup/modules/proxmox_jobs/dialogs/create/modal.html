@@ -6,10 +6,15 @@
 {% block form_attrs %}hx-indicator="#{{ loading_id }}" onsubmit="return !!document.getElementById('pjobs-job').value"{% endblock %}
 
 {% block dialog_body %}
+  {# hx-on::after-request stoppt die Bubbling-Kette explizit: sonst faengt
+     dialog_form.html's Auto-Close-Guard (per event.detail.elt) dieses
+     Nachladen mit ab, weil "load" schon waehrend des Oeffnens feuert und die
+     beiden Request-Lifecycles ineinanderlaufen. #}
   <div hx-get="/ui/proxmox_jobs/available-select"
        hx-trigger="load"
        hx-target="this"
-       hx-swap="outerHTML">
+       hx-swap="outerHTML"
+       hx-on::after-request="event.stopPropagation()">
     <div style="display:flex; align-items:center; gap:8px; color:var(--text-3); font-size:13px; padding:6px 0;">
       <span style="display:inline-block; width:14px; height:14px; border:2px solid var(--border-1,#ccc); border-top-color:var(--accent,#4a9eff); border-radius:50%; animation:pjobs-spin .7s linear infinite;"></span>
       Verfügbare Jobs werden geladen…
