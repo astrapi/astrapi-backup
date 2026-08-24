@@ -9,6 +9,7 @@ from astrapi_core.system.db import get_entry as _get_entry
 from astrapi_core.system.db import load_config as _load_config
 from astrapi_core.system.db import patch_item as _patch_item
 from astrapi_core.system.logger import log, log_context
+from astrapi_core.system.runner import run_logged as _run_logged
 from astrapi_core.system.runner import worst_status as _worst
 from astrapi_core.ui.settings_registry import get_module as _get_module_setting
 
@@ -284,15 +285,27 @@ def run() -> str:
 def check_availability() -> str:
     """Prüft nur, ob die konfigurierten VMIDs noch im Proxmox-Cluster
     existieren -- löst dabei KEIN Backup aus (anders als run()). Setzt
-    last_status je Eintrag, damit sich das Ergebnis in der bestehenden
-    Status-Spalte zeigt statt eine eigene UI zu brauchen: "warning" wenn
-    die VMID nicht mehr im Cluster gefunden wurde (bewusst nicht "error" --
-    das würde sich mit echten Backup-Fehlern vermischen), "error" nur wenn
-    die Cluster-Abfrage selbst fehlschlägt (Netzwerk/Auth).
+    last_status je Eintrag: "warning" wenn die VMID nicht mehr im Cluster
+    gefunden wurde (bewusst nicht "error" -- das würde sich mit echten
+    Backup-Fehlern vermischen), "error" nur wenn die Cluster-Abfrage
+    selbst fehlschlägt (Netzwerk/Auth).
+
+    Schreibt zusätzlich je Eintrag einen echten Activity-Log-Eintrag
+    (run_logged()) -- die Status-Spalte in der Liste zeigt bevorzugt den
+    Status des letzten Activity-Log-Laufs (last_run_status(), siehe
+    app.py) vor dem rohen last_status-Feld. Ohne eigenen Log-Eintrag
+    hätte ein länger zurückliegender, aber neuerer echter Backup-Lauf
+    ("ok") das frisch gesetzte last_status="warning" dieser Prüfung in
+    der Anzeige verdeckt -- fehlende Container erschienen fälschlich
+    weiterhin als "OK".
     """
     config = _get_config()
     entries = [
-        {"item_id": item_id, "vmid": int(e["vmid"])}
+        {
+            "item_id": item_id,
+            "vmid": int(e["vmid"]),
+            "name": e.get("description", item_id),
+        }
         for item_id, e in config.items()
         if e.get("vmid") is not None
     ]
@@ -302,22 +315,45 @@ def check_availability() -> str:
     try:
         vm_nodes, node_remotes, cluster_remote = _cluster_vm_map()
     except Exception as e:
-        log("ERROR", f"Verfügbarkeitsprüfung: Cluster-Abfrage fehlgeschlagen: {e}")
+        err = str(e)
         for entry in entries:
-            _patch_item(KEY, entry["item_id"], last_status="error")
+            status = _run_logged(
+                KEY,
+                entry["item_id"],
+                entry["name"],
+                lambda err=err: log(
+                    "ERROR", f"Verfügbarkeitsprüfung: Cluster-Abfrage fehlgeschlagen: {err}"
+                ),
+            )
+            _patch_item(KEY, entry["item_id"], last_status=status)
         return "error"
 
     overall = "ok"
     for entry in entries:
         node = vm_nodes.get(entry["vmid"])
         if node is None:
-            log("WARNING", f"Verfügbarkeitsprüfung: VMID {entry['vmid']} nicht im Cluster gefunden")
-            _patch_item(KEY, entry["item_id"], last_status="warning")
-            overall = _worst(overall, "warning")
+            vmid = entry["vmid"]
+            status = _run_logged(
+                KEY,
+                entry["item_id"],
+                entry["name"],
+                lambda vmid=vmid: log(
+                    "WARNING", f"Verfügbarkeitsprüfung: VMID {vmid} nicht im Cluster gefunden"
+                ),
+            )
+            _patch_item(KEY, entry["item_id"], last_status=status)
+            overall = _worst(overall, status)
             continue
+
         _, remote = _node_target(node, node_remotes, cluster_remote)
         remote_id = str(remote.get("id", "")) if remote else ""
-        updates = {"last_status": "ok"}
+        status = _run_logged(
+            KEY,
+            entry["item_id"],
+            entry["name"],
+            lambda: log("INFO", "Verfügbarkeitsprüfung: Container im Cluster gefunden"),
+        )
+        updates = {"last_status": status}
         if remote_id:
             updates["node"] = remote_id
         _patch_item(KEY, entry["item_id"], **updates)
