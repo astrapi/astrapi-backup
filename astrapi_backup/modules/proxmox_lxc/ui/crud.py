@@ -140,19 +140,13 @@ router = APIRouter()
 
 @router.get(f"/ui/{KEY}/create", response_class=HTMLResponse)
 def create_modal(request: Request):
-    from astrapi_core.ui.render import render
-
-    return render(
-        request,
-        "proxmox_lxc/dialogs/create/modal.html",
-        dict(
-            loading_id=request.query_params.get("loading_id", f"{KEY}-loading"),
-        ),
-    )
-
-
-@router.get(f"/ui/{KEY}/available-select", response_class=HTMLResponse)
-def available_select(request: Request):
+    # Container-Liste synchron statt per hx-trigger="load" nachladen (T-195-BACKUP):
+    # das nachgeladene Fragment lag als Kind im selben <form>, dessen
+    # Auto-Close-Guard (dialog_form.html) auf den erfolgreichen Abschluss
+    # DIESES verschachtelten Requests reagierte und das Modal sofort wieder
+    # schloss, sobald die Cluster-Abfrage durch war -- unabhaengig davon, ob
+    # Container gefunden wurden. Ein einzelner, synchroner Request vor dem
+    # Rendern umgeht das Wettlaufproblem komplett.
     from astrapi_core.ui.render import render
 
     available = []
@@ -161,7 +155,12 @@ def available_select(request: Request):
     except Exception:
         pass
     return render(
-        request, "proxmox_lxc/dialogs/create/available_select.html", {"available": available}
+        request,
+        "proxmox_lxc/dialogs/create/modal.html",
+        dict(
+            loading_id=request.query_params.get("loading_id", f"{KEY}-loading"),
+            available=available,
+        ),
     )
 
 

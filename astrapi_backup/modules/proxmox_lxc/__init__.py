@@ -38,6 +38,7 @@ module = load_modul(
             [
                 {"value": "neu", "label": "Neu"},
                 {"value": "ok", "label": "OK"},
+                {"value": "warning", "label": "Warnung"},
                 {"value": "error", "label": "Fehler"},
             ],
             all_label="Alle Status",
@@ -48,6 +49,7 @@ module = load_modul(
             hx_target="#main-content",
             hx_swap="innerHTML",
             style="ghost",
+            busy_label="Prüfe…",
         ),
         Header.action_button("Neu", hx_get=f"/ui/{_KEY}/create", hx_target="body", style="primary", icon="plus"),
     ]),

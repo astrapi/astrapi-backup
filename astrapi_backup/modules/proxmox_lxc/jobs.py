@@ -284,8 +284,11 @@ def run() -> str:
 def check_availability() -> str:
     """Prüft nur, ob die konfigurierten VMIDs noch im Proxmox-Cluster
     existieren -- löst dabei KEIN Backup aus (anders als run()). Setzt
-    last_status je Eintrag auf "ok"/"error", damit sich das Ergebnis in
-    der bestehenden Status-Spalte zeigt statt eine eigene UI zu brauchen.
+    last_status je Eintrag, damit sich das Ergebnis in der bestehenden
+    Status-Spalte zeigt statt eine eigene UI zu brauchen: "warning" wenn
+    die VMID nicht mehr im Cluster gefunden wurde (bewusst nicht "error" --
+    das würde sich mit echten Backup-Fehlern vermischen), "error" nur wenn
+    die Cluster-Abfrage selbst fehlschlägt (Netzwerk/Auth).
     """
     config = _get_config()
     entries = [
@@ -308,9 +311,9 @@ def check_availability() -> str:
     for entry in entries:
         node = vm_nodes.get(entry["vmid"])
         if node is None:
-            log("ERROR", f"Verfügbarkeitsprüfung: VMID {entry['vmid']} nicht im Cluster gefunden")
-            _patch_item(KEY, entry["item_id"], last_status="error")
-            overall = _worst(overall, "error")
+            log("WARNING", f"Verfügbarkeitsprüfung: VMID {entry['vmid']} nicht im Cluster gefunden")
+            _patch_item(KEY, entry["item_id"], last_status="warning")
+            overall = _worst(overall, "warning")
             continue
         _, remote = _node_target(node, node_remotes, cluster_remote)
         remote_id = str(remote.get("id", "")) if remote else ""
