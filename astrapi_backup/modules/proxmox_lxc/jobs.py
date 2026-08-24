@@ -281,6 +281,47 @@ def run() -> str:
     return overall
 
 
+def check_availability() -> str:
+    """Prüft nur, ob die konfigurierten VMIDs noch im Proxmox-Cluster
+    existieren -- löst dabei KEIN Backup aus (anders als run()). Setzt
+    last_status je Eintrag auf "ok"/"error", damit sich das Ergebnis in
+    der bestehenden Status-Spalte zeigt statt eine eigene UI zu brauchen.
+    """
+    config = _get_config()
+    entries = [
+        {"item_id": item_id, "vmid": int(e["vmid"])}
+        for item_id, e in config.items()
+        if e.get("vmid") is not None
+    ]
+    if not entries:
+        return "ok"
+
+    try:
+        vm_nodes, node_remotes, cluster_remote = _cluster_vm_map()
+    except Exception as e:
+        log("ERROR", f"Verfügbarkeitsprüfung: Cluster-Abfrage fehlgeschlagen: {e}")
+        for entry in entries:
+            _patch_item(KEY, entry["item_id"], last_status="error")
+        return "error"
+
+    overall = "ok"
+    for entry in entries:
+        node = vm_nodes.get(entry["vmid"])
+        if node is None:
+            log("ERROR", f"Verfügbarkeitsprüfung: VMID {entry['vmid']} nicht im Cluster gefunden")
+            _patch_item(KEY, entry["item_id"], last_status="error")
+            overall = _worst(overall, "error")
+            continue
+        _, remote = _node_target(node, node_remotes, cluster_remote)
+        remote_id = str(remote.get("id", "")) if remote else ""
+        updates = {"last_status": "ok"}
+        if remote_id:
+            updates["node"] = remote_id
+        _patch_item(KEY, entry["item_id"], **updates)
+
+    return overall
+
+
 def run_single(item_id, entry=None):
     entry = _get_entry(_get_config(), item_id)
     if not entry:

@@ -42,6 +42,13 @@ module = load_modul(
             ],
             all_label="Alle Status",
         ),
+        Header.action_button(
+            "Verfügbarkeit prüfen",
+            hx_post=f"/ui/{_KEY}/check-availability",
+            hx_target="#main-content",
+            hx_swap="innerHTML",
+            style="ghost",
+        ),
         Header.action_button("Neu", hx_get=f"/ui/{_KEY}/create", hx_target="body", style="primary", icon="plus"),
     ]),
     ui_content=ContentTable(

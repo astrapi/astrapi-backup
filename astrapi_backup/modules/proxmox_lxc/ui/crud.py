@@ -165,6 +165,22 @@ def available_select(request: Request):
     )
 
 
+@router.post(f"/ui/{KEY}/check-availability")
+def check_availability_route(request: Request):
+    """Prüft alle konfigurierten LXC auf Existenz im Proxmox-Cluster (ohne
+    Backup auszulösen) und leitet danach auf die normale, paginierte
+    Content-Route weiter -- kein Backup-Trigger, nur Status-Refresh."""
+    from fastapi.responses import RedirectResponse
+
+    from astrapi_backup.modules.proxmox_lxc.jobs import check_availability
+
+    try:
+        check_availability()
+    except Exception:
+        pass
+    return RedirectResponse(f"/ui/{KEY}/content", status_code=303)
+
+
 # Generische CRUD-Routen danach (create wird durch obige Route überschattet)
 _crud = make_crud_router(
     store,
