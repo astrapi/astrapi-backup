@@ -13,7 +13,7 @@
 
 {% if cfg %}
   {% for item_id, item in cfg.items() %}
-    {% set _footer %}{{ mc.m_card_actions_default(module, item_id, item, container_id, loading_id, card_actions=_card_actions) }}{% endset %}
+    {% set _footer %}{{ mc.m_card_actions_default(module, item_id, item, container_id, loading_id, card_actions=_card_actions, page=_page) }}{% endset %}
     {% call mc.m_card(item.get('description') or item_id, status=item.get('last_status'), enabled=item.get('enabled', True), footer=_footer) %}
       {{ mc.m_card_row('Quelle', _rp(item.get('source_remote_id'), item.get('source_path'))) }}
       {{ mc.m_card_row('Ziel', _rp(item.get('target_remote_id'), item.get('target_path'))) }}
