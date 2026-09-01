@@ -47,4 +47,19 @@ fields:
       Verschiedene Nodes arbeiten unabhängig voneinander: bei 2 und drei Nodes
       laufen also bis zu sechs gleichzeitig, zwei je Node.
 
+  - type: section
+    label: astrapi-admin
+    cols: 1
+
+  - key: astrapi_admin_url
+    label: astrapi-admin-URL
+    type: text
+    placeholder: "http://admin.simpsons.lan:5005"
+    description: >
+      Optional (E-010). Verhindert, dass ein Backup startet, während
+      astrapi-admin gerade ein Update auf demselben LXC laufen hat --
+      fragt vor jedem vzdump-Aufruf den (aktuell unauthentifizierten)
+      Endpunkt GET /api/agent/proxmox-pending-updates ab. Leer lassen
+      zum Deaktivieren; ein nicht erreichbares/falsch konfiguriertes
+      astrapi-admin blockiert das Backup dabei nie (fail-open).
 

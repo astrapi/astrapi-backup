@@ -103,6 +103,26 @@ def _auth_headers(token_id: str, token_secret: str) -> dict:
     return {"Authorization": f"PVEAPIToken={token_id}={token_secret}"}
 
 
+def _astrapi_admin_pending_vmids() -> set:
+    """Welche VMIDs haben laut astrapi-admin gerade ein Update laufen
+    (E-010) -- verhindert, dass wir einen Container mitten in einem
+    'apt upgrade'/'pacman -Syu' sichern. Fail-open: bei fehlender
+    Konfiguration, Netzwerkfehler oder kaputter Antwort wird eine leere
+    Menge geliefert -- ein Fehler in astrapi-admin darf Backups hier
+    nicht dauerhaft blockieren. Endpunkt ist aktuell unauthentifiziert
+    (Nutzerentscheidung 2026-09-01, siehe E-010) -- ein Token waere
+    sinnvoll, sobald astrapi-admin das anbietet."""
+    base = (_get_module_setting(KEY, "astrapi_admin_url", "") or "").rstrip("/")
+    if not base:
+        return set()
+    try:
+        resp = requests.get(f"{base}/api/agent/proxmox-pending-updates", timeout=5)
+        resp.raise_for_status()
+        return {int(v) for v in resp.json().get("vmids", [])}
+    except Exception:
+        return set()
+
+
 def _trigger_vzdump(host: str, node_name: str, vmid: int, remote: dict) -> str:
     """Startet vzdump via Proxmox API. Gibt den UPID des Tasks zurück."""
     token_id, token_secret = _api_token(remote)
@@ -412,6 +432,16 @@ def _run_single_job(item_id, vmid: int, name: str, host=None, node=None, remote=
 def _backup_lxc(vmid: int, name: str, ziel: tuple | None = None) -> str:
     """ziel: (host, node_name, remote) falls bereits aufgeloest – run() gibt es
     gebuendelt mit, run_single() loest einzeln auf."""
+    if vmid in _astrapi_admin_pending_vmids():
+        # E-010: kein Backup mitten in einem laufenden astrapi-admin-Update.
+        # "warning" statt "error" -- kein Fehlschlag, der naechste
+        # planmaessige Lauf holt das Backup einfach nach.
+        log(
+            "WARNING",
+            f"LXC '{name}': astrapi-admin hat gerade ein Update für VMID {vmid} laufen -- "
+            "Backup diesmal übersprungen",
+        )
+        return "warning"
     try:
         host, node_name, remote = ziel if ziel else _resolve_node_for_vmid(vmid)
         log("INFO", f"LXC '{name}': Node {node_name} ({host})")
