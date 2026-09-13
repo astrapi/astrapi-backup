@@ -55,7 +55,8 @@ _APP_TABLES = {
                 target_path      TEXT    NOT NULL DEFAULT '',
                 last_run         TEXT,
                 last_status      TEXT,
-                last_log         TEXT
+                last_log         TEXT,
+                category_id      INTEGER NOT NULL DEFAULT 0
             )""",
     },
     "proxmox_lxc": {

@@ -27,6 +27,23 @@ def _remote_options(type_filter: str, include_local: bool) -> list[dict]:
     ]
 
 
+def category_options() -> list[dict]:
+    """Fuer Header.filter_select() (Dropdown-Anzeige) UND filters= (die
+    eigentliche Filterlogik in resolve_filters_for_request())."""
+    from astrapi_core.modules.categories.ui.crud import categories_for_select
+
+    return categories_for_select()
+
+
+def _resolve_category(item_id: str, item: dict) -> dict:
+    from astrapi_core.modules.categories.ui.crud import store as categories_store
+
+    category = categories_store.get(str(item.get("category_id") or "")) or {}
+    item["category_name"] = category.get("name") or ""
+    item["category_color"] = category.get("color") or ""
+    return item
+
+
 router = make_crud_router(
     store,
     KEY,
@@ -36,6 +53,7 @@ router = make_crud_router(
     resolve_fields_fn=_resolve_fields,
     running_fn=get_running,
     create_defaults={"last_status": "neu"},
+    list_item_transform=_resolve_category,
     filters=[
         {
             "param": "type",
@@ -67,6 +85,12 @@ router = make_crud_router(
                 {"value": "ok", "label": "OK"},
                 {"value": "error", "label": "Fehler"},
             ],
+        },
+        {
+            "param": "category_id",
+            "label": "Kategorie",
+            "all_label": "Alle Kategorien",
+            "options_fn": category_options,
         },
     ],
 )

@@ -26,6 +26,11 @@ fields:
     type: boolean
     label: Aktiviert
 
+  - name: category_id
+    type: select
+    label: Kategorie
+    options_endpoint: /api/categories/for-select
+
   - type: section
     label: Quelle
     cols: 2
