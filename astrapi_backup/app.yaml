@@ -4,3 +4,18 @@ display_name: Backup
 # monitor-arrow-down-variant (mdiMonitorArrowDownVariant) -- Daten landen
 # auf dem Sicherungsziel, fuer Favicon + PWA-Manifest (astrapi-core >= 26.9.3).
 icon_svg: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a3a3a3'><path d='M17 14L22 9L20.6 7.6L18 10.2V3H16V10.2L13.4 7.6L12 9L17 14M23 14V16C23 17.1 22.1 18 21 18H14V20H16V22H8V20H10V18H3C1.9 18 1 17.1 1 16V4C1 2.9 1.9 2 3 2H12V4H3V16H21V14H23Z'/></svg>"
+
+# Login-Pflicht fuer die UI (bisher offen im LAN) + Mehrbenutzer-Login,
+# Nutzerentscheidung 2026-09-13 -- geteilte Daten fuer alle eingeloggten
+# Nutzer, keine Mandantentrennung (anders als astrapi-sync). Erster
+# Besucher landet auf /auth/register, legt selbst Passkey/Passwort fest
+# und wird automatisch Admin (astrapi_core/system/auth.py::
+# _migrate_user_columns()). password_fallback: true, da hier (anders als
+# astrapi-admin) noch nicht bestaetigt ist, dass ueberall HTTPS steht --
+# Passkeys brauchen einen sicheren Kontext.
+auth:
+  enabled: true
+  multi_user: true
+  rp_id: backup.simpsons.lan
+  rp_name: astrapi-backup
+  password_fallback: true
