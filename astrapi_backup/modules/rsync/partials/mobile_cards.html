@@ -3,6 +3,7 @@
   Mobile-Karten für Rsync-Jobs -- Quelle/Ziel als aufgelöstes Remote-Path-Paar.
 #}
 {% import 'partials/components/mobile_card_macros.html' as mc %}
+{% import 'partials/components/ui_macros.html' as ui %}
 
 {% macro _rp(remote_id, path) %}
 {%- set _h = resolve_remote_host(remote_id) if remote_id else '—' -%}
@@ -14,11 +15,11 @@
 {% if cfg %}
   {% for item_id, item in cfg.items() %}
     {% set _footer %}{{ mc.m_card_actions_default(module, item_id, item, container_id, loading_id, card_actions=_card_actions, page=_page) }}{% endset %}
-    {% call mc.m_card(item.get('description') or item_id, status=item.get('last_status'), enabled=item.get('enabled', True), footer=_footer) %}
+    {% call mc.m_card(item.get('description') or item_id, status=item.get('last_status'), enabled=item.get('enabled', True), footer=_footer, accent=item.get('category_color')) %}
       {{ mc.m_card_row('Typ', _type_labels.get(item.get('type'), item.get('type'))) }}
       {{ mc.m_card_row('Quelle', _rp(item.get('source_remote_id'), item.get('source_path'))) }}
       {{ mc.m_card_row('Ziel', _rp(item.get('target_remote_id'), item.get('target_path'))) }}
-      {{ mc.m_card_row('Letzter Lauf', item.get('last_run')) }}
+      {{ mc.m_card_row('Letzter Lauf', ui.last_run_cell(item.get('last_run'))) }}
     {% endcall %}
   {% endfor %}
 {% else %}
