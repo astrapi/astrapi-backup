@@ -35,7 +35,8 @@ _APP_TABLES = {
                 post_hooks       TEXT,
                 exclude          TEXT,
                 last_run         TEXT,
-                last_status      TEXT
+                last_status      TEXT,
+                category_id      INTEGER NOT NULL DEFAULT 0
             )""",
         "list_fields": ["pre_hooks", "post_hooks", "exclude"],
         "col_in": {"pre_hooks": "pre", "post_hooks": "post"},

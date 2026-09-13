@@ -5,6 +5,7 @@ from astrapi_core.ui.module_loader import load_modul
 
 from .jobs import check, run, run_single  # re-export fuer api/routers/run.py
 from .ui.archives import router
+from .ui.crud import category_options
 from .ui.crud import router as ui_router
 
 _KEY = Path(__file__).parent.name
@@ -42,12 +43,16 @@ module = load_modul(
             all_label="Alle Ziele",
         ),
         Header.filter_select("last_status", _STATUS_OPTIONS, all_label="Alle Status"),
+        Header.filter_select(
+            "category_id", options_fn=category_options, all_label="Alle Kategorien"
+        ),
         Header.action_button("Neu", hx_get=f"/ui/{_KEY}/create", hx_target="body", style="primary", icon="plus"),
     ]),
     ui_content=ContentTable(
         columns=[
             Col.remote_path("source_remote_id", "source_path", "Quelle"),
             Col.remote_path("target_remote_id", "target_path", "Ziel"),
+            Col.category("category_name", "Kategorie", color_key="category_color", sortable=True),
         ],
     ),
 )
